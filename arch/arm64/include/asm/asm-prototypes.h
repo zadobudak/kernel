@@ -23,6 +23,11 @@ long long __ashlti3(long long a, int b);
 long long __ashrti3(long long a, int b);
 long long __lshrti3(long long a, int b);
 
+void __disable_dcache();
+void __inner_flush_dcache_all();
+void __inner_flush_dcache_L1();
+void __inner_flush_dcache_L2();
+
 /*
  * This function uses a custom calling convention and cannot be called from C so
  * this prototype is not entirely accurate.
