@@ -1,0 +1,61 @@
+/dts-v1/;
+/plugin/;
+
+/ {
+	fragment@0 {
+		target = <&hdmi0>;
+		__overlay__ {
+			status = "okay";
+		};
+	};
+
+	fragment@1 {
+		target = <&hdmi_phy>;
+		__overlay__ {
+			status = "okay";
+		};
+	};
+
+	fragment@2 {
+		target = <&edp_tx>;
+		__overlay__ {
+			status = "okay";
+		};
+	};
+
+	fragment@3 {
+		target = <&dp_intf0>;
+		__overlay__ {
+			status = "okay";
+		};
+	};
+
+	fragment@4 {
+		target = <&edp_panel>;
+		__overlay__ {
+			status = "okay";
+
+			label = "BOE NE135FBMN41 (WIP)";
+			width-mm = <285>;
+			height-mm = <190>;
+		};
+	};
+
+	fragment@5 {
+		target = <&edp_panel_fixed_3v3>;
+		__overlay__ {
+			regulator-always-on;
+
+			regulator-state-mem {
+				regulator-on-in-suspend;
+			};
+		};
+	};
+
+	fragment@6 {
+		target = <&backlight_lcd0>;
+		__overlay__ {
+			default-on;
+		};
+	};
+};
