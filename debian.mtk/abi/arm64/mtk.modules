@@ -43,7 +43,6 @@ aacraid
 aat2870-regulator
 aat2870_bl
 abp060mg
-ac97_bus
 acard-ahci
 acecad
 acenic
@@ -53,7 +52,6 @@ acpi_configfs
 acpi_ipmi
 acpi_power_meter
 acpi_tad
-acpiphp_ibm
 act8865-regulator
 act8945a
 act8945a-regulator
@@ -407,7 +405,6 @@ ark3116
 arkfb
 arm-cmn
 arm_dmc620_pmu
-arm_dsu_pmu
 arm_mhu
 arm_mhu_db
 arm_mhuv2
@@ -930,7 +927,6 @@ cppc_cpufreq
 cpr
 cptpf
 cptvf
-cqhci
 cramfs
 crc-itu-t
 crc32_generic
@@ -1176,6 +1172,7 @@ dm-zoned
 dm1105
 dm9601
 dma-axi-dmac
+dma-buf-test-exporter
 dmard06
 dmard09
 dmard10
@@ -1319,6 +1316,7 @@ dw_wdt
 dwc-xlgmac
 dwc2_pci
 dwc3
+dwc3-exynos
 dwc3-haps
 dwc3-imx8mp
 dwc3-keystone
@@ -1340,6 +1338,7 @@ dwmac-meson8b
 dwmac-qcom-ethqos
 dwmac-rk
 dwmac-sun8i
+dwmac-sunxi
 dwmac-visconti
 dyna_pci10xx
 dynapro
@@ -1472,6 +1471,11 @@ extcon-sm5502
 extcon-usb-gpio
 extcon-usbc-cros-ec
 extcon-usbc-tusb320
+exynos-gsc
+exynos-lpass
+exynos-trng
+exynos_adc
+exynosdrm
 ezusb
 f2fs
 f71805f
@@ -2187,7 +2191,6 @@ i2c-kempld
 i2c-matroxfb
 i2c-meson
 i2c-mlxbf
-i2c-mt65xx
 i2c-mux
 i2c-mux-gpio
 i2c-mux-gpmux
@@ -2263,7 +2266,6 @@ icc-rpmh
 icc-smd-rpm
 ice
 ice40-spi
-icp
 icp10100
 icp_multi
 icplus
@@ -2559,6 +2561,7 @@ isofs
 isp116x-hcd
 isp1704_charger
 isp1760
+it5205fn
 it87
 it913x
 itd1000
@@ -3145,7 +3148,6 @@ me4000
 me_daq
 mediatek
 mediatek-cpufreq
-mediatek-cpufreq-hw
 mediatek-drm
 mediatek-drm-hdmi
 mediatek-ge
@@ -3156,6 +3158,7 @@ megaraid_mm
 megaraid_sas
 melfas_mip4
 memory-notifier-error-inject
+memory_group_manager
 memstick
 men_z135_uart
 men_z188_adc
@@ -3322,17 +3325,10 @@ mt2266
 mt312
 mt352
 mt6311-regulator
-mt6315-regulator
 mt6323-regulator
 mt6358-regulator
-mt6359-accdet
-mt6359-regulator
 mt6360-adc
-mt6360-core
-mt6360-regulator
-mt6360_charger
 mt6380-regulator
-mt6397
 mt6397-regulator
 mt6577_auxadc
 mt6797-mt6351
@@ -3357,6 +3353,7 @@ mt76x2-common
 mt76x2e
 mt76x2u
 mt7915e
+mt7921-common
 mt7921e
 mt8183-da7219-max98357
 mt8183-mt6358-ts3a227-max98357
@@ -3383,16 +3380,12 @@ mtdswap
 mtip32xx
 mtk-btcvsd
 mtk-cir
-mtk-cmdq-helper
-mtk-cmdq-mailbox
 mtk-cqdma
 mtk-devapc
 mtk-hsdma
 mtk-pmic-keys
-mtk-pmic-wrap
 mtk-rng
-mtk-sd
-mtk-smi
+mtk-svs
 mtk-uart-apdma
 mtk-vpu
 mtk_ecc
@@ -3400,10 +3393,7 @@ mtk_nand
 mtk_rpmsg
 mtk_scp
 mtk_scp_ipi
-mtk_thermal
-mtk_wdt
 mtouch
-mtu3
 multipath
 multiq3
 musb_hdrc
@@ -3960,13 +3950,15 @@ pcf8591
 pch_udc
 pci
 pci-epf-ntb
+pci-epf-test
+pci-meson
 pci-pf-stub
 pci-stub
 pci200syn
+pci_endpoint_test
 pcie-brcmstb
 pcie-iproc
 pcie-iproc-platform
-pcie-mediatek-gen3
 pcie-rockchip-host
 pcie-tegra194
 pcips2
@@ -4021,6 +4013,7 @@ phy-cadence-torrent
 phy-can-transceiver
 phy-cpcap-usb
 phy-exynos-usb2
+phy-exynos5-usbdrd
 phy-fsl-imx8-mipi-dphy
 phy-fsl-imx8mq-usb
 phy-generic
@@ -4043,8 +4036,6 @@ phy-meson-gxl-usb2
 phy-meson8b-usb2
 phy-mtk-hdmi-drv
 phy-mtk-mipi-dsi-drv
-phy-mtk-tphy
-phy-mtk-ufs
 phy-mtk-xsphy
 phy-mvebu-a3700-comphy
 phy-mvebu-a3700-utmi
@@ -4622,7 +4613,6 @@ regmap-sdw
 regmap-sdw-mbq
 regmap-slimbus
 regmap-spi-avmm
-regmap-spmi
 regmap-w1
 regulator-haptic
 reiserfs
@@ -4643,7 +4633,6 @@ reset-raspberrypi
 reset-rzg2l-usbphy-ctrl
 reset-scmi
 reset-ti-sci
-reset-ti-syscon
 resistive-adc-touch
 retu-mfd
 retu-pwrbutton
@@ -4805,9 +4794,6 @@ rtc-mc13xxx
 rtc-mcp795
 rtc-meson-vrtc
 rtc-msm6242
-rtc-mt2712
-rtc-mt6397
-rtc-mt7622
 rtc-mxc
 rtc-mxc_v2
 rtc-ntxec
@@ -4944,6 +4930,8 @@ s5k5baf
 s5k6a3
 s5k6aa
 s5m8767
+s5p-jpeg
+s5p-mfc
 s626
 s6sy761
 s921
@@ -5214,7 +5202,6 @@ smsm
 smsmdtv
 smssdio
 smsusb
-snd
 snd-ac97-codec
 snd-ad1889
 snd-ak4113
@@ -5236,7 +5223,6 @@ snd-bebob
 snd-bt87x
 snd-ca0106
 snd-cmipci
-snd-compress
 snd-cs4281
 snd-cs46xx
 snd-cs8427
@@ -5319,8 +5305,6 @@ snd-opl3-synth
 snd-oxfw
 snd-oxygen
 snd-oxygen-lib
-snd-pcm
-snd-pcm-dmaengine
 snd-pcxhr
 snd-portman2x4
 snd-pt2258
@@ -5373,7 +5357,6 @@ snd-soc-audio-graph-card
 snd-soc-bcm2835-i2s
 snd-soc-bd28623
 snd-soc-bt-sco
-snd-soc-core
 snd-soc-cpcap
 snd-soc-cros-ec-codec
 snd-soc-cs35l32
@@ -5403,7 +5386,6 @@ snd-soc-cx2072x
 snd-soc-da7213
 snd-soc-da7219
 snd-soc-davinci-mcasp
-snd-soc-dmic
 snd-soc-es7134
 snd-soc-es7241
 snd-soc-es8316
@@ -5425,7 +5407,6 @@ snd-soc-fsl-spdif
 snd-soc-fsl-ssi
 snd-soc-fsl-xcvr
 snd-soc-gtm601
-snd-soc-hdmi-codec
 snd-soc-ics43432
 snd-soc-imx-audmix
 snd-soc-imx-audmux
@@ -5485,13 +5466,10 @@ snd-soc-msm8916-analog
 snd-soc-msm8916-digital
 snd-soc-mt6351
 snd-soc-mt6358
-snd-soc-mt6359
 snd-soc-mt6660
 snd-soc-mt6797-afe
 snd-soc-mt8183-afe
 snd-soc-mt8192-afe
-snd-soc-mt8195-afe
-snd-soc-mtk-common
 snd-soc-nau8315
 snd-soc-nau8540
 snd-soc-nau8810
@@ -5552,6 +5530,7 @@ snd-soc-rt711-sdca
 snd-soc-rt715
 snd-soc-rt715-sdca
 snd-soc-rz-ssi
+snd-soc-s3c-dma
 snd-soc-sc7180
 snd-soc-sdm845
 snd-soc-sdw-mockup
@@ -5667,7 +5646,6 @@ snd-sof-imx8m
 snd-sof-of
 snd-sof-xtensa-dsp
 snd-sonicvibes
-snd-timer
 snd-trident
 snd-ua101
 snd-usb-6fire
@@ -5702,7 +5680,6 @@ softing
 solo6x10
 solos-pci
 sony-btf-mpx
-soundcore
 soundwire-bus
 soundwire-cadence
 soundwire-generic-allocation
@@ -5753,7 +5730,6 @@ spi-lm70llp
 spi-loopback-test
 spi-meson-spicc
 spi-meson-spifc
-spi-mt65xx
 spi-mtk-nor
 spi-mux
 spi-mxic
@@ -5793,8 +5769,6 @@ spi-zynqmp-gqspi
 spi_ks8995
 spidev
 spinand
-spl
-spmi
 spmi-pmic-arb
 sprd-dma
 sprd-iommu
@@ -5917,6 +5891,8 @@ sun4i-drm
 sun4i-drm-hdmi
 sun4i-frontend
 sun4i-gpadc
+sun4i-i2s
+sun4i-spdif
 sun4i-ss
 sun4i-tcon
 sun4i_tv
@@ -6097,6 +6073,7 @@ tegra-bpmp-thermal
 tegra-drm
 tegra-gmi
 tegra-kbc
+tegra-soctherm
 tegra-vde
 tegra-video
 tegra-xudc
@@ -6178,7 +6155,6 @@ tm6000
 tm6000-alsa
 tm6000-dvb
 tmdc
-tmio_mmc_core
 tmp006
 tmp007
 tmp102
@@ -6333,7 +6309,6 @@ ucs1002_power
 ucsi_acpi
 ucsi_ccg
 uda1342
-udc-core
 udc-xilinx
 udf
 udl
@@ -6342,13 +6317,11 @@ udp_diag
 udp_tunnel
 ueagle-atm
 ufs
+ufs-exynos
 ufs-hisi
-ufs-mediatek
 ufs_qcom
-ufshcd-core
 ufshcd-dwc
 ufshcd-pci
-ufshcd-pltfrm
 uhid
 uio
 uio_aec
@@ -6712,7 +6685,6 @@ xgene-hwmon
 xgene-rng
 xgene_edac
 xhci-histb
-xhci-mtk-hcd
 xhci-pci
 xhci-pci-renesas
 xhci-plat-hcd
@@ -6834,15 +6806,12 @@ yenta_socket
 yurex
 z3fold
 zaurus
-zavl
-zcommon
 zd1201
 zd1211rw
 zd1301
 zd1301_demod
 zet6223
 zforce_ts
-zfs
 zhenhua
 ziirave_wdt
 zinitix
@@ -6850,8 +6819,6 @@ zl10036
 zl10039
 zl10353
 zl6100
-zlua
-znvpair
 zonefs
 zopt2201
 zpa2326
@@ -6865,9 +6832,7 @@ zr364xx
 zram
 zstd
 zstd_compress
-zunicode
 zynqmp-aes-gcm
 zynqmp-dpsub
 zynqmp-fpga
 zynqmp_dma
-zzstd
