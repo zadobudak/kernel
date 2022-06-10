@@ -37,6 +37,7 @@ Add optional parameters with their values to /boot/uEnv.txt if you want to chang
 - rk3308-usb20-host
 - rockpis-v11-spi2-waveshare35b-v2, rockpis-v11-spi2-waveshare35c, rockpis-v12-spi2-waveshare35b-v2, rockpis-v12-spi2-waveshare35c
 - rockpis-dmic-8ch-pdm
+- rk3308-shajin-gt970
 
 Notes:
 1.I2C0, UART1 and SPI2 cannot be enabled at the same time.
@@ -209,3 +210,7 @@ Activates spdif-out on GPIO0_C1
 #### rockpis-i2s-out.dts
 
 Activates I2S
+
+#### rk3308-shajin-gt970
+
+Activates shajin screen touch change to gt970 

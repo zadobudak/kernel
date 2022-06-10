@@ -1,0 +1,13 @@
+/dts-v1/;
+/plugin/;
+
+/ {
+	compatible = "rockchip,rk3308";
+
+	fragment@0 {
+		target = <&gt9xx>;
+		__overlay__ {
+			tp-size = <970>;
+		};
+	};
+};
