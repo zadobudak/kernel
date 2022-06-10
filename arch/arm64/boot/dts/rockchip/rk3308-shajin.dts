@@ -167,7 +167,7 @@
 		reset-gpio = <&gpio0 RK_PB1 GPIO_ACTIVE_HIGH>;
 		max-x = <800>;
 		max-y = <480>;
-		tp-size = <970>;
+		tp-size = <911>;
 	};
 };
 
