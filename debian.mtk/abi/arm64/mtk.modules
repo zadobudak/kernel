@@ -826,7 +826,6 @@ cicada
 cifs
 cifs_arc4
 cifs_md4
-cirrus
 cirrusfb
 clip
 clk-axi-clkgen
@@ -6461,7 +6460,6 @@ vfio_iommu_type1
 vfio_platform_bcmflexrm
 vfio_virqfd
 vgastate
-vgem
 vgg2432a4
 vhci-hcd
 vhost
@@ -6534,7 +6532,6 @@ vmk80xx
 vmw_pvrdma
 vmw_vsock_virtio_transport
 vmw_vsock_virtio_transport_common
-vmwgfx
 vmxnet3
 vp27smpx
 vp_vdpa
