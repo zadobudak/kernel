@@ -684,8 +684,6 @@ bt878
 btbcm
 btcoexist
 btintel
-btmrvl
-btmrvl_sdio
 btmtksdio
 btmtkuart
 btqca
@@ -787,7 +785,6 @@ cdns3-imx
 cdns3-pci-wrap
 cdns3-ti
 cdnsp-udc-pci
-cec
 ceph
 cfb
 cfg80211
@@ -1198,10 +1195,9 @@ dps310
 dps920ab
 drbd
 drivetemp
-drm
 drm_dp_aux_bus
-drm_kms_helper
 drm_mipi_dbi
+drm_shmem_helper
 drm_ttm_helper
 drm_vram_helper
 drm_xen_front
@@ -1518,7 +1514,6 @@ fb_ssd1331
 fb_ssd1351
 fb_st7735r
 fb_st7789v
-fb_sys_fops
 fb_tinylcd
 fb_tls8204
 fb_uc1611
@@ -1589,8 +1584,6 @@ fsl-qdma
 fsl_dpa
 fsl_ifc_nand
 fsl_imx8_ddr_perf
-fsl_linflexuart
-fsl_lpuart
 fsl_pq_mdio
 fsl_ucc_hdlc
 fsp-3y
@@ -2155,7 +2148,6 @@ hyperbus-core
 hyperv-keyboard
 hyperv_drm
 hyperv_fb
-i2c-algo-bit
 i2c-algo-pca
 i2c-ali1535
 i2c-ali1563
@@ -3147,7 +3139,6 @@ me4000
 me_daq
 mediatek
 mediatek-cpufreq
-mediatek-drm
 mediatek-drm-hdmi
 mediatek-ge
 megachips-stdpxxxx-ge-b850v3-fw
@@ -3354,6 +3345,7 @@ mt76x2u
 mt7915e
 mt7921-common
 mt7921e
+mt7921s
 mt8183-da7219-max98357
 mt8183-mt6358-ts3a227-max98357
 mt8192-mt6359-rt1015-rt5682
@@ -3382,6 +3374,7 @@ mtk-cir
 mtk-cqdma
 mtk-devapc
 mtk-hsdma
+mtk-mdp3
 mtk-pmic-keys
 mtk-rng
 mtk-svs
@@ -3819,6 +3812,7 @@ panel-asus-z00t-tm5p5-n35596
 panel-boe-himax8279d
 panel-boe-tv101wum-nl6
 panel-dsi-cm
+panel-edp
 panel-elida-kd35t133
 panel-feixin-k101-im2ba02
 panel-feiyang-fy07024di26a30d
@@ -4034,7 +4028,6 @@ phy-meson-g12a-usb3-pcie
 phy-meson-gxl-usb2
 phy-meson8b-usb2
 phy-mtk-hdmi-drv
-phy-mtk-mipi-dsi-drv
 phy-mtk-xsphy
 phy-mvebu-a3700-comphy
 phy-mvebu-a3700-utmi
@@ -4793,6 +4786,7 @@ rtc-mc13xxx
 rtc-mcp795
 rtc-meson-vrtc
 rtc-msm6242
+rtc-mt6397
 rtc-mxc
 rtc-mxc_v2
 rtc-ntxec
@@ -4956,7 +4950,6 @@ sahara
 sample-trace-array
 samsung-keypad
 samsung-sxgbe
-samsung_tty
 sata_dwc_460ex
 sata_inic162x
 sata_mv
@@ -5093,7 +5086,6 @@ sfp
 sgi_w1
 sgp30
 sgp40
-sh-sci
 sh_eth
 sh_mmcif
 sh_mobile_lcdcfb
@@ -5131,7 +5123,6 @@ sil-sii8620
 sil164
 silead
 simple-bridge
-simple-mfd-i2c
 simpledrm
 simplefb
 siox-bus-gpio
@@ -5958,9 +5949,6 @@ synaptics_usb
 synclink_gt
 synopsys_edac
 syscon-reboot-mode
-syscopyarea
-sysfillrect
-sysimgblt
 sysv
 t5403
 tag_ar9331
@@ -6700,7 +6688,6 @@ xilinx_emac
 xilinx_emaclite
 xilinx_gmii2rgmii
 xilinx_sdfec
-xilinx_uartps
 xilinxfb
 xillybus_class
 xillybus_core
