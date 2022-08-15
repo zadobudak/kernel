@@ -1,6 +1,7 @@
 # Recreate any symlinks created since the orig.
 # Remove any files deleted from the orig.
 rm -f 'Documentation/devicetree/bindings/display/mediatek/mediatek,disp.txt'
+rm -f 'Documentation/devicetree/bindings/net/mediatek-dwmac.txt'
 rm -f 'arch/hexagon/include/asm/timer-regs.h'
 rm -f 'drivers/gpu/drm/amd/display/dc/dsc/qp_tables.h'
 rm -f 'drivers/gpu/drm/drm_dp_aux_bus.c'
