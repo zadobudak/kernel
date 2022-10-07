@@ -15,6 +15,10 @@
 ##
 ##
 ##
+obj-y += mtk-apusys-driver/
+##
+##
+##
 obj-$(CONFIG_UBUNTU_HOST)      += ubuntu-host/
 ##
 ##

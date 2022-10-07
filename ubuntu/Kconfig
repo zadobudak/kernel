@@ -16,6 +16,10 @@ config UBUNTU_ODM_DRIVERS
 ##
 ##
 ##
+source "ubuntu/mtk-apusys-driver/Kconfig"
+##
+##
+##
 source "ubuntu/ubuntu-host/Kconfig"
 ##
 ##
