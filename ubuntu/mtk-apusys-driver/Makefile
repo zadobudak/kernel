@@ -32,21 +32,21 @@ EXTRA_CFLAGS += -DCONFIG_MTK_APUSYS_MDLA_SUPPORT
 obj-m := apusys.o
 
 # common include path
-EXTRA_CFLAGS += -I$(src)/include/
+EXTRA_CFLAGS += -I$(srctree)/$(src)/include/
 
 # core makefile
 apusys-objs += core/apusys_core.o
 
 # middleware makefile
-EXTRA_CFLAGS += -I$(src)/slbc/
-EXTRA_CFLAGS += -I$(src)/debug/
-EXTRA_CFLAGS += -I$(src)/midware/$(APUSYS_VERSION_MIDWARE)/
-EXTRA_CFLAGS += -I$(src)/$(UTIL_DIR)/
+EXTRA_CFLAGS += -I$(srctree)/$(src)/slbc/
+EXTRA_CFLAGS += -I$(srctree)/$(src)/debug/
+EXTRA_CFLAGS += -I$(srctree)/$(src)/midware/$(APUSYS_VERSION_MIDWARE)/
+EXTRA_CFLAGS += -I$(srctree)/$(src)/$(UTIL_DIR)/
 
-EXTRA_CFLAGS += -I$(src)/midware/$(APUSYS_VERSION_MIDWARE)/ap/
-EXTRA_CFLAGS += -I$(src)/midware/$(APUSYS_VERSION_MIDWARE)/rv/
-EXTRA_CFLAGS += -I$(src)/midware/$(APUSYS_VERSION_MIDWARE)/ap/dummy/
-EXTRA_CFLAGS += -I$(src)/$(UTIL_DIR)/
+EXTRA_CFLAGS += -I$(srctree)/$(src)/midware/$(APUSYS_VERSION_MIDWARE)/ap/
+EXTRA_CFLAGS += -I$(srctree)/$(src)/midware/$(APUSYS_VERSION_MIDWARE)/rv/
+EXTRA_CFLAGS += -I$(srctree)/$(src)/midware/$(APUSYS_VERSION_MIDWARE)/ap/dummy/
+EXTRA_CFLAGS += -I$(srctree)/$(src)/$(UTIL_DIR)/
 
 apusys-objs += midware/$(APUSYS_VERSION_MIDWARE)/mdw_mem_drv.o
 apusys-objs += midware/$(APUSYS_VERSION_MIDWARE)/mdw_mem_rsc.o
@@ -85,7 +85,7 @@ endif
 
 
 #edma makefile
-EXTRA_CFLAGS += -I$(src)/edma/
+EXTRA_CFLAGS += -I$(srctree)/$(src)/edma/
 
 apusys-objs += edma/edma_rv.o
 
@@ -120,7 +120,7 @@ apusys-objs += $(REVISER_PLAT)/v_rv/reviser_hw_vrv.o
 apusys-objs += $(REVISER_PLAT)/v_rv/reviser_plat_vrv.o
 
 # mnoc makefile
-EXTRA_CFLAGS += -I$(src)/mnoc/$(APUSYS_VERSION_MNOC)
+EXTRA_CFLAGS += -I$(srctree)/$(src)/mnoc/$(APUSYS_VERSION_MNOC)
 
 
 
@@ -128,9 +128,9 @@ apusys-objs += mnoc/$(APUSYS_VERSION_MNOC)/common/mnoc_rv.o
 
 
 # debug makefile
-EXTRA_CFLAGS += -I$(src)/debug/$(APUSYS_VERSION_DEBUG)/common/
-EXTRA_CFLAGS += -I$(src)/debug/$(APUSYS_VERSION_DEBUG)/interface/
-EXTRA_CFLAGS += -I$(src)/debug/$(APUSYS_VERSION_DEBUG)/platform/
+EXTRA_CFLAGS += -I$(srctree)/$(src)/debug/$(APUSYS_VERSION_DEBUG)/common/
+EXTRA_CFLAGS += -I$(srctree)/$(src)/debug/$(APUSYS_VERSION_DEBUG)/interface/
+EXTRA_CFLAGS += -I$(srctree)/$(src)/debug/$(APUSYS_VERSION_DEBUG)/platform/
 
 ifeq ($(CONFIG_MTK_APUSYS_DEBUG),y)
 apusys-objs += debug/apu_tp.o
@@ -144,23 +144,23 @@ endif
 
 
 # power
-EXTRA_CFLAGS += -I$(src)/power/2.0/
-EXTRA_CFLAGS += -I$(src)/power/2.0/dummy/
+EXTRA_CFLAGS += -I$(srctree)/$(src)/power/2.0/
+EXTRA_CFLAGS += -I$(srctree)/$(src)/power/2.0/dummy/
 
-EXTRA_CFLAGS += -I$(src)/power/3.0/
-EXTRA_CFLAGS += -I$(src)/power/3.0/include/
-EXTRA_CFLAGS += -I$(src)/power/3.0/include/platform/
+EXTRA_CFLAGS += -I$(srctree)/$(src)/power/3.0/
+EXTRA_CFLAGS += -I$(srctree)/$(src)/power/3.0/include/
+EXTRA_CFLAGS += -I$(srctree)/$(src)/power/3.0/include/platform/
 obj-m += apu_top/
 obj-m += power/
 
 # mdla makefile
 
-EXTRA_CFLAGS += -I$(src)/mdla/
-apusys-objs += $(shell cd $(src) && find mdla -name "*.c" | sed 's/\.c/\.o/g')
+EXTRA_CFLAGS += -I$(srctree)/$(src)/mdla/
+apusys-objs += $(shell cd $(srctree)/$(src) && find mdla -name "*.c" | sed 's/\.c/\.o/g')
 
 # vpu makefile
 VPU = vpu/$(APUSYS_VERSION_VPU)
-EXTRA_CFLAGS += -I$(src)/$(VPU)
+EXTRA_CFLAGS += -I$(srctree)/$(src)/$(VPU)
 #EXTRA_CFLAGS += -I$(src)/drivers/base
 
 ifeq ($(CONFIG_MTK_APUSYS_VPU),y)
@@ -175,12 +175,12 @@ endif
 
 
 # devapc makefile
-EXTRA_CFLAGS += -I$(src)/devapc/
+EXTRA_CFLAGS += -I$(srctree)/$(src)/devapc/
 apusys-objs += devapc/dapc.o
 apusys-objs += devapc/dapc_cfg.o
 
 # apusys_rv makefile
-EXTRA_CFLAGS += -I$(src)/apusys_rv
+EXTRA_CFLAGS += -I$(srctree)/$(src)/apusys_rv
 apusys-objs += apusys_rv/apu_config.o
 apusys-objs += apusys_rv/apu_coredump.o
 apusys-objs += apusys_rv/apu_excep.o
@@ -204,21 +204,26 @@ apusys-objs += apusys_rv/2.0/mt8195_plat.o
 endif
 
 # ipi makefile
-EXTRA_CFLAGS += -I$(src)/power/3.0/
-EXTRA_CFLAGS += -I$(src)/midware/2.0/
-EXTRA_CFLAGS += -I$(src)/include/
-EXTRA_CFLAGS += -I$(src)/mdla/rv/
-EXTRA_CFLAGS += -I$(src)/mvpu/1.0/
-EXTRA_CFLAGS += -I$(src)/reviser/2.0/common
+EXTRA_CFLAGS += -I$(srctree)/$(src)/power/3.0/
+EXTRA_CFLAGS += -I$(srctree)/$(src)/midware/2.0/
+EXTRA_CFLAGS += -I$(srctree)/$(src)/include/
+EXTRA_CFLAGS += -I$(srctree)/$(src)/mdla/rv/
+EXTRA_CFLAGS += -I$(srctree)/$(src)/mvpu/1.0/
+EXTRA_CFLAGS += -I$(srctree)/$(src)/reviser/2.0/common
+EXTRA_CFLAGS += -I$(srctree)/$(src)/2.0/platform/
+EXTRA_CFLAGS += -I$(srctree)/$(src)/../../2.0/platform/
+EXTRA_CFLAGS += -I$(srctree)/$(src)/../2.0/platform/
+EXTRA_CFLAGS += -I$(srctree)/$(src)/../../../2.0/platform/
+EXTRA_CFLAGS += -I$(srctree)/$(src)/reviser/2.0/platform
 #EXTRA_CFLAGS += -I$(src)/ipi
 #apusys-objs += ipi/mtk_apu_rpmsg.o
 
 # hw_logger makefile
-EXTRA_CFLAGS += -I$(src)/hw_logger/
+EXTRA_CFLAGS += -I$(srctree)/$(src)/hw_logger/
 apusys-objs += hw_logger/hw_logger.o
 
 # sw_logger makefile
-EXTRA_CFLAGS += -I$(src)/sw_logger/
+EXTRA_CFLAGS += -I$(srctree)/$(src)/sw_logger/
 apusys-objs += sw_logger/sw_logger.o
 
 
