@@ -34,11 +34,11 @@ obj-m += mtk-vcodec-dec-v1.o
 obj-m += mtk-vcodec-enc-v1.o
 
 # include
-EXTRA_CFLAGS += -I$(src)/
-EXTRA_CFLAGS += -I$(src)/external_include/mtk-vcu-mt8395/
-EXTRA_CFLAGS += -I$(src)/external_include/iommu/
+EXTRA_CFLAGS += -I$(srctree)/$(src)/
+EXTRA_CFLAGS += -I$(srctree)/$(src)/external_include/mtk-vcu-mt8395/
+EXTRA_CFLAGS += -I$(srctree)/$(src)/external_include/iommu/
 # mtk_vcu_controls.h
-EXTRA_CFLAGS += -I$(src)/external_include/uapi/
+EXTRA_CFLAGS += -I$(srctree)/$(src)/external_include/uapi/
 
 # mtk-vcodec-common.ko
 mtk-vcodec-common-objs += mtk_vcodec_intr.o
