@@ -26,9 +26,9 @@ EXTRA_CFLAGS += -DCONFIG_COMPAT
 obj-m := mtk-vcu.o
 
 # include
-EXTRA_CFLAGS += -I$(src)/
+EXTRA_CFLAGS += -I$(srctree)/$(src)/
 # mtk_vcu_controls.h
-EXTRA_CFLAGS += -I$(src)/external_include/uapi/
+EXTRA_CFLAGS += -I$(srctree)/$(src)/external_include/uapi/
 
 # mtk-vcu.ko
 mtk-vcu-objs += mtk_vcu.o
