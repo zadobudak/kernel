@@ -19,6 +19,10 @@ obj-y += mtk-apusys-driver/
 ##
 ##
 ##
+obj-y += mtk-vcodec-driver/
+##
+##
+##
 obj-$(CONFIG_UBUNTU_HOST)      += ubuntu-host/
 ##
 ##
