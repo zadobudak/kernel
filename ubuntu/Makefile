@@ -23,6 +23,10 @@ obj-y += mtk-vcodec-driver/
 ##
 ##
 ##
+obj-y += mtk-vcu-driver/
+##
+##
+##
 obj-$(CONFIG_UBUNTU_HOST)      += ubuntu-host/
 ##
 ##
