@@ -4787,7 +4787,6 @@ rtc-mc13xxx
 rtc-mcp795
 rtc-meson-vrtc
 rtc-msm6242
-rtc-mt6397
 rtc-mxc
 rtc-mxc_v2
 rtc-ntxec
