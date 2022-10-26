@@ -198,7 +198,7 @@ apusys-objs += apusys_rv/apu_debug.o
 #EXTRA_CFLAGS += -DMT8188_APUSYS_RV_PLAT_DATA
 #apusys-objs += apusys_rv/2.0/mt8188_plat.o
 #endif
-ifneq ($(wildcard $(src)/apusys_rv/2.0/mt8195_plat.c),)
+ifneq ($(wildcard $(srctree)/$(src)/apusys_rv/2.0/mt8195_plat.c),)
 EXTRA_CFLAGS += -DMT8195_APUSYS_RV_PLAT_DATA
 apusys-objs += apusys_rv/2.0/mt8195_plat.o
 endif
