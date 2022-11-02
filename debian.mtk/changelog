@@ -1,4 +1,4 @@
-linux-mtk (5.15.0-1005.6) jammy; urgency=medium
+linux-mtk (5.15.0-1005.7) jammy; urgency=medium
 
   * Porting the APU device driver for 5.15 kernel for i1200 support // Porting
     the VCU and VCODEC drive Out of tree driver.
@@ -14,7 +14,14 @@ linux-mtk (5.15.0-1005.6) jammy; urgency=medium
     - Import MediaTek APUSYS
     - Change build include directories for APUSYS
 
- -- Hsuan-Yu Lin <shane.lin@canonical.com>  Mon, 24 Oct 2022 11:44:24 +0800
+  * Miscellaneous Ubuntu changes
+    - [Config] Enable apusys as a kernel module
+
+  * Miscellaneous upstream changes
+    - Fix build directory for mtk-apusys-driver/apusys_rv/2.0/mt8195_plat.c
+    - arm64: dts: mediatek: Add DTC_FLAGS=-@
+
+ -- Hsuan-Yu Lin <shane.lin@canonical.com>  Wed, 02 Nov 2022 23:42:02 +0800
 
 linux-mtk (5.15.0-1004.5) jammy; urgency=medium
 
