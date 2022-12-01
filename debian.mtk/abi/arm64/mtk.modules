@@ -360,6 +360,7 @@ anybuss_core
 ao-cec
 ao-cec-g12a
 aoe
+ap1302
 apbps2
 apcs-msm8916
 apcs-sdx55
@@ -3374,6 +3375,7 @@ mtdram
 mtdswap
 mtip32xx
 mtk-btcvsd
+mtk-camsv30
 mtk-cir
 mtk-cqdma
 mtk-devapc
@@ -3381,6 +3383,7 @@ mtk-hsdma
 mtk-mdp3
 mtk-pmic-keys
 mtk-rng
+mtk-seninf
 mtk-svs
 mtk-uart-apdma
 mtk-vcodec-common
@@ -4035,6 +4038,7 @@ phy-meson-g12a-usb2
 phy-meson-g12a-usb3-pcie
 phy-meson-gxl-usb2
 phy-meson8b-usb2
+phy-mtk-cdphy
 phy-mtk-hdmi-drv
 phy-mtk-xsphy
 phy-mvebu-a3700-comphy

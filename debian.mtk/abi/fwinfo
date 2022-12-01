@@ -960,6 +960,9 @@ firmware:       mediatek/mt7668pr2h.bin
 firmware:       mediatek/mt7915_rom_patch.bin
 firmware:       mediatek/mt7915_wa.bin
 firmware:       mediatek/mt7915_wm.bin
+firmware:       mediatek/mt7916_rom_patch.bin
+firmware:       mediatek/mt7916_wa.bin
+firmware:       mediatek/mt7916_wm.bin
 firmware:       mellanox/mlxsw_spectrum-13.2008.2406.mfa2
 firmware:       mellanox/mlxsw_spectrum2-29.2008.2406.mfa2
 firmware:       mellanox/mlxsw_spectrum3-30.2008.2406.mfa2
