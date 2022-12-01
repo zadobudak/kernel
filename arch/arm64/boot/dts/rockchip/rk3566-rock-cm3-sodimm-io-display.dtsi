@@ -8,14 +8,14 @@
 	compatible = "radxa,radxa-cm3-sodimm-io", "rockchip,rk3566";
 };
 
-&video_phy1 {
+&video_phy0 {
     status = "disabled";
 };
 
-&dsi1 {
+&dsi0 {
 	status = "disabled";
 
-	dsi1_panel: dsi-panel@0 {
+	dsi0_panel: dsi-panel@0 {
 		compatible = "rockpi,tc358762";
 		reg = <0x0>;
 		status = "disabled";
@@ -27,8 +27,8 @@
 			port@0 {
 				reg = <0>;
 
-				panel_in_dsi1: endpoint {
-					remote-endpoint = <&dsi1_out_panel>;
+				panel_in_dsi0: endpoint {
+					remote-endpoint = <&dsi0_out_panel>;
 				};
 			};
 		};
@@ -43,25 +43,25 @@
 			#address-cells = <1>;
 			#size-cells = <0>;
 
-			dsi1_out_panel: endpoint@0 {
+			dsi0_out_panel: endpoint@0 {
 				reg = <0>;
-				remote-endpoint = <&panel_in_dsi1>;
+				remote-endpoint = <&panel_in_dsi0>;
 			};
 		};
 	};
 };
 
-&dsi1_in_vp0 {
+&dsi0_in_vp0 {
 	status = "disabled";
 };
 
-&dsi1_in_vp1 {
+&dsi0_in_vp1 {
 	status = "disabled";
 };
 
-&route_dsi1 {
+&route_dsi0 {
 	status = "disabled";
-	connect = <&vp0_out_dsi1>;
+	connect = <&vp0_out_dsi0>;
 };
 
 &i2c2 {

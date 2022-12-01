@@ -5,7 +5,7 @@
 	compatible = "rockchip,rk3566";
 
 	fragment@0 {
-		target = <&video_phy1>;
+		target = <&video_phy0>;
 
 		__overlay__ {
 			status = "okay";
@@ -13,24 +13,24 @@
 	};
 
 	fragment@1 {
-		target = <&dsi1>;
+		target = <&dsi0>;
 
 		__overlay__ {
 			status = "okay";
-			dsi1_panel: dsi-panel@0 {
+			dsi0_panel: dsi-panel@0 {
 				compatible = "raspits,tc358762";
 				reg = <0x0>;
 				status = "okay";
 
-				ports {	
+				ports {
 					#address-cells = <1>;
 					#size-cells = <0>;
 
 					port@0 {
 						reg = <0>;
 
-						panel_in_dsi1: endpoint {
-							remote-endpoint = <&dsi1_out_panel>;
+						panel_in_dsi0: endpoint {
+							remote-endpoint = <&dsi0_out_panel>;
 						};
 					};
 				};
@@ -45,9 +45,9 @@
 					#address-cells = <1>;
 					#size-cells = <0>;
 
-					dsi1_out_panel: endpoint@0 {
+					dsi0_out_panel: endpoint@0 {
 						reg = <0>;
-						remote-endpoint = <&panel_in_dsi1>;
+						remote-endpoint = <&panel_in_dsi0>;
 					};
 				};
 			};
@@ -55,7 +55,7 @@
 	};
 
 	fragment@2 {
-		target = <&dsi1_panel>;
+		target = <&dsi0_panel>;
 
 		__overlay__ {
 			status = "okay";
@@ -63,7 +63,7 @@
 	};
 
 	fragment@3 {
-		target = <&dsi1_in_vp0>;
+		target = <&dsi0_in_vp0>;
 
 		__overlay__ {
 			status = "okay";
@@ -71,7 +71,7 @@
 	};
 
 	fragment@4 {
-		target = <&dsi1_in_vp1>;
+		target = <&dsi0_in_vp1>;
 
 		__overlay__ {
 			status = "disabled";
@@ -79,7 +79,7 @@
 	};
 
 	fragment@5 {
-		target = <&route_dsi1>;
+		target = <&route_dsi0>;
 
 		__overlay__ {
 			status = "disabled";
