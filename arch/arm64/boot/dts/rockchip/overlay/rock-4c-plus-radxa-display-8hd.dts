@@ -354,4 +354,20 @@
 			status = "disabled";
 		};
 	};
+
+	fragment@11 {
+		target = <&i2c1>;
+
+		__overlay__ {
+			status = "okay";
+		};
+	};
+
+	fragment@12 {
+		target = <&gt9xx>;
+
+		__overlay__ {
+			status = "okay";
+		};
+	};
 };
