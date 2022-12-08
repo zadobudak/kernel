@@ -3360,7 +3360,9 @@ static ssize_t show_gpu_utilization(struct device *dev,
 		max(stat.total_time, 1u);
 
 	len = sprintf(buf, "Mali GPU utilization:%d@%luHz\n", utilization, stat.current_frequency);
-
+	if (len < 0)
+		len = 0;
+		
 	return len;
 }
 
