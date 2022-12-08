@@ -32,7 +32,7 @@ vars :=
 #
 # Default configuration values
 #
-CONFIG_MALI_BASE_MODULES ?= n
+CONFIG_MALI_BASE_MODULES ?= y
 
 ifeq ($(CONFIG_MALI_BASE_MODULES),y)
     CONFIG_MALI_CSF_SUPPORT ?= n
