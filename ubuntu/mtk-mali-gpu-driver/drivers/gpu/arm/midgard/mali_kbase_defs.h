@@ -92,6 +92,8 @@
  */
 #define BASE_MAX_NR_AS              16
 
+#define MAX_PM_DOMAINS 5
+
 /* mmu */
 #define MIDGARD_MMU_LEVEL(x) (x)
 
@@ -1061,6 +1063,9 @@ struct kbase_device {
 
 	struct clk *clocks[BASE_MAX_NR_CLOCKS_REGULATORS];
 	unsigned int nr_clocks;
+	/* pm_domains for devices with more than one. */
+	struct device *pm_domain_devs[MAX_PM_DOMAINS];
+	int num_pm_domains;
 #if IS_ENABLED(CONFIG_REGULATOR)
 	struct regulator *regulators[BASE_MAX_NR_CLOCKS_REGULATORS];
 	unsigned int nr_regulators;
@@ -1175,6 +1180,18 @@ struct kbase_device {
 	int num_opps;
 	struct kbasep_pm_metrics last_devfreq_metrics;
 	struct kbase_devfreq_queue_info devfreq_queue;
+
+	struct {
+		void (*voltage_range_check)(struct kbase_device *kbdev,
+					    unsigned long *voltages);
+#if IS_ENABLED(CONFIG_REGULATOR)
+		int (*set_voltages)(struct kbase_device *kbdev,
+				    unsigned long *voltages,
+				    bool inc);
+#endif
+		int (*set_frequency)(struct kbase_device *kbdev,
+				     unsigned long freq);
+	} devfreq_ops;
 
 #if IS_ENABLED(CONFIG_DEVFREQ_THERMAL)
 	struct thermal_cooling_device *devfreq_cooling;
