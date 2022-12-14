@@ -3385,7 +3385,6 @@ mtk-pmic-keys
 mtk-rng
 mtk-seninf
 mtk-svs
-mtk-uart-apdma
 mtk-vcodec-common
 mtk-vcodec-dec-v1
 mtk-vcodec-enc-v1
