@@ -441,6 +441,7 @@ bool mt8365_afe_rate_supported(unsigned int rate, unsigned int id)
 
 	return false;
 }
+EXPORT_SYMBOL_GPL(mt8365_afe_rate_supported);
 
 bool mt8365_afe_channel_supported(unsigned int channel, unsigned int id)
 {
@@ -459,6 +460,7 @@ bool mt8365_afe_channel_supported(unsigned int channel, unsigned int id)
 
 	return false;
 }
+EXPORT_SYMBOL_GPL(mt8365_afe_channel_supported);
 
 bool mt8365_afe_clk_group_44k(int sample_rate)
 {
