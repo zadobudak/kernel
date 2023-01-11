@@ -1547,7 +1547,6 @@ firewire-net
 firewire-ohci
 firewire-sbp2
 firewire-serial
-fixed
 fjes
 fl512
 flexcan
@@ -3395,6 +3394,7 @@ mtk_nand
 mtk_rpmsg
 mtk_scp
 mtk_scp_ipi
+mtk_star_emac
 mtouch
 multipath
 multiq3
