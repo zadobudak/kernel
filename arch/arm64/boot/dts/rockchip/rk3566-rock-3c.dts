@@ -14,8 +14,6 @@
 #include <dt-bindings/sensor-dev.h>
 #include "rk3566.dtsi"
 
-#include "rk3566-rock-3c-display.dtsi"
-
 / {
 	model = "Radxa ROCK3 Model C";
 	compatible = "radxa,rock3c", "rockchip,rk3566";
