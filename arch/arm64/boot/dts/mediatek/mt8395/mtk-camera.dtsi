@@ -6,6 +6,16 @@
 
 #include <dt-bindings/memory/mt8195-memory-port.h>
 
+/*
+ * For the usage of these definitions, please refer to
+ * the Out-Of-Tree driver mtk-camisp-drvier:
+ * - Documentation/devicetree/bindings/media/mediatek,camera.yaml
+ * - include/dt-bindings/media/mtk-camera.h
+ */
+#define MTK_CAMERA_PREVIEW  1
+#define MTK_CAMERA_VIDEO    2
+#define MTK_CAMERA_CAPTURE  3
+
 / {
 	fragment@3 {
 		target-path = "/soc";
