@@ -13,6 +13,8 @@ dtbo-$(CONFIG_ARCH_ROCKCHIP) += \
 	radxa-cm3-io-sharp-lq133t1jw01-without-hdmi.dtbo \
 	radxa-cm3-io-headphone.dtbo \
 	radxa-cm3-io-pcie2x1.dtbo \
+	radxa-cm3s-io-csi0-okdo-5mp-camera.dtbo \
+	radxa-cm3s-io-csi1-okdo-5mp-camera.dtbo \
 	radxa-cm3s-io-csi0-rpi-camera-v2.dtbo \
 	radxa-cm3s-io-csi1-rpi-camera-v2.dtbo \
 	radxa-cm3-sodimm-io-raspberrypi-7inch-touchscreen.dtbo \
