@@ -26,8 +26,11 @@ dtbo-$(CONFIG_ARCH_ROCKCHIP) += \
 	rk3568-fiq-debugger-uart7m1.dtbo \
 	rk3568-fiq-debugger-uart8m1.dtbo \
 	rk3568-fiq-debugger-uart9m1.dtbo \
+	rk3568-i2c1.dtbo \
 	rk3568-i2c2-m0.dtbo \
+	rk3568-i2c2-m1.dtbo \
 	rk3568-i2c3-m0.dtbo \
+	rk3568-i2c4-m0.dtbo \
 	rk3568-pwm12-m0.dtbo \
 	rk3568-pwm12-m1.dtbo \
 	rk3568-pwm13-m0.dtbo \
@@ -42,8 +45,12 @@ dtbo-$(CONFIG_ARCH_ROCKCHIP) += \
 	rk3568-pwm1-m1.dtbo \
 	rk3568-pwm2-m0.dtbo \
 	rk3568-pwm2-m1.dtbo \
+	rk3568-pwm5.dtbo \
+	rk3568-pwm6.dtbo \
+	rk3568-pwm7.dtbo \
 	rk3568-pwm8-m0-fan.dtbo \
 	rk3568-pwm9-m0.dtbo \
+	rk3568-pwm11-m1.dtbo \
 	rock-3a-sata0.dtbo \
 	rock-3a-sata1.dtbo \
 	rock-3a-sata2.dtbo \
@@ -57,6 +64,7 @@ dtbo-$(CONFIG_ARCH_ROCKCHIP) += \
 	rk3568-uart3-m1.dtbo \
 	rk3568-uart5-m1.dtbo \
 	rk3568-uart7-m1.dtbo \
+	rk3568-uart7-m2.dtbo \
 	rk3568-uart8-m1.dtbo \
 	rk3568-uart9-m1.dtbo \
 	rk3568-w1-gpio.dtbo \
@@ -75,6 +83,7 @@ dtbo-$(CONFIG_ARCH_ROCKCHIP) += \
 	audioinjector-isolated-soundcard.dtbo \
 	rock-3c-raspberrypi-7inch-touchscreen.dtbo \
 	rk3568-spi1-m1-cs0-spidev.dtbo \
+	rk3568-spi0-m0-cs0-spidev.dtbo \
 	rk3568-spi0-m1-cs0-spidev.dtbo \
 	radxa-cm3i-gmac1.dtbo \
 	radxa-cm3-io-dual-cameras-gc2053-gc2093.dtbo
