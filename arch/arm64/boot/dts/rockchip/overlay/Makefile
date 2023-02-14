@@ -66,7 +66,7 @@ dtbo-$(CONFIG_ARCH_ROCKCHIP) += \
 	rock-3b-disable-hdmicec.dtbo \
 	rock-3b-hdmi-and-sharp-lq133t1jw01-edp-lcd.dtbo \
 	rock-3b-radxa-10p1inch-display.dtbo \
-	rock-3c-ov5647.dtbo \
+	rock-3c-okdo-5mp-camera.dtbo \
 	rock-3c-rpi-camera-v2.dtbo \
 	rock-3c-radxa-5inch-touchscreen.dtbo \
 	rock-3c-usb-otg.dtbo \
