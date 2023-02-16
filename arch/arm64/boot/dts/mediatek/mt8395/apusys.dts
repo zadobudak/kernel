@@ -53,26 +53,8 @@
 				reg = <0 0x19030000 0 0x1000>;
 			};
 
-			vpu_core1: vpu_core1@19031000 {
-				compatible = "mediatek,mt8195-vpu_core";
-				reg = <0 0x19031000 0 0x1000>,
-					<0 0x1d500000 0 0x40000>,
-					<0 0x1d540000 0 0x30000>,
-					<0 0x0d194000 0 0x4000>;
-				interrupts = <GIC_SPI 453 IRQ_TYPE_LEVEL_HIGH 0>;
-				id = <1>;
-				reset-vector = <0x7e300000 0x00100000 0x400000>;
-				main-prog = <0x7e400000 0x00300000 0x500000>;
-				kernel-lib = <0x7e700000 0x00500000 0xffffffff>;
-				work-buf = <0x0 0x12000 0xffffffff>;
-				dma-ranges = <0x0 0x20000000 0x0 0x40000000 0x0 0xe0000000>;
-				iommus = <&iommu_apu1 IOMMU_PORT_APU_VPU>;
-				#cooling-cells = <2>;
-				memory-region = <&vpu_reserve_memory>;
-			};
-
 			vpu_core0: vpu_core0@19030000 {
-				compatible = "mediatek,mt8195-vpu_core";
+				compatible = "mediatek,mt8195-vpu_core0";
 				reg = <0 0x19030000 0 0x1000>,
 					<0 0x1d400000 0 0x40000>,
 					<0 0x1d440000 0 0x30000>,
@@ -92,6 +74,24 @@
 			apu1: syscon@19031000 {
 				compatible = "mediatek,mt8195-apu1", "syscon";
 				reg = <0 0x19031000 0 0x1000>;
+			};
+
+			vpu_core1: vpu_core1@19031000 {
+				compatible = "mediatek,mt8195-vpu_core1";
+				reg = <0 0x19031000 0 0x1000>,
+					<0 0x1d500000 0 0x40000>,
+					<0 0x1d540000 0 0x30000>,
+					<0 0x0d194000 0 0x4000>;
+				interrupts = <GIC_SPI 453 IRQ_TYPE_LEVEL_HIGH 0>;
+				id = <1>;
+				reset-vector = <0x7e300000 0x00100000 0x400000>;
+				main-prog = <0x7e400000 0x00300000 0x500000>;
+				kernel-lib = <0x7e700000 0x00500000 0xffffffff>;
+				work-buf = <0x0 0x12000 0xffffffff>;
+				dma-ranges = <0x0 0x20000000 0x0 0x40000000 0x0 0xe0000000>;
+				iommus = <&iommu_apu1 IOMMU_PORT_APU_VPU>;
+				#cooling-cells = <2>;
+				memory-region = <&vpu_reserve_memory>;
 			};
 
 			apu_mdla0: syscon@19034000 {
