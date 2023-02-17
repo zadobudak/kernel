@@ -47,20 +47,6 @@
 			<0x0 0xfd90f000 0x0 0x1000>;
 	};
 
-	reserved_memory: reserved-memory {
-		#address-cells = <2>;
-		#size-cells = <2>;
-		ranges;
-
-		rknpu_reserved: rknpu {
-			compatible = "shared-dma-pool";
-			inactive;
-			reusable;
-			size = <0x0 0x20000000>;
-			alignment = <0x0 0x1000>;
-		};
-	};
-
 	rk817_sound: rk817-sound {
 		status = "disabled";
 		compatible = "simple-audio-card";
@@ -503,22 +489,6 @@
 };
 
 &rkvenc_mmu {
-	status = "okay";
-};
-
-&bus_npu {
-	bus-supply = <&vdd_logic>;
-	pvtm-supply = <&vdd_cpu>;
-	status = "okay";
-};
-
-&rknpu {
-	memory-region = <&rknpu_reserved>;
-	rknpu-supply = <&vdd_gpu>;
-	status = "okay";
-};
-
-&rknpu_mmu {
 	status = "okay";
 };
 
