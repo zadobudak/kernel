@@ -283,13 +283,12 @@
 
 	gpio_leds: gpio-leds {
 		compatible = "gpio-leds";
-		status = "okay";
 
-		user-led {
+		io-led {
 			gpios = <&gpio0 RK_PB7 GPIO_ACTIVE_HIGH>;
-			linux,default-trigger = "timer";
-			default-state = "on";
-			pinctrl-0 = <&user_led>;
+			label = "blue:heartbeat";
+			linux,default-trigger = "heartbeat";
+			pinctrl-0 = <&io_led>;
 		};
 
 		wifi-led {
@@ -1042,7 +1041,7 @@
 	};
 
 	leds {
-		user_led: user-led {
+		io_led: io-led {
 			rockchip,pins = <0 RK_PB7 RK_FUNC_GPIO &pcfg_pull_none>;
 		};
 

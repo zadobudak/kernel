@@ -216,7 +216,7 @@
 
 		user-led1 {
 			gpios = <&gpio0 0 GPIO_ACTIVE_HIGH>;
-			linux,default-trigger = "timer";
+			linux,default-trigger = "heartbeat";
 			default-state = "on";
 			pinctrl-0 = <&led_ctl>;
 		};
