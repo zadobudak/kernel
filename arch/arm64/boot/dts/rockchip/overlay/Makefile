@@ -83,8 +83,6 @@ dtbo-$(CONFIG_ARCH_ROCKCHIP) += \
 	rock-3c-rpi-camera-v2.dtbo \
 	rock-3c-radxa-5inch-touchscreen.dtbo \
 	rock-3c-usb-otg.dtbo \
-	rpi-ov5647-on-cm3-sodimm-io-csi0.dtbo \
-	rpi-ov5647-on-cm3-sodimm-io-csi1.dtbo \
 	audioinjector-isolated-soundcard.dtbo \
 	rock-3c-raspberrypi-7inch-touchscreen.dtbo \
 	rk3568-spi1-m1-cs0-spidev.dtbo \
