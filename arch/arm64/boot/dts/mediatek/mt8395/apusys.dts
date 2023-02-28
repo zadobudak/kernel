@@ -351,16 +351,24 @@
 
 			iommu_apu0: iommu@19010000 {
 				compatible = "mediatek,mt8195-iommu-apu";
-				reg = <0 0x19010000 0 0x1000>;
-				interrupts = <GIC_SPI 426 IRQ_TYPE_LEVEL_HIGH 0>;
+				reg = <0 0x19010000 0 0x5000>;
+				interrupts = <GIC_SPI 426 IRQ_TYPE_LEVEL_HIGH 0>,
+						<GIC_SPI 427 IRQ_TYPE_LEVEL_HIGH 0>,
+						<GIC_SPI 428 IRQ_TYPE_LEVEL_HIGH 0>,
+						<GIC_SPI 429 IRQ_TYPE_LEVEL_HIGH 0>,
+						<GIC_SPI 430 IRQ_TYPE_LEVEL_HIGH 0>;
 				#iommu-cells = <1>;
 				mediatek,apu_power = <&apusys_rv>;
 			};
 
 			iommu_apu1: iommu@19015000 {
 				compatible = "mediatek,mt8195-iommu-apu";
-				reg = <0 0x19015000 0 0x1000>;
-				interrupts = <GIC_SPI 431 IRQ_TYPE_LEVEL_HIGH 0>;
+				reg = <0 0x19015000 0 0x5000>;
+				interrupts = <GIC_SPI 431 IRQ_TYPE_LEVEL_HIGH 0>,
+						<GIC_SPI 432 IRQ_TYPE_LEVEL_HIGH 0>,
+						<GIC_SPI 433 IRQ_TYPE_LEVEL_HIGH 0>,
+						<GIC_SPI 434 IRQ_TYPE_LEVEL_HIGH 0>,
+						<GIC_SPI 435 IRQ_TYPE_LEVEL_HIGH 0>;
 				#iommu-cells = <1>;
 				mediatek,apu_power = <&apusys_rv>;
 			};
