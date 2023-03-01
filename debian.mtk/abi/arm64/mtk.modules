@@ -1173,7 +1173,6 @@ dm-zoned
 dm1105
 dm9601
 dma-axi-dmac
-dma-buf-test-exporter
 dmard06
 dmard09
 dmard10
@@ -3152,7 +3151,6 @@ megaraid_mm
 megaraid_sas
 melfas_mip4
 memory-notifier-error-inject
-memory_group_manager
 memstick
 men_z135_uart
 men_z188_adc
