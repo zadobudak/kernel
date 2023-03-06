@@ -104,10 +104,14 @@
 &sdmmc0 {
 	max-frequency = <150000000>;
 	supports-sd;
+	no-sdio;
+	no-mmc;
 	bus-width = <4>;
 	cap-mmc-highspeed;
 	cap-sd-highspeed;
 	disable-wp;
+	num-slots = <1>;
+	sd-uhs-sdr104;
 	vmmc-supply = <&vcc_sd>;
 	vqmmc-supply = <&vccio_sd>;
 	pinctrl-names = "default";
