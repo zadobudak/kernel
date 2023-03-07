@@ -94,7 +94,7 @@
 };
 
 &rk817_sound {
-	status = "okay";
+	status = "disabled";
 };
 
 &i2s1_8ch {
