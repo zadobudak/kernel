@@ -52,7 +52,7 @@ struct fault_info {
 	const char *name;
 };
 
-static const struct fault_info fault_info[];
+static struct fault_info fault_info[]  __ro_after_init;
 static struct fault_info debug_fault_info[];
 
 static inline const struct fault_info *esr_to_fault_info(unsigned int esr)
@@ -762,7 +762,7 @@ static int do_tag_check_fault(unsigned long far, unsigned int esr,
 	return 0;
 }
 
-static const struct fault_info fault_info[] = {
+static struct fault_info fault_info[] __ro_after_init = {
 	{ do_bad,		SIGKILL, SI_KERNEL,	"ttbr address size fault"	},
 	{ do_bad,		SIGKILL, SI_KERNEL,	"level 1 address size fault"	},
 	{ do_bad,		SIGKILL, SI_KERNEL,	"level 2 address size fault"	},
@@ -828,6 +828,16 @@ static const struct fault_info fault_info[] = {
 	{ do_bad,		SIGKILL, SI_KERNEL,	"page domain fault"		},
 	{ do_bad,		SIGKILL, SI_KERNEL,	"unknown 63"			},
 };
+
+void __init hook_fault_code(int nr, int (*fn)(unsigned long, unsigned int, struct pt_regs *),
+			    int sig, int code, const char *name)
+{
+	BUG_ON(nr < 0 || nr >= ARRAY_SIZE(fault_info));
+	fault_info[nr].fn       = fn;
+	fault_info[nr].sig      = sig;
+	fault_info[nr].code     = code;
+	fault_info[nr].name     = name;
+}
 
 void do_mem_abort(unsigned long far, unsigned int esr, struct pt_regs *regs)
 {
@@ -997,4 +1007,30 @@ void tag_clear_highpage(struct page *page)
 	mte_zero_clear_page_tags(page_address(page));
 	page_kasan_tag_reset(page);
 	set_bit(PG_mte_tagged, &page->flags);
+}
+
+static int (*serror_handler)(unsigned long, unsigned int,
+                            struct pt_regs *) __ro_after_init;
+
+void *__init hook_serror_handler(int (*fn)(unsigned long, unsigned int, struct pt_regs *))
+{
+	void *ret = serror_handler;
+	serror_handler = fn;
+	return ret;
+}
+
+asmlinkage void __exception do_serr_abort(unsigned long addr, unsigned int esr, struct pt_regs *regs)
+{
+	const struct fault_info *inf;
+	unsigned long pc = instruction_pointer(regs);
+
+	inf = esr_to_fault_info(esr);
+
+	if (serror_handler)
+		if (!serror_handler(addr, esr, regs))
+			return;
+
+	pr_alert("Unhandled SError: (0x%08x) at 0x%016lx\n", esr, addr);
+	show_regs(regs);
+	arm64_notify_die(inf->name, regs, inf->sig, SIGILL, pc, esr);
 }

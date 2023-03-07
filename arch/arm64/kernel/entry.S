@@ -33,6 +33,12 @@
  * Context tracking and irqflag tracing need to instrument transitions between
  * user and kernel mode.
  */
+	.macro ct_user_exit
+#ifdef CONFIG_CONTEXT_TRACKING
+	bl      context_tracking_user_exit
+#endif
+	.endm
+
 	.macro user_exit_irqoff
 #if defined(CONFIG_CONTEXT_TRACKING) || defined(CONFIG_TRACE_IRQFLAGS)
 	bl	enter_from_user_mode
@@ -657,7 +663,7 @@ SYM_CODE_START(vectors)
 	kernel_ventry	1, sync_invalid			// Synchronous EL1t
 	kernel_ventry	1, irq_invalid			// IRQ EL1t
 	kernel_ventry	1, fiq_invalid			// FIQ EL1t
-	kernel_ventry	1, error_invalid		// Error EL1t
+	kernel_ventry   1, error                // Error EL1h
 
 	kernel_ventry	1, sync				// Synchronous EL1h
 	kernel_ventry	1, irq				// IRQ EL1h
@@ -748,6 +754,33 @@ SYM_CODE_START_LOCAL(el1_sync_invalid)
 	inv_entry 1, BAD_SYNC
 SYM_CODE_END(el1_sync_invalid)
 
+.align  6
+SYM_CODE_START_LOCAL(el1_error)
+	kernel_entry 1
+	mrs     x1, esr_el1                     // read the syndrome register
+	lsr     x24, x1, #ESR_ELx_EC_SHIFT      // exception class
+	cmp     x24, #ESR_ELx_EC_SERROR         // SError exception in EL1
+	b.ne    el1_error_inv
+el1_serr:
+	mrs     x0, far_el1
+	enable_dbg
+	// re-enable interrupts if they were enabled in the aborted context
+	tbnz    x23, #7, 1f                     // PSR_I_BIT
+	enable_irq
+1:
+	mov     x2, sp                          // struct pt_regs
+	bl      do_serr_abort
+	// disable interrupts before pulling preserved data off the stack
+	disable_irq
+	kernel_exit 1
+	el1_error_inv:
+	enable_dbg
+	mov     x0, sp
+	mov     x2, x1
+	mov     x1, #BAD_ERROR
+	b       bad_mode
+SYM_CODE_END(el1_error)
+
 SYM_CODE_START_LOCAL(el1_irq_invalid)
 	inv_entry 1, BAD_IRQ
 SYM_CODE_END(el1_irq_invalid)
@@ -804,6 +837,7 @@ SYM_CODE_START_LOCAL_NOALIGN(el0_irq_compat)
 	b	el0_irq_naked
 SYM_CODE_END(el0_irq_compat)
 
+       .align  6
 SYM_CODE_START_LOCAL_NOALIGN(el0_error_compat)
 	kernel_entry 0, 32
 	b	el0_error_naked
@@ -817,28 +851,6 @@ el0_irq_naked:
 	el0_interrupt_handler handle_arch_irq
 	b	ret_to_user
 SYM_CODE_END(el0_irq)
-
-SYM_CODE_START_LOCAL(el1_error)
-	kernel_entry 1
-	mrs	x1, esr_el1
-	enable_dbg
-	mov	x0, sp
-	bl	do_serror
-	kernel_exit 1
-SYM_CODE_END(el1_error)
-
-SYM_CODE_START_LOCAL(el0_error)
-	kernel_entry 0
-el0_error_naked:
-	mrs	x25, esr_el1
-	user_exit_irqoff
-	enable_dbg
-	mov	x0, sp
-	mov	x1, x25
-	bl	do_serror
-	enable_da_f
-	b	ret_to_user
-SYM_CODE_END(el0_error)
 
 /*
  * "slow" syscall return path.
@@ -1090,6 +1102,31 @@ SYM_CODE_START(__bp_harden_el1_vectors)
 SYM_CODE_END(__bp_harden_el1_vectors)
 	.popsection
 
+.align  6
+SYM_CODE_START_LOCAL(el0_error)
+	kernel_entry 0
+	el0_error_naked:
+	mrs     x25, esr_el1                    // read the syndrome register
+	lsr     x24, x25, #ESR_ELx_EC_SHIFT     // exception class
+	cmp     x24, #ESR_ELx_EC_SERROR         // SError exception in EL0
+	b.ne    el0_error_inv
+el0_serr:
+	mrs     x26, far_el1
+        // enable interrupts before calling the main handler
+	msr     daifclr, #(8 | 2)
+	ct_user_exit
+	bic     x0, x26, #(0xff << 56)
+	mov     x1, x25
+	mov     x2, sp
+	bl      do_serr_abort
+	b       ret_to_user
+el0_error_inv:
+	enable_dbg
+	mov     x0, sp
+	mov     x1, #BAD_ERROR
+	mov     x2, x25
+	b       bad_mode
+SYM_CODE_END(el0_error)
 
 /*
  * Register switch for AArch64. The callee-saved registers need to be saved

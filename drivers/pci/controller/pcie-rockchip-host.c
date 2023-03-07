@@ -1062,6 +1062,17 @@ err_disable_0v9:
 	return err;
 }
 
+#ifdef CONFIG_ARM64
+static int (*serror_chain)(unsigned long addr, unsigned int esr,
+                               struct pt_regs *regs);
+static int do_rockchip_pcie_serror(unsigned long addr, unsigned int esr,
+                               struct pt_regs *regs)
+{
+	       printk("%s\n", __func__);
+	              return 0;
+}
+#endif
+
 static int rockchip_pcie_really_probe(struct rockchip_pcie *rockchip)
 {
 	int err;
@@ -1079,6 +1090,10 @@ static int rockchip_pcie_really_probe(struct rockchip_pcie *rockchip)
 	err = rockchip_pcie_cfg_atu(rockchip);
 	if (err)
 		return err;
+
+	#ifdef CONFIG_ARM64
+	serror_chain = hook_serror_handler(do_rockchip_pcie_serror);
+	#endif
 
 	rockchip->bridge->sysdata = rockchip;
 	rockchip->bridge->ops = &rockchip_pcie_ops;

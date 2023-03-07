@@ -13,6 +13,10 @@
 
 #include <linux/kernel.h>
 #include <linux/pci.h>
+#ifdef CONFIG_ARM64
+#include <asm/signal.h>
+#include <asm/system_misc.h>
+#endif
 
 /*
  * The upper 16 bits of PCIE_CLIENT_CONFIG are a write mask for the lower 16

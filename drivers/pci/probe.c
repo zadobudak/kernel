@@ -2339,7 +2339,7 @@ bool pci_bus_read_dev_vendor_id(struct pci_bus *bus, int devfn, u32 *l,
 	    bridge->device == 0x80b5)
 		return pci_idt_bus_quirk(bus, devfn, l, timeout);
 #endif
-
+	pci_bus_write_config_dword(bus, devfn, PCI_VENDOR_ID, 0x00240000);
 	return pci_bus_generic_read_dev_vendor_id(bus, devfn, l, timeout);
 }
 EXPORT_SYMBOL(pci_bus_read_dev_vendor_id);
