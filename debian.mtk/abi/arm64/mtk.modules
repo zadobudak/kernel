@@ -1173,6 +1173,7 @@ dm-zoned
 dm1105
 dm9601
 dma-axi-dmac
+dma-buf-test-exporter
 dmard06
 dmard09
 dmard10
@@ -1817,7 +1818,6 @@ gpio_keys_polled
 gpio_mouse
 gpio_wdt
 gpmi-nand
-gpu-sched
 gpucc-msm8998
 gpucc-sc7180
 gpucc-sc7280
@@ -3151,6 +3151,7 @@ megaraid_mm
 megaraid_sas
 melfas_mip4
 memory-notifier-error-inject
+memory_group_manager
 memstick
 men_z135_uart
 men_z188_adc
@@ -3352,6 +3353,7 @@ mt8183-da7219-max98357
 mt8183-mt6358-ts3a227-max98357
 mt8192-mt6359-rt1015-rt5682
 mt8195-mt6359-rt1019-rt5682
+mt8365-evk
 mt9m001
 mt9m032
 mt9m111
@@ -3377,6 +3379,7 @@ mtk-cir
 mtk-cqdma
 mtk-devapc
 mtk-hsdma
+mtk-kpd
 mtk-mdp3
 mtk-pmic-keys
 mtk-rng
@@ -3387,6 +3390,7 @@ mtk-vcodec-dec-v1
 mtk-vcodec-enc-v1
 mtk-vcu
 mtk-vpu
+mtk_apu_rproc
 mtk_ecc
 mtk_nand
 mtk_rpmsg
@@ -4699,8 +4703,6 @@ rpcsec_gss_krb5
 rpi-panel-attiny-regulator
 rpmpd
 rpmsg_char
-rpmsg_core
-rpmsg_ns
 rpmsg_wwan_ctrl
 rpr0521
 rsi_91x
@@ -5463,11 +5465,13 @@ snd-soc-mikroe-proto
 snd-soc-msm8916-analog
 snd-soc-msm8916-digital
 snd-soc-mt6351
+snd-soc-mt6357
 snd-soc-mt6358
 snd-soc-mt6660
 snd-soc-mt6797-afe
 snd-soc-mt8183-afe
 snd-soc-mt8192-afe
+snd-soc-mt8365-pcm
 snd-soc-nau8315
 snd-soc-nau8540
 snd-soc-nau8810
@@ -5670,6 +5674,7 @@ snps_udc_core
 snps_udc_plat
 snvs_pwrkey
 soc_button_array
+soc_temp
 socfpga
 socfpga-a10
 socinfo
@@ -6502,7 +6507,6 @@ virtio_dma_buf
 virtio_input
 virtio_net
 virtio_pmem
-virtio_rpmsg_bus
 virtio_scsi
 virtio_snd
 virtio_vdpa
