@@ -23,6 +23,8 @@
 
 #include <uapi/linux/videodev2.h>
 
+#include <linux/rockchip/cpu.h>
+
 #include "rockchip_drm_drv.h"
 #include "rockchip_drm_vop.h"
 
@@ -502,6 +504,16 @@ dw_hdmi_rockchip_mode_valid(struct drm_connector *connector,
 	    (!drm_mode_is_420(&connector->display_info, mode) ||
 	     !connector->ycbcr_420_allowed))
 		return MODE_BAD;
+
+	/*
+	 * ROCK 3C and Radxa CM3S IO HDMI port with resolutions up to 1080P@60fps.
+	 */
+	if ((of_machine_is_compatible("radxa,rock-3c")) ||
+	    (of_machine_is_compatible("radxa,radxa-cm3-sodimm-io"))) {
+		if ((mode->hdisplay > 1920) || (mode->vdisplay > 1080)) {
+			return MODE_BAD;
+		}
+	}
 
 	if (!encoder) {
 		const struct drm_connector_helper_funcs *funcs;
