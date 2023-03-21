@@ -51,8 +51,8 @@
 		compatible = "simple-audio-card";
 		simple-audio-card,format = "i2s";
 		simple-audio-card,mclk-fs = <128>;
-		simple-audio-card,name = "rockchip,hdmi";
-		status = "disabled";
+		simple-audio-card,name = "rockchip-hdmi0";
+		status = "okay";
 
 		simple-audio-card,cpu {
 			sound-dai = <&i2s0_8ch>;
@@ -84,7 +84,7 @@
 		status = "okay";
 		compatible = "simple-audio-card";
 		simple-audio-card,format = "i2s";
-		simple-audio-card,name = "rockchip,rk809-codec";
+		simple-audio-card,name = "rockchip-rk809";
 		simple-audio-card,mclk-fs = <256>;
 
 		simple-audio-card,cpu {
