@@ -3,7 +3,7 @@
 
 / {
 	fragment@0 {
-		target = <&dpi1>;
+		target = <&dsi0>;
 		__overlay__ {
 			status = "disabled";
 		};
@@ -27,7 +27,7 @@
 		target = <&sound>;
 		__overlay__ {
 			dai-link-1 { /* HDMI */
-				status = "disabled";
+				status = "okay";
 			};
 
 			dai-link-2 { /* DPTX */

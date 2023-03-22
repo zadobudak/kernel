@@ -51,3 +51,7 @@ dtb-$(CONFIG_ARCH_MEDIATEK) += gpu-mali.dtbo
 dtb-$(CONFIG_ARCH_MEDIATEK) += net-ethernet.dtbo
 dtb-$(CONFIG_ARCH_MEDIATEK) += panel-startek-kd070fhfid015.dtbo
 dtb-$(CONFIG_ARCH_MEDIATEK) += video.dtbo
+dtb-$(CONFIG_ARCH_MEDIATEK) += apusys.dtbo
+dtb-$(CONFIG_ARCH_MEDIATEK) += display-dsiedp.dtbo
+dtb-$(CONFIG_ARCH_MEDIATEK) += display-edp.dtbo
+dtb-$(CONFIG_ARCH_MEDIATEK) += display-hdmidp.dtbo
