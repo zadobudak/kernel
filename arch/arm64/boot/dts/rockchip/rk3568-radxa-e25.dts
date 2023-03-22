@@ -102,6 +102,7 @@
 
 &fiq_debugger {
 	rockchip,baudrate = <115200>;
+	status = "okay";
 };
 
 &sdio_pwrseq {

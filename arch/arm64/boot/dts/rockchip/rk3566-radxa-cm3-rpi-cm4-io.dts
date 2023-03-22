@@ -39,6 +39,10 @@
 
 };
 
+&fiq_debugger {
+	status = "okay";
+};
+
 &i2s0_8ch {
 	status = "okay";
 };

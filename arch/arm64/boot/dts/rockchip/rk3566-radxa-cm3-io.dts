@@ -66,6 +66,10 @@
 	};
 };
 
+&fiq_debugger {
+	status = "okay";
+};
+
 &gpio_leds {
 	pi-led-green {
 		gpios = <&gpio4 4 GPIO_ACTIVE_LOW>;
