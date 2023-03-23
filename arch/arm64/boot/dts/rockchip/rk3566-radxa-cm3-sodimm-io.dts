@@ -78,6 +78,10 @@
 	};
 };
 
+&fiq_debugger {
+	status = "okay";
+};
+
 &gpio0 {
 	gpio-line-names =
 		/* GPIO0_A0-A3 */

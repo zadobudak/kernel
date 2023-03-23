@@ -56,6 +56,10 @@
 	};
 };
 
+&fiq_debugger {
+	status = "okay";
+};
+
 &pwm0 {
 	pinctrl-0 = <&pwm0m1_pins>;
 	status = "okay";
