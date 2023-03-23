@@ -16,7 +16,7 @@
 #define MAX_CORE_NUM 16
 
 struct device;
-struct apusys_kmem;
+struct apusys_cmdbuf;
 
 struct mdla_run_cmd;
 struct mdla_run_cmd_sync;
@@ -93,13 +93,11 @@ enum REASON_QUEUE_STATE_ENUM {
 };
 
 enum MDLA_STATUS_TYPE {
-	MDLA_FREE         = 0x0,
-	MDLA_GOTO_STOP    = 0x1,
-	MDLA_STOP         = 0x2,
-	MDLA_RUN          = 0x3,
-	MDLA_CMD_DONE     = 0x4,
-	MDLA_SMP_PROP     = 0x100,
-	MDLA_CMD_SMP_DONE = 0x104,
+	MDLA_FREE      = 0x0,
+	MDLA_GOTO_STOP = 0x1,
+	MDLA_STOP      = 0x2,
+	MDLA_RUN       = 0x3,
+	MDLA_SMP_PROP  = 0x100,
 };
 
 /*mdla dev info, register to apusys callback*/
@@ -171,16 +169,13 @@ struct command_entry {
 	u64 cmd_id;
 	u32 multicore_total;
 
-	u32 stop_fail_times;
-
 	u64 deadline_t;
-	u64 issue_t;
 
 	u32 fin_cid;         /* record the last finished command id */
 	u32 wish_fin_cid;
-	uint32_t preempt_times;
 
-	struct apusys_kmem *cmdbuf;
+	struct apusys_cmdbuf *cmdbuf;
+
 	int ctx_id;
 	int (*context_callback)(int a, int b, unsigned char c);
 
@@ -195,13 +190,6 @@ struct command_entry {
 	u32 hw_sync1;
 	u32 hw_sync2;
 	u32 hw_sync3;
-	/* Measure SW reset time */
-	u64 reset_end_t;
-	u64 reset_start_t;
-	u64 reset_cnt;
-	/* Measure SW workaround time */
-	u64 irq_check_start_t;
-	u64 irq_check_end_t;
 };
 
 struct mdla_dev *mdla_get_device(int id);

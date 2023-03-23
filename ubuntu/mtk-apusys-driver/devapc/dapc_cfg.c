@@ -2,8 +2,6 @@
 /*
  * Copyright (c) 2020 MediaTek Inc.
  */
-
-
 #include <linux/types.h>
 #include <linux/io.h>
 

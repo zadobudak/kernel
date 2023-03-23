@@ -10,9 +10,7 @@
 
 #include "apu_ipi.h"
 #include "apu_config.h"
-#include "apu_regdump.h"
 #include "apu_mbox.h"
-#include "apu_hw.h"
 
 struct mtk_apu;
 
@@ -33,19 +31,13 @@ struct mtk_apu_hw_ops {
 	int (*power_on)(struct mtk_apu *apu);
 	int (*power_off)(struct mtk_apu *apu);
 
+	/* ipi related ops */
+	int (*ipi_send_post)(struct mtk_apu *apu);
+
 	/* irq affinity tuning */
 	int (*irq_affin_init)(struct mtk_apu *apu);
 	int (*irq_affin_set)(struct mtk_apu *apu);
 	int (*irq_affin_unset)(struct mtk_apu *apu);
-};
-
-struct apu_regdump_region {
-	const struct regdump_region_info *region_info;
-	uint32_t region_num;
-};
-
-struct mtk_apu_hw_configs {
-	struct apu_regdump_region apu_regdump;
 };
 
 #define F_PRELOAD_FIRMWARE	BIT(0)
@@ -55,17 +47,13 @@ struct mtk_apu_hw_configs {
 #define F_SECURE_COREDUMP	BIT(4)
 #define F_DEBUG_LOG_ON		BIT(5)
 #define F_KERNALLOAD_IMAGE	BIT(6)
+#define F_MT8195_PLAT		BIT(7)
 
-#define F_APUSYS_SECURE		BIT(29)
 #define F_MAP_IOVA		BIT(30)
-#define F_REQUIRE_VPU_INIT      BIT(31)
 
 struct mtk_apu_platdata {
 	uint32_t flags;
-	dma_addr_t sec_iova;
 	struct mtk_apu_hw_ops ops;
-	struct mtk_apu_hw_configs configs;
-	struct mtk_apu_reg_ofs ofs;
 };
 
 struct apusys_secure_info_t {
@@ -166,8 +154,10 @@ struct mtk_apu {
 	struct mutex send_lock;
 	spinlock_t usage_cnt_lock;
 	struct apu_ipi_desc ipi_desc[APU_IPI_MAX];
+	u32 ipi_id;
 	bool ipi_id_ack[APU_IPI_MAX]; /* per-ipi ack */
 	bool ipi_inbound_locked;
+	bool bypass_pwr_off_chk;
 	wait_queue_head_t ack_wq; /* for waiting for ipi ack */
 	struct timespec64 intr_ts;
 	struct apu_mbox_hdr hdr;
@@ -203,6 +193,7 @@ struct mtk_apu {
 #define DRAM_DUMP_OFFSET (TCM_SIZE)
 #define TCM_OFFSET (0x1d000000UL)
 #define CODE_BUF_DA (DRAM_OFFSET)
+#define APU_SEC_FW_IOVA (0x200000UL)
 
 struct apu_coredump {
 	char tcmdump[TCM_SIZE];
@@ -210,8 +201,8 @@ struct apu_coredump {
 	char regdump[REG_SIZE];
 	char tbufdump[TBUF_SIZE];
 	uint32_t cachedump[CACHE_DUMP_SIZE/sizeof(uint32_t)];
-} __attribute__ ((__packed__));
-#define COREDUMP_SIZE (round_up(sizeof(struct apu_coredump), PAGE_SIZE))
+} __packed;
+#define COREDUMP_SIZE       (round_up(sizeof(struct apu_coredump), PAGE_SIZE))
 
 int apu_mem_init(struct mtk_apu *apu);
 void apu_mem_remove(struct mtk_apu *apu);
@@ -222,13 +213,13 @@ void apu_config_remove(struct mtk_apu *apu);
 void apu_ipi_remove(struct mtk_apu *apu);
 int apu_ipi_init(struct platform_device *pdev, struct mtk_apu *apu);
 int apu_ipi_register(struct mtk_apu *apu, u32 id,
-		ipi_handler_t handler, void *priv);
+		ipi_top_handler_t top_handler, ipi_handler_t handler, void *priv);
 void apu_ipi_unregister(struct mtk_apu *apu, u32 id);
 int apu_ipi_send(struct mtk_apu *apu, u32 id, void *data, u32 len,
 		 u32 wait_ms);
 
-int apu_sysfs_init(struct platform_device *pdev);
-void apu_sysfs_remove(struct platform_device *pdev);
+int apu_procfs_init(struct platform_device *pdev);
+void apu_procfs_remove(struct platform_device *pdev);
 int apu_coredump_init(struct mtk_apu *apu);
 void apu_coredump_remove(struct mtk_apu *apu);
 void apu_setup_dump(struct mtk_apu *apu, dma_addr_t da);
@@ -237,6 +228,12 @@ void apu_timesync_remove(struct mtk_apu *apu);
 int apu_debug_init(struct mtk_apu *apu);
 void apu_debug_remove(struct mtk_apu *apu);
 
+extern const struct mtk_apu_platdata mt6879_platdata;
+extern const struct mtk_apu_platdata mt6886_platdata;
+extern const struct mtk_apu_platdata mt6893_platdata;
+extern const struct mtk_apu_platdata mt6895_platdata;
+extern const struct mtk_apu_platdata mt6983_platdata;
+extern const struct mtk_apu_platdata mt6985_platdata;
 extern const struct mtk_apu_platdata mt8188_platdata;
 extern const struct mtk_apu_platdata mt8195_platdata;
 
@@ -247,4 +244,14 @@ extern int power_set_chip_info(struct mtk_apu *apu);
 extern int apu_get_power_dev(struct mtk_apu *apu);
 extern int apu_deepidle_init(struct mtk_apu *apu);
 extern void apu_deepidle_exit(struct mtk_apu *apu);
+
+#define apu_info_ratelimited(dev, fmt, ...)  \
+{                                                \
+	static DEFINE_RATELIMIT_STATE(_rs,           \
+				      HZ * 5,                    \
+				      50);                       \
+	if (__ratelimit(&_rs))                       \
+		dev_info(dev, fmt, ##__VA_ARGS__);       \
+}
+
 #endif /* APU_H */

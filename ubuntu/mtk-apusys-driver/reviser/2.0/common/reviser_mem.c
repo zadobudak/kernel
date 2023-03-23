@@ -4,6 +4,7 @@
  */
 
 #include <linux/errno.h>
+#include <linux/kmemleak.h>
 #include <linux/slab.h>
 #include <linux/dma-direction.h>
 #include <linux/scatterlist.h>
@@ -12,7 +13,6 @@
 #include <asm/mman.h>
 #include <linux/iommu.h>
 #include <linux/module.h>
-#include <linux/kmemleak.h>
 
 #include "reviser_cmn.h"
 #include "reviser_mem.h"
@@ -31,6 +31,11 @@ static int __reviser_free_iova(struct device *dev, size_t len,
 
 	domain = iommu_get_domain_for_dev(dev);
 	iova = given_iova;
+
+	if (domain == NULL) {
+		LOG_ERR("iommu_unmap cannot get domain\n");
+		return -ENOMEM;
+	}
 
 	ret = iommu_unmap(domain, iova, size);
 	if (ret != size) {
@@ -106,6 +111,10 @@ static dma_addr_t __reviser_get_iova(
 	size_t iova_size;
 
 	domain = iommu_get_domain_for_dev(dev);
+	if (domain == NULL) {
+		LOG_ERR("iommu_unmap cannot get domain\n");
+		goto err;
+	}
 
 	iova = given_iova;
 	//Need to check boundary region with iommu team every project
@@ -142,17 +151,18 @@ int reviser_mem_free(struct device *dev, struct reviser_mem *mem, bool fix)
 		if (!__reviser_free_iova(dev, mem->size, mem->iova)) {
 			sg_free_table(&mem->sgt);
 			ret = 0;
-			LOG_INFO("mem free (0x%llx/%d/0x%llx)\n",
+			LOG_INFO("mem free (0x%x/%d/0x%llx)\n",
 					mem->iova, mem->size, mem->kva);
 		} else {
 			ret = -1;
-			LOG_INFO("mem free fail(0x%llx/%d/0x%llx)\n",
+			LOG_INFO("mem free fail(0x%x/%d/0x%llx)\n",
 					mem->iova, mem->size, mem->kva);
 		}
 	} else {
 		dma_free_coherent(dev, mem->size,
 				(void *)mem->kva, mem->iova);
 	}
+
 
 	return 0;
 }
@@ -161,7 +171,7 @@ int reviser_mem_alloc(struct device *dev, struct reviser_mem *mem, bool fix)
 {
 	int ret = 0;
 	void *kva;
-	dma_addr_t iova;
+	dma_addr_t iova = 0;
 	struct reviser_dev_info *rdv = dev_get_drvdata(dev);
 
 	if (fix) {
@@ -193,7 +203,7 @@ int reviser_mem_alloc(struct device *dev, struct reviser_mem *mem, bool fix)
 		kva = dma_alloc_coherent(dev, mem->size,
 					&iova, GFP_KERNEL);
 		if (!kva) {
-			LOG_ERR("dma_alloc_coherent fail (0x%x)\n", mem->size);
+			LOG_ERR("dma_alloc_coherent fail (0x%llx)\n", mem->size);
 			goto out;
 		}
 	}
@@ -209,7 +219,7 @@ int reviser_mem_alloc(struct device *dev, struct reviser_mem *mem, bool fix)
 	mem->kva = (uint64_t)kva;
 	mem->iova = (uint64_t)iova;
 
-	LOG_INFO("mem(0x%llx/%d/0x%llx)\n",
+	LOG_INFO("mem(0x%x/%d/0x%llx)\n",
 			mem->iova, mem->size, mem->kva);
 
 	goto out;
@@ -217,6 +227,8 @@ out:
 	return ret;
 
 }
+
+
 
 int reviser_mem_invalidate(struct device *dev, struct reviser_mem *mem)
 {
@@ -254,16 +266,16 @@ int reviser_dram_remap_init(void *drvinfo)
 	else
 		rdv->plat.dram_max = 15;
 
-	g_mem_sys.size = rdv->plat.vlm_size * rdv->plat.dram_max;
+	g_mem_sys.size = (uint64_t) rdv->plat.vlm_size * rdv->plat.dram_max;
 	if (reviser_mem_alloc(rdv->dev, &g_mem_sys, rdv->plat.fix_dram)) {
 		LOG_ERR("alloc fail\n");
 		return -ENOMEM;
 	}
 
 	//_reviser_set_default_iova(drvinfo, g_mem_sys.iova);
-	rdv->rsc.dram.base = (void *)g_mem_sys.kva;
+	rdv->rsc.dram.base = (void *) g_mem_sys.kva;
 	for (i = 0; i < rdv->plat.dram_max; i++)
-		rdv->plat.dram[i] = (g_mem_sys.iova + rdv->plat.vlm_size * i);
+		rdv->plat.dram[i] = g_mem_sys.iova + rdv->plat.vlm_size * (uint64_t) i;
 
 	return 0;
 }

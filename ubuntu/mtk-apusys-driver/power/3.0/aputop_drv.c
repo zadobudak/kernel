@@ -17,6 +17,7 @@
 
 #include "apu_top.h"
 #include "apu_devfreq_cooling.h"
+#include "aputop_log.h"
 #include "aputop_rpmsg.h"
 #include <apu_top_entry.h>
 
@@ -30,10 +31,11 @@ static DEFINE_MUTEX(aputop_func_mtx);
 struct wakeup_source *ws;
 #endif
 
-int fpga_type = 2;
-module_param (fpga_type, int, S_IRUGO);
-MODULE_PARM_DESC (fpga_type,
-"[1]ACX0_mvpu+ACX1_mvpu [2]ACX0_mvpu+ACX1_mdla0 [3]ACX0_mdla0+ACX1_mdla0");
+uint32_t log_lvl = APUSYS_PWR_LOG_OFF;
+int fpga_type;
+module_param(fpga_type, int, 0444);
+MODULE_PARM_DESC(fpga_type,
+"Different rcx/acx/ncx combination for fpga platform, check platform code for detail");
 
 static void apu_pwr_wake_lock(void)
 {
@@ -63,61 +65,6 @@ static void apu_pwr_wake_exit(void)
 #endif
 }
 
-static int device_linker(struct platform_device *pdev)
-{
-	struct device *dev = &pdev->dev;
-	struct device_node *sup_np = NULL;
-	struct device_node *con_np = NULL;
-	struct device *sup_dev = NULL;
-	struct device *con_dev = NULL;
-	struct platform_device *sup_pdev = NULL;
-	struct platform_device *con_pdev = NULL;
-	int con_size = 0, idx = 0;
-
-	con_size = of_count_phandle_with_args(dev->of_node, "consumer", NULL);
-
-	if (con_size > 0) {
-
-		sup_np = dev->of_node;
-
-		for (idx = 0; idx < con_size; idx++) {
-			con_np = of_parse_phandle(sup_np, "consumer", idx);
-
-			con_pdev = of_find_device_by_node(con_np);
-			con_dev = &con_pdev->dev;
-			sup_pdev = of_find_device_by_node(sup_np);
-			sup_dev = &sup_pdev->dev;
-
-			if (!(sup_dev &&
-				of_node_check_flag(sup_np, OF_POPULATED)
-				&& con_dev &&
-				of_node_check_flag(con_np, OF_POPULATED))) {
-
-				return -EPROBE_DEFER;
-			}
-
-			get_device(sup_dev);
-			get_device(con_dev);
-
-			if (!device_link_add(con_dev, sup_dev,
-				DL_FLAG_STATELESS | DL_FLAG_PM_RUNTIME)) {
-				dev_info(dev, "Not linking %pOFP - %pOFP\n",
-						con_np, sup_np);
-				put_device(sup_dev);
-				put_device(con_dev);
-
-				return -EINVAL;
-			}
-
-			put_device(sup_dev);
-			put_device(con_dev);
-
-		}
-	}
-
-	return 0;
-}
-
 static int check_pwr_data(void)
 {
 	if (!pwr_data) {
@@ -140,7 +87,6 @@ static int aputop_pwr_on_rpm_cb(struct device *dev)
 		return 0;
 	}
 
-	dev_dbg(dev, "%s %s\n", __func__, pwr_data->plat_name);
 	apu_pwr_wake_lock();
 	ret =  pwr_data->plat_aputop_on(dev);
 
@@ -159,7 +105,8 @@ static int aputop_pwr_off_rpm_cb(struct device *dev)
 		return 0;
 	}
 
-	dev_dbg(dev, "%s %s\n", __func__, pwr_data->plat_name);
+	apu_info_ratelimited(dev, "%s %s\n", __func__, pwr_data->plat_name);
+
 	ret = pwr_data->plat_aputop_off(dev);
 	apu_pwr_wake_unlock();
 
@@ -168,9 +115,7 @@ static int aputop_pwr_off_rpm_cb(struct device *dev)
 
 static int apu_top_probe(struct platform_device *pdev)
 {
-	int ret = 0;
-
-	dev_info(&pdev->dev, "%s\n", __func__);
+	dev_info(&pdev->dev, "%s +\n", __func__);
 	pwr_data = of_device_get_match_data(&pdev->dev);
 
 	if (check_pwr_data())
@@ -184,10 +129,6 @@ static int apu_top_probe(struct platform_device *pdev)
 	g_apupw_drv_ver = 3;
 
 	pm_runtime_enable(&pdev->dev);
-
-	ret = device_linker(pdev);
-	if (ret)
-		return ret;
 
 	return pwr_data->plat_aputop_pb(pdev);
 }
@@ -205,6 +146,34 @@ static int apu_top_remove(struct platform_device *pdev)
 	return 0;
 }
 
+#if IS_ENABLED(CONFIG_PM_SLEEP)
+static int apu_top_suspend(struct device *dev)
+{
+	if (check_pwr_data())
+		return -ENODEV;
+
+	pr_info("%s +\n", __func__);
+
+	if (IS_ERR_OR_NULL(pwr_data->plat_aputop_suspend))
+		return 0;
+
+	return pwr_data->plat_aputop_suspend(dev);
+}
+
+static int apu_top_resume(struct device *dev)
+{
+	if (check_pwr_data())
+		return -ENODEV;
+
+	pr_info("%s +\n", __func__);
+
+	if (IS_ERR_OR_NULL(pwr_data->plat_aputop_resume))
+		return 0;
+
+	return pwr_data->plat_aputop_resume(dev);
+}
+#endif // CONFIG_PM_SLEEP
+
 static const struct of_device_id of_match_apu_top[] = {
 	{ .compatible = "mt8188,apu_top_3", .data = &mt8188_plat_data},
 	{ .compatible = "mt8195,apu_top_3", .data = &mt8195_plat_data},
@@ -213,6 +182,7 @@ static const struct of_device_id of_match_apu_top[] = {
 
 static const struct dev_pm_ops mtk_aputop_pm_ops = {
 	SET_RUNTIME_PM_OPS(aputop_pwr_off_rpm_cb, aputop_pwr_on_rpm_cb, NULL)
+	SET_SYSTEM_SLEEP_PM_OPS(apu_top_suspend, apu_top_resume)
 };
 
 static struct platform_driver apu_top_drv = {
@@ -239,7 +209,7 @@ static int set_aputop_func_param(const char *buf,
 	memset(&aputop, 0, sizeof(struct aputop_func_param));
 
 	arg_cnt = sscanf(buf, "%d %d %d %d %d",
-				(int *)&aputop.func_id,
+				&aputop.func_id,
 				&aputop.param1, &aputop.param2,
 				&aputop.param3, &aputop.param4);
 
@@ -309,9 +279,9 @@ static const struct file_operations aputop_dbg_fops = {
 
 int aputop_dbg_init(struct apusys_core_info *info)
 {
-        /* creating power file */
+	/* creating power file */
 	aputop_dbg.file = debugfs_create_file("power", (0644),
-			info->dbg_root, this_pdev, &aputop_dbg_fops);
+			info->dbg_root, NULL, &aputop_dbg_fops);
 	if (IS_ERR_OR_NULL(aputop_dbg.file)) {
 		pr_info("failed to create \"power\" debug file.\n");
 		return -1;
@@ -363,7 +333,43 @@ register_rpmsg_fail:
 
 void apu_top_3_exit(void)
 {
-	apu_devfreq_exit();
 	aputop_unregister_rpmsg();
 	platform_driver_unregister(&apu_top_drv);
 }
+
+int apu_top_3_on(void)
+{
+	if (this_pdev)
+		pm_runtime_get_sync(&this_pdev->dev);
+	else
+		pr_info("[%s][%d] this_pdev is NULL!\n", __func__, __LINE__);
+
+	return 0;
+}
+
+void apu_top_3_off(void)
+{
+	if (this_pdev)
+		pm_runtime_put_sync(&this_pdev->dev);
+	else
+		pr_info("[%s][%d] this_pdev is NULL!\n", __func__, __LINE__);
+}
+
+uint32_t apu_boot_host(void)
+{
+	struct aputop_func_param aputop;
+	int ret = 0;
+
+	if (check_pwr_data())
+		return -ENODEV;
+
+	memset(&aputop, 0, sizeof(struct aputop_func_param));
+
+	aputop.func_id = APUTOP_FUNC_BOOT_HOST;
+	ret = pwr_data->plat_aputop_func(NULL, aputop.func_id, &aputop);
+	if (ret < 0)
+		ret = 0;
+
+	return ret;
+}
+EXPORT_SYMBOL(apu_boot_host);

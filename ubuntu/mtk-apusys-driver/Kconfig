@@ -1,7 +1,5 @@
 config MTK_APUSYS_SUPPORT
 	tristate "APUSYS driver"
-	select REMOTEPROC
-	select RPMSG
 	help
 	  Enable Mediatek APUSYS feature for centralize control.
 	  Middleware and APU scheduler will control memory,
@@ -36,13 +34,21 @@ config MTK_APUSYS_MDLA_SUPPORT
 
 config MTK_APUSYS_VPU
 	bool "VPU driver"
-	select REMOTEPROC
 	help
 	  Support image processing using VPU hardware.
 	  Customers and third party could use VPU to develop
 	  feature and algorithm by themselves. There is better
 	  performance and power if image process algorithm
 	  land on VPU instead of CPU/GPU.
+
+config MTK_VPU_SUPPORT
+	bool "VPU Driver (Legacy)"
+	select MTK_APUSYS_VPU
+	help
+	  Alias of MTK_APUSYS_VPU, used to support
+	  platforms that were using vpu v2.0, v3.0 driver configs.
+	  The VPU driver of APUSYS is backward compatible
+	  to v2.0, v3.0 drivers.
 
 config MTK_APUSYS_VPU_DEBUG
 	bool "VPU Debug"
@@ -53,10 +59,22 @@ config MTK_APUSYS_VPU_DEBUG
 	  VPU jtag functions, and MET trace.
 	  Disable, if you don't need them.
 
+config MTK_VPU_SUPPORT_DEBUG
+	bool "VPU Debug (Legacy)"
+	depends on MTK_VPU_SUPPORT
+	select MTK_APUSYS_VPU_DEBUG
+	help
+	  Alias of MTK_APUSYS_VPU_DEBUG, used to support
+	  platforms that were using vpu v2.0, v3.0 driver configs.
+	  The VPU driver of APUSYS is backward compatible
+	  to v2.0, v3.0 drivers.
+
 config MTK_APUSYS_EDMA_SUPPORT
-        bool "EDMA (External DMA) Driver"
-        help
-          The purpose of Mediatek eDMA is performing
+	bool "EDMA (External DMA) Driver"
+	help
+	  The purpose of Mediatek eDMA is performing
 	  data transfer between external memory such as
 	  DRAM/TCM, It will cooperate with MDLA. eDMA
 	  support different modes for image process.
+
+source "drivers/misc/mediatek/apusys/power/Kconfig"

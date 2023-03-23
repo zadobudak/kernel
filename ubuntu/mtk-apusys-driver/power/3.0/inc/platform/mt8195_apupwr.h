@@ -32,10 +32,25 @@
 
 /* MHZ */
 #define KHZ			(1000)
-#define MHZ			(KHZ * KHZ)
+#define MHZ_95			(KHZ * KHZ)
 #define MDLA_DEFAULT_FREQ	(mt8195_opp_tbl->opp[0].pll_freq[PLL_DLA] / 1000)
 #define MVPU_DEFAULT_FREQ	(mt8195_opp_tbl->opp[0].pll_freq[PLL_VPU] / 1000)
 #define MNOC_DEFAULT_FREQ	(mt8195_opp_tbl->opp[0].pll_freq[PLL_CONN] / 1000)
+
+/* log lvl */
+enum {
+	APUSYS_PWR_LOG_ERR,
+	APUSYS_PWR_LOG_WARN,
+	APUSYS_PWR_LOG_INFO,
+	APUSYS_PWR_LOG_DEBUG,
+	APUSYS_PWR_LOG_VERBOSE,
+};
+
+#define LOG_DBG(format, args...) \
+	do { \
+		if (g_pwr_log_level_MT8195 >= APUSYS_PWR_LOG_DEBUG) \
+			pr_info("[apu_top_3] " format, ##args); \
+	} while (0)
 
 enum t_acx_id {
 	ACX0 = 0,

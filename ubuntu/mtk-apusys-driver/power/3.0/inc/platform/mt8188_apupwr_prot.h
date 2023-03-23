@@ -120,13 +120,12 @@ ssize_t mt8188_apu_top_dbg_write(
 int mt8188_init_remote_data_sync(void __iomem *reg_base);
 int mt8188_drv_cfg_remote_sync(struct aputop_func_param *aputop);
 int mt8188_chip_data_remote_sync(struct plat_cfg_data *plat_cfg);
-int mt8188_apu_top_tx_rpmsg_cb(int cmd, void *data, int len,
-				void *priv, u32 src);
-int mt8188_apu_top_rx_rpmsg_cb(int cmd, void *data, int len,
+int mt8188_apu_top_rpmsg_cb(int cmd, void *data, int len,
 				void *priv, u32 src);
 int mt8188_pwr_flow_remote_sync(uint32_t cfg);
 void mt8188_apu_temperature_sync(const char *tz_name);
 
 extern struct tiny_dvfs_opp_tbl *opp_tbl;
+extern int g_pwr_log_level;
 
 #endif /* __MT8188_APUPWR_PROT_H__ */

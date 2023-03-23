@@ -9,6 +9,7 @@
 #include <linux/scatterlist.h>
 #include <linux/dma-mapping.h>
 
+
 enum REVISER_MEM_TYPE {
 	/* memory type */
 	REVISER_MEM_TYPE_NONE = 0x0,
@@ -35,5 +36,7 @@ struct reviser_mem {
 	uint64_t handle;
 	struct sg_table sgt;
 };
+
+
 
 #endif

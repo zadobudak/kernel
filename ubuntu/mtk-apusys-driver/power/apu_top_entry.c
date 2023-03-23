@@ -7,46 +7,78 @@
 #include <linux/module.h>
 #include <linux/platform_device.h>
 
-#include "apu_log.h"
 #include "apu_top_entry.h"
 
-int g_pwr_log_level = APUSYS_PWR_LOG_ERR;
-int g_apupw_drv_ver;
+int g_apupw_drv_ver = 3; // On IoT, default use power v3.0
 
-int apu_top_entry_init(struct apusys_core_info *info)
+static int __init apu_top_entry_init(void)
 {
 	int ret = 0;
 
-	ret |= apu_power_init();
-	ret |= apu_top_3_init();
+	if (g_apupw_drv_ver != 3)
+		ret |= apu_power_init();	// 2.5
+	else
+		ret |= apu_top_3_init();	// 3.0
 
 	return ret;
 }
-EXPORT_SYMBOL(apu_top_entry_init);
 
-void apu_top_entry_exit(void)
+static void __exit apu_top_entry_exit(void)
 {
-	apu_top_3_exit();
-	apu_power_exit();
+	if (g_apupw_drv_ver != 3)
+		apu_power_exit();	// 2.5
+	else
+		apu_top_3_exit();	// 3.0
 }
-EXPORT_SYMBOL(apu_top_entry_exit);
 
-/* caller is middleware */
+// caller is middleware
 int apu_power_drv_init(struct apusys_core_info *info)
 {
 	pr_info("%s ++\n", __func__);
-	if (g_apupw_drv_ver == 3)
-		return aputop_dbg_init(info);
+
+#if IS_ENABLED(CONFIG_DEBUG_FS)
+	if (g_apupw_drv_ver != 3)
+		return apupw_dbg_init(info);	// 2.5
+	else
+		return aputop_dbg_init(info);	// 3.0
+#endif
 
 	return 0;
 }
 EXPORT_SYMBOL(apu_power_drv_init);
 
-/* caller is middleware */
+// caller is middleware
 void apu_power_drv_exit(void)
 {
-	if (g_apupw_drv_ver == 3)
-		aputop_dbg_exit();
+#if IS_ENABLED(CONFIG_DEBUG_FS)
+	if (g_apupw_drv_ver != 3)
+		apupw_dbg_exit();	// 2.5
+	else
+		aputop_dbg_exit();	// 3.0
+#endif
 }
 EXPORT_SYMBOL(apu_power_drv_exit);
 
+/* caller is middleware */
+int apu_power_top_on(void)
+{
+	pr_info("%s ++\n", __func__);
+	if (g_apupw_drv_ver == 3)
+		apu_top_3_on();
+
+	return 0;
+}
+EXPORT_SYMBOL(apu_power_top_on);
+
+/* caller is middleware */
+void apu_power_top_off(void)
+{
+	pr_info("%s ++\n", __func__);
+	if (g_apupw_drv_ver == 3)
+		apu_top_3_off();
+}
+EXPORT_SYMBOL(apu_power_top_off);
+
+module_init(apu_top_entry_init);
+module_exit(apu_top_entry_exit);
+MODULE_LICENSE("GPL");

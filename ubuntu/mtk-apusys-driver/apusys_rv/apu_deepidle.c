@@ -12,14 +12,13 @@
 
 #include <linux/delay.h>
 
-#include "apu.h"
-#include "apu_debug.h"
-#include "apu_config.h"
-#if defined(APUSYS_AIOT)
-#include <linux/rpmsg/mtk_rpmsg.h>
-#else
-#include "mtk_apu_rpmsg.h"
+#if IS_ENABLED(CONFIG_MTK_AEE_FEATURE)
+#include <mt-plat/aee.h>
 #endif
+
+#include "apu.h"
+#include "apu_config.h"
+#include "mtk_apu_rpmsg.h"
 #include "apu_excep.h"
 
 #include "apu_hw.h"
@@ -49,16 +48,20 @@ struct dpidle_msg {
 	uint32_t ack;
 };
 
+/* #define APU_DEEPIDLE_WQ */
+#define BOOT_WARN_LOG_TIME_US 3000
+
 static struct mtk_apu *g_apu;
 static struct work_struct pwron_dbg_wk;
+#ifdef APU_DEEPIDLE_WQ
 static struct workqueue_struct *apu_deepidle_workq;
+#endif
 static struct dpidle_msg recv_msg;
 
 static void apu_deepidle_pwron_dbg_fn(struct work_struct *work)
 {
 	struct mtk_apu *apu = g_apu;
 	struct device *dev = apu->dev;
-	struct mtk_apu_reg_ofs *reg_ofs = &apu->platdata->ofs;
 	int i;
 
 	dev_info(dev, "mbox dummy= 0x%08x 0x%08x 0x%08x 0x%08x\n",
@@ -75,22 +78,40 @@ static void apu_deepidle_pwron_dbg_fn(struct work_struct *work)
 		usleep_range(0, 1000);
 	}
 
-
-	dev_info(dev, "%s: USERFW_CTXT = 0x%x\n",
+	dev_info(dev, "%s: UP_NORMAL_DOMAIN_NS = 0x%x\n",
 		__func__,
-		ioread32(apu->apu_sctrl_reviser + reg_ofs->userfw_ctxt));
-	dev_info(dev, "%s: SECUREFW_CTXT = 0x%x\n",
+		ioread32(apu->apu_sctrl_reviser + UP_NORMAL_DOMAIN_NS));
+	dev_info(dev, "%s: UP_PRI_DOMAIN_NS = 0x%x\n",
 		__func__,
-		ioread32(apu->apu_sctrl_reviser + reg_ofs->secfw_ctxt));
-
+		ioread32(apu->apu_sctrl_reviser + UP_PRI_DOMAIN_NS));
+	if (apu->platdata->flags & F_MT8195_PLAT) {
+		dev_info(dev, "%s: USERFW_CTXT = 0x%x\n",
+			__func__,
+			ioread32(apu->apu_sctrl_reviser + USERFW_CTXT_MT8195));
+		dev_info(dev, "%s: SECUREFW_CTXT = 0x%x\n",
+			__func__,
+			ioread32(apu->apu_sctrl_reviser + SECUREFW_CTXT_MT8195));
+	} else {
+		dev_info(dev, "%s: USERFW_CTXT = 0x%x\n",
+			__func__,
+			ioread32(apu->apu_sctrl_reviser + USERFW_CTXT));
+		dev_info(dev, "%s: SECUREFW_CTXT = 0x%x\n",
+			__func__,
+			ioread32(apu->apu_sctrl_reviser + SECUREFW_CTXT));
+	}
 	dev_info(dev, "%s: MD32_SYS_CTRL = 0x%x\n",
-		__func__, ioread32(apu->md32_sysctrl + reg_ofs->md32_sys_ctrl));
+		__func__, ioread32(apu->md32_sysctrl + MD32_SYS_CTRL));
+
+	dev_info(dev, "%s: MD32_CLK_EN = 0x%x\n",
+		__func__, ioread32(apu->md32_sysctrl + MD32_CLK_EN));
+	dev_info(dev, "%s: UP_WAKE_HOST_MASK0 = 0x%x\n",
+		__func__, ioread32(apu->md32_sysctrl + UP_WAKE_HOST_MASK0));
 
 	dev_info(dev, "%s: MD32_BOOT_CTRL = 0x%x\n",
-		__func__, ioread32(apu->apu_ao_ctl + reg_ofs->md32_boot_ctrl));
+		__func__, ioread32(apu->apu_ao_ctl + MD32_BOOT_CTRL));
 
 	dev_info(dev, "%s: MD32_PRE_DEFINE = 0x%x\n",
-		__func__, ioread32(apu->apu_ao_ctl + reg_ofs->md32_pre_def));
+		__func__, ioread32(apu->apu_ao_ctl + MD32_PRE_DEFINE));
 }
 
 int apu_deepidle_power_on_aputop(struct mtk_apu *apu)
@@ -101,6 +122,7 @@ int apu_deepidle_power_on_aputop(struct mtk_apu *apu)
 	uint32_t wait_ms = 10000;
 	int retry = 0;
 	int ret;
+	u64 t;
 
 	if (pm_runtime_suspended(apu->dev)) {
 
@@ -114,17 +136,13 @@ int apu_deepidle_power_on_aputop(struct mtk_apu *apu)
 				 ioread32(apu->md32_sysctrl + 0x838),
 				 ioread32(apu->md32_sysctrl + 0x840));
 
-		apu_drv_debug("%s: power on apu top\n", __func__);
-
 		apu->conf_buf->time_offset = sched_clock();
 		ret = hw_ops->power_on(apu);
 
 		if (ret == 0) {
 			hw_logger_deep_idle_leave();
-
-
 			/* release runstall after pwr on aputop if need */
-			if (hw_ops->resume)
+			if ((hw_ops->resume) && (apu->platdata->flags & F_MT8195_PLAT))
 				hw_ops->resume(apu);
 		} else {
 			return ret;
@@ -134,14 +152,11 @@ int apu_deepidle_power_on_aputop(struct mtk_apu *apu)
 			schedule_work(&pwron_dbg_wk);
 
 		ktime_get_ts64(&begin);
-
 wait_for_warm_boot:
-
 		/* wait for remote warm boot done */
 		ret = wait_event_interruptible_timeout(apu->run.wq,
 						       apu->run.signaled,
 						       msecs_to_jiffies(wait_ms));
-
 		if (ret == -ERESTARTSYS) {
 			ktime_get_ts64(&end);
 			delta = timespec64_sub(end, begin);
@@ -150,14 +165,19 @@ wait_for_warm_boot:
 					__func__, retry, (wait_ms/1000));
 				dev_info(dev, "APU warm boot timeout!!\n");
 				apu_regdump();
+				/*
+				 * since exception is triggered
+				 * so bypass power off timeout check
+				 */
+				apu->bypass_pwr_off_chk = true;
 				apusys_rv_aee_warn("APUSYS_RV",
 					"APUSYS_RV_TIMEOUT");
 				return -1;
 			}
 			if (retry % 50 == 0)
 				dev_info(dev,
-				"%s: wait APU interrupted by a signal, retry again\n",
-				__func__);
+					"%s: wait APU interrupted by a signal, retry again\n",
+					__func__);
 			retry++;
 			msleep(20);
 			goto wait_for_warm_boot;
@@ -166,12 +186,21 @@ wait_for_warm_boot:
 		if (ret == 0) {
 			dev_info(dev, "APU warm boot timeout!!\n");
 			apu_regdump();
+			apu->bypass_pwr_off_chk = true;
 			apusys_rv_aee_warn("APUSYS_RV",
 				"APUSYS_RV_TIMEOUT");
 			return -1;
 		}
 
-		apu_drv_debug("%s: warm boot done\n", __func__);
+		ktime_get_ts64(&end);
+		delta = timespec64_sub(end, begin);
+		t = timespec64_to_ns(&delta);
+		if (t > BOOT_WARN_LOG_TIME_US * 1000)
+			dev_info(dev, "%s: warm boot done (%lldns)\n",
+				__func__, t);
+		else
+			apu_info_ratelimited(dev,
+				"%s: warm boot done\n", __func__);
 	}
 
 	return 0;
@@ -191,14 +220,11 @@ static int apu_deepidle_send_ack(struct mtk_apu *apu, uint32_t cmd, uint32_t ack
 			 "%s: failed to send ack msg, ack=%d, ret=%d\n",
 			 __func__, ack, ret);
 
-	apu_drv_debug("%s: deepidle cmd=%x, ack=%d\n", __func__, cmd, ack);
-
 	return ret;
 }
 
-static void apu_deepidle_work_func(struct work_struct *work)
+static void __apu_deepidle(struct mtk_apu *apu)
 {
-	struct mtk_apu *apu = container_of(work, struct mtk_apu, deepidle_work);
 	struct mtk_apu_hw_ops *hw_ops = &apu->platdata->ops;
 	struct dpidle_msg *msg = &recv_msg;
 	int ret;
@@ -207,27 +233,30 @@ static void apu_deepidle_work_func(struct work_struct *work)
 	case DPIDLE_CMD_LOCK_IPI:
 		ret = apu_ipi_lock(apu);
 		if (ret) {
-			dev_info(apu->dev, "%s: failed to lock IPI, ret=%d\n",
-				 __func__, ret);
+			/* remove to reduce log */
+			/*
+			 * dev_info(apu->dev, "%s: IPI busy, ret=%d\n",
+			 *	 __func__, ret);
+			 */
 			apu_deepidle_send_ack(apu, DPIDLE_CMD_LOCK_IPI,
-					      DPIDLE_ACK_LOCK_BUSY);
+					DPIDLE_ACK_LOCK_BUSY);
 			return;
 		}
 		apu_deepidle_send_ack(apu, DPIDLE_CMD_LOCK_IPI,
-				      DPIDLE_ACK_OK);
+					DPIDLE_ACK_OK);
 		break;
 
 	case DPIDLE_CMD_UNLOCK_IPI:
 		apu_ipi_unlock(apu);
 		apu_deepidle_send_ack(apu, DPIDLE_CMD_UNLOCK_IPI,
-				      DPIDLE_ACK_OK);
+					DPIDLE_ACK_OK);
 		break;
 
 	case DPIDLE_CMD_PDN_UNLOCK:
 		hw_logger_deep_idle_enter_pre();
 
 		apu_deepidle_send_ack(apu, DPIDLE_CMD_PDN_UNLOCK,
-				      DPIDLE_ACK_OK);
+					DPIDLE_ACK_OK);
 
 		ret = hw_ops->power_off(apu);
 		if (ret) {
@@ -240,7 +269,7 @@ static void apu_deepidle_work_func(struct work_struct *work)
 
 		hw_logger_deep_idle_enter_post();
 		apu_ipi_unlock(apu);
-		apu_drv_debug("power down req --\n");
+		apu_info_ratelimited(apu->dev, "power off done\n");
 		break;
 
 	default:
@@ -249,12 +278,27 @@ static void apu_deepidle_work_func(struct work_struct *work)
 	}
 }
 
+#ifdef APU_DEEPIDLE_WQ
+static void apu_deepidle_work_func(struct work_struct *work)
+{
+	struct mtk_apu *apu = container_of(work,
+		struct mtk_apu, deepidle_work);
+
+	__apu_deepidle(apu);
+}
+#endif
+
 static void apu_deepidle_ipi_handler(void *data, unsigned int len, void *priv)
 {
 	struct mtk_apu *apu = (struct mtk_apu *)priv;
 
 	memcpy(&recv_msg, data, len);
+
+#ifdef APU_DEEPIDLE_WQ
 	queue_work(apu_deepidle_workq, &apu->deepidle_work);
+#else
+	__apu_deepidle(apu);
+#endif
 }
 
 int apu_deepidle_init(struct mtk_apu *apu)
@@ -262,6 +306,7 @@ int apu_deepidle_init(struct mtk_apu *apu)
 	struct device *dev = apu->dev;
 	int ret;
 
+#ifdef APU_DEEPIDLE_WQ
 	apu_deepidle_workq = alloc_workqueue("apu_deepidle",
 					     WQ_UNBOUND | WQ_HIGHPRI, 0);
 	if (!apu_deepidle_workq) {
@@ -271,8 +316,9 @@ int apu_deepidle_init(struct mtk_apu *apu)
 	}
 
 	INIT_WORK(&apu->deepidle_work, apu_deepidle_work_func);
+#endif
 
-	ret = apu_ipi_register(apu, APU_IPI_DEEP_IDLE,
+	ret = apu_ipi_register(apu, APU_IPI_DEEP_IDLE, NULL,
 			       apu_deepidle_ipi_handler, apu);
 	if (ret) {
 		dev_info(dev,
@@ -293,7 +339,9 @@ void apu_deepidle_exit(struct mtk_apu *apu)
 
 	apu_ipi_unregister(apu, APU_IPI_DEEP_IDLE);
 
+#ifdef APU_DEEPIDLE_WQ
 	if (apu_deepidle_workq)
 		destroy_workqueue(apu_deepidle_workq);
+#endif
 }
 

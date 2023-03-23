@@ -6,8 +6,6 @@
 #ifndef APU_EXCEP_H
 #define APU_EXCEP_H
 
-#include "apu.h"
-
 #define MON_PC (0x838)
 #define MON_LR (0x83c)
 #define MON_SP (0x840)
@@ -40,21 +38,28 @@
 #define DBG_ATTACH_INSTR (0x900)
 #define DBG_DEATTACH_INSTR (0x901)
 
-#define APU_AEE_ENABLE (0)
-
-#if APU_AEE_ENABLE
 #if IS_ENABLED(CONFIG_MTK_AEE_FEATURE)
 #define apusys_rv_aee_warn(module, reason) \
-do { \
-	char mod_name[150];\
-	snprintf(mod_name, 150, "%s_%s", reason, module); \
-	dev_info(dev, "%s: %s\n", reason, module); \
-	aee_kernel_exception(mod_name, \
-		"\nCRDISPATCH_KEY:%s\n", module); \
-} while (0)
-#endif
+	do { \
+		char mod_name[150];\
+		if (snprintf(mod_name, 150, "%s_%s", reason, module) > 0) { \
+			dev_info(dev, "%s: %s\n", reason, module); \
+			aee_kernel_exception(mod_name, \
+				"\nCRDISPATCH_KEY:%s\n", module); \
+		} else { \
+			dev_info(dev, "%s: snprintf fail(%d)\n", __func__, __LINE__); \
+		} \
+	} while (0)
+
+#define apusys_rv_exception_aee_warn(module) \
+	do { \
+		dev_info(dev, "APUSYS_RV_EXCEPTION: %s\n", module); \
+		aee_kernel_exception("APUSYS_RV_EXCEPTION_APUSYS_RV", \
+			"\nCRDISPATCH_KEY:%s\n", module); \
+	} while (0)
 #else
 #define apusys_rv_aee_warn(module, reason)
+#define apusys_rv_exception_aee_warn(module)
 #endif
 
 int apu_excep_init(struct platform_device *pdev, struct mtk_apu *apu);

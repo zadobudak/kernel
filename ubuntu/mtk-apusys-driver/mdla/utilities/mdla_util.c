@@ -42,13 +42,9 @@ const struct of_device_id *mdla_util_get_device_id(void)
 
 int mdla_util_plat_init(struct platform_device *pdev)
 {
-	int ret = 0;
+	if (mdla_plat_init(pdev) != 0)
+		return -1;
 
-	ret = mdla_plat_init(pdev);
-	if (ret != 0)
-		return ret;
-
-	mdla_fpga_reset();
 	mdla_dbg_fs_setup(&pdev->dev);
 
 	if (mdla_plat_micro_p_support())
@@ -73,11 +69,11 @@ void mdla_util_plat_deinit(struct platform_device *pdev)
 static void mdla_util_dummy_cnt_save(u32 a0, struct mdla_pmu_info *a1) {}
 static void mdla_util_dummy_cnt_read(u32 a0, u32 *a1) {}
 static void mdla_util_dummy_cnt_clr(struct mdla_pmu_info *pmu) {}
-static u32 mdla_util_dummy_get_num_evt(u32 a0, u16 a1)
+static u32 mdla_util_dummy_get_num_evt(u32 a0, int a1)
 {
 	return 0;
 }
-static void mdla_util_dummy_set_num_evt(u32 a0, u16 a1, u32 a2) {}
+static void mdla_util_dummy_set_num_evt(u32 a0, int a1, int a2) {}
 static void mdla_util_dummy_set_mode(struct mdla_pmu_info *a0, u32 a1) {}
 static int mdla_util_dummy_get_mode(struct mdla_pmu_info *a0)
 {
@@ -110,7 +106,7 @@ static void mdla_util_dummy_set_evt(struct mdla_pmu_info *a0,
 {
 }
 static int mdla_util_dummy_prepare(struct mdla_dev *mdla_info,
-			struct apusys_cmd_hnd *apusys_hd, u16 priority)
+			struct apusys_cmd_handle *apusys_hd, u16 priority)
 {
 	return 0;
 }
@@ -152,16 +148,27 @@ struct mdla_util_pmu_ops *mdla_util_pmu_ops_get(void)
 
 /* apusys pmu */
 
-static bool mdla_util_pmu_addr_is_invalid(struct apusys_cmd_hnd *apusys_hd)
+static bool mdla_util_pmu_addr_is_invalid(struct apusys_cmd_handle *apusys_hd)
 {
-	if ((apusys_hd == NULL) ||
-		(apusys_hd->pmu_kva == apusys_hd->cmd_entry) ||
-		(apusys_hd->pmu_kva == 0))
+	if (apusys_hd->num_cmdbufs < CMD_PMU_BUF_0_IDX + 1)
 		return true;
 
-	mdla_pmu_debug("command entry:%08llx, pmu kva: %08llx\n",
-		apusys_hd->cmd_entry,
-		apusys_hd->pmu_kva);
+	if (!apusys_hd->cmdbufs[CMD_PMU_INFO_IDX].kva ||
+			!apusys_hd->cmdbufs[CMD_PMU_BUF_0_IDX].kva)
+		return true;
+
+	if (apusys_hd->multicore_total == 2) {
+		if ((apusys_hd->num_cmdbufs < CMD_PMU_BUF_1_IDX + 1) ||
+		    !apusys_hd->cmdbufs[CMD_PMU_BUF_1_IDX].kva) {
+			return true;
+		}
+		mdla_pmu_debug("pmu kva: buf0 = %08llx, buf1 = %08llx\n",
+			       (u64)apusys_hd->cmdbufs[CMD_PMU_BUF_0_IDX].kva,
+			       (u64)apusys_hd->cmdbufs[CMD_PMU_BUF_1_IDX].kva);
+	} else {
+		mdla_pmu_debug("pmu kva: buf0 = %08llx\n",
+			       (u64)apusys_hd->cmdbufs[CMD_PMU_BUF_0_IDX].kva);
+	}
 
 	return false;
 }
@@ -175,7 +182,7 @@ void mdla_util_pmu_cmd_timer(bool enable)
 
 /* initial local variable and extract pmu setting from input */
 int mdla_util_apu_pmu_handle(struct mdla_dev *mdla_info,
-	struct apusys_cmd_hnd *apusys_hd, u16 priority)
+	struct apusys_cmd_handle *apusys_hd, u16 priority)
 {
 	int i, pmu_mode;
 	u32 evt, evt_num;
@@ -226,9 +233,6 @@ int mdla_util_apu_pmu_handle(struct mdla_dev *mdla_info,
 	pmu_ops.set_num_evt(core_id, priority,
 					evt_num);
 
-	if (pmu_ops.apu_pmu_valid(mdla_info, apusys_hd, priority) == false)
-		return -1;
-
 	mdla_pmu_debug("PMU number_of_event:%d, mode: %d\n",
 			evt_num,
 			pmu_mode);
@@ -243,7 +247,7 @@ int mdla_util_apu_pmu_handle(struct mdla_dev *mdla_info,
 }
 
 void mdla_util_apu_pmu_update(struct mdla_dev *mdla_info,
-	struct apusys_cmd_hnd *apusys_hd, u16 priority)
+	struct apusys_cmd_handle *apusys_hd, u16 priority)
 {
 	int i;
 	struct mdla_pmu_result result;
@@ -265,8 +269,6 @@ void mdla_util_apu_pmu_update(struct mdla_dev *mdla_info,
 
 	if (mdla_util_pmu_addr_is_invalid(apusys_hd))
 		return;
-	if (pmu_ops.apu_pmu_valid(mdla_info, apusys_hd, priority) == false)
-		return;
 
 	core_id = mdla_info->mdla_id;
 	pmu = pmu_ops.get_info(core_id, priority);
@@ -279,21 +281,12 @@ void mdla_util_apu_pmu_update(struct mdla_dev *mdla_info,
 
 	//loop_count = pmu->pmu_hnd->number_of_event;
 	loop_count = pmu_ops.get_hnd_evt_num(pmu);
-	if (loop_count == 0)
-		return;
+
 	//event_num = loop_count + 1;
 
 	//result.cmd_len = pmu->data.l_cmd_cnt;
 	result.cmd_len = pmu_ops.get_perf_cmdcnt(pmu);
 	result.cmd_id = pmu_ops.get_perf_cmdid(pmu);
-
-	//sz = sizeof(u16) * 2 + sizeof(u32) * event_num;
-	sz = sizeof(struct mdla_pmu_result);
-	base = (void *)pmu_ops.get_hnd_buf_addr(pmu);
-
-	mdla_pmu_debug("mode: %d, cmd_len: %d, cmd_id: %d, sz: %d\n",
-		       pmu_ops.get_hnd_mode(pmu),
-		       result.cmd_len, result.cmd_id, sz);
 
 	if (pmu_ops.get_curr_mode(pmu) == PER_CMD) {
 		mdla_util_pmu_cmd_timer(false);
@@ -311,52 +304,43 @@ void mdla_util_apu_pmu_update(struct mdla_dev *mdla_info,
 			       i, result.pmu_val[i]);
 	}
 
-	/* update pmu result buffer */
-	if (result.cmd_len == 1) {
-		desc = base;
-		src = &result;
-		memcpy(desc, src, sz);
-	} else if (result.cmd_len > 1) {
-		offset = sz + (result.cmd_len - 2) * (sz - sizeof(u16));
-		desc = (void *)(base + offset);
-		src = (void *)&(result.cmd_id);
-		memcpy(desc, src, sz - sizeof(u16));
-	}
+	mdla_pmu_debug("mode: %d, cmd_len: %d, cmd_id: %d\n",
+		       pmu_ops.get_hnd_mode(pmu),
+		       result.cmd_len, result.cmd_id);
+
+	sz = sizeof(struct mdla_pmu_result) - sizeof(u16);
+	base = (void *)pmu_ops.get_hnd_buf_addr(pmu);
+
+	if (result.cmd_len)
+		offset = sizeof(u16) + (result.cmd_len - 1) * sz;
+	else
+		return;
+
+	/* update command length */
+	((struct mdla_pmu_result *)base)->cmd_len = result.cmd_len;
+
+	if (pmu_ops.get_hnd_buf_size(pmu) < offset + sz)
+		return;
+
+	/* update current command pmu result */
+	desc = (void *)(base + offset);
+	src = (void *)&(result.cmd_id);
+	memcpy(desc, src, sz);
+
 
 	if (result.cmd_id == mdla_info->max_cmd_id) {
-		((struct mdla_pmu_result *)base)->cmd_len = result.cmd_len;
-		//final_len = result.cmd_len;
-		//desc = base;
-		//memcpy(desc, &final_len, sizeof(u16));
 		if (unlikely(mdla_dbg_read_u32(FS_KLOG) & MDLA_DBG_PMU)) {
 			struct mdla_pmu_result check;
 
-			memcpy(&check, base, sz);
+			memset((void *)&check, 0, sizeof(struct mdla_pmu_result));
+			check.cmd_len = ((struct mdla_pmu_result *)base)->cmd_len;
 
-			mdla_pmu_debug("[-] check cmd_len: %d\n",
-				check.cmd_len);
-			mdla_pmu_debug("[-] check cmd_id: %d\n",
-				check.cmd_id);
-			mdla_pmu_debug("[-] check cmd_val[1]:  %08x\n",
-			       check.pmu_val[1]);
+			memcpy((void *)&(check.cmd_id), desc, sz);
 
-			if (result.cmd_len > 1) {
-				offset =
-					sz +
-					(result.cmd_len - 2) *
-					(sz - sizeof(u16));
-				desc = (void *)(base + offset);
-				memcpy(
-					(void *)&(check.cmd_id),
-					desc,
-					sz - sizeof(u16));
-
-				mdla_pmu_debug("[-] offset: %d\n", offset);
-				mdla_pmu_debug("[-] check cmd_id: %d\n",
-					check.cmd_id);
-				mdla_pmu_debug("[-] check cmd_val[1]:  %08x\n",
-				       check.pmu_val[1]);
-			}
+			mdla_pmu_debug("[-] check cmd_len: %d\n", check.cmd_len);
+			mdla_pmu_debug("[-] check offset: %d\n", offset);
+			mdla_pmu_debug("[-] check cmd_id: %d\n", check.cmd_id);
+			mdla_pmu_debug("[-] check cmd_val[1]:  %08x\n", check.pmu_val[1]);
 		}
 	}
 }
@@ -564,11 +548,11 @@ void mdla_util_io_set_addr(struct mdla_reg_ctl *reg_ctl)
 	io_ops.cmde.read       = mdla_reg_read;
 	io_ops.cmde.write      = mdla_reg_write;
 	io_ops.cmde.set_b      = mdla_reg_set_b;
-	io_ops.cmde.clr_b      = mdla_biu_clr_b;
+	io_ops.cmde.clr_b      = mdla_reg_clr_b;
 	io_ops.biu.read        = mdla_biu_read;
 	io_ops.biu.write       = mdla_biu_write;
 	io_ops.biu.set_b       = mdla_biu_set_b;
-	io_ops.biu.clr_b       = mdla_reg_clr_b;
+	io_ops.biu.clr_b       = mdla_biu_clr_b;
 }
 
 void mdla_util_io_set_extra_addr(int type,

@@ -7,7 +7,6 @@
 #include <linux/slab.h>
 #include <linux/uaccess.h>
 
-#include "apu_log.h"
 #include "apu_top.h"
 #include "aputop_rpmsg.h"
 #include "mt8195_apupwr.h"
@@ -89,14 +88,6 @@ static void _opp_limiter(int vpu_max, int vpu_min, int dla_max, int dla_min,
 
 }
 
-static void limit_opp_to_all_devices(int opp)
-{
-	int c_id, d_id;
-
-	for (c_id = 0 ; c_id < CLUSTER_NUM ; c_id++)
-		for (d_id = 0 ; d_id < DEVICE_NUM ; d_id++)
-			_opp_limiter(opp, opp, opp, opp, OPP_LIMIT_DEBUG);
-}
 
 void mt8195_aputop_opp_limit(struct aputop_func_param *aputop,
 		enum apu_opp_limit_type type)
@@ -112,6 +103,15 @@ void mt8195_aputop_opp_limit(struct aputop_func_param *aputop,
 }
 
 #if IS_ENABLED(CONFIG_DEBUG_FS)
+static void limit_opp_to_all_devices(int opp)
+{
+	int c_id, d_id;
+
+	for (c_id = 0 ; c_id < CLUSTER_NUM ; c_id++)
+		for (d_id = 0 ; d_id < DEVICE_NUM ; d_id++)
+			_opp_limiter(opp, opp, opp, opp, OPP_LIMIT_DEBUG);
+}
+
 static int aputop_dbg_set_parameter(int param, int argc, int *args)
 {
 	int ret = 0, i;
@@ -133,7 +133,7 @@ static int aputop_dbg_set_parameter(int param, int argc, int *args)
 			rpmsg_data.data0 = args[0]; /* cluster_id */
 			rpmsg_data.data1 = args[1]; /* device_id */
 			rpmsg_data.data2 = args[2]; /* POWER_ON/POWER_OFF */
-			aputop_send_tx_rpmsg(&rpmsg_data, 100);
+			aputop_send_rpmsg(&rpmsg_data, 100);
 		} else {
 			pr_info("%s invalid param num:%d\n", __func__, argc);
 			ret = -EINVAL;
@@ -145,7 +145,7 @@ static int aputop_dbg_set_parameter(int param, int argc, int *args)
 			rpmsg_data.data0 = args[0]; /* cluster_id */
 			rpmsg_data.data1 = args[1]; /* device_id */
 			rpmsg_data.data2 = args[2]; /* opp */
-			aputop_send_tx_rpmsg(&rpmsg_data, 100);
+			aputop_send_rpmsg(&rpmsg_data, 100);
 		} else {
 			pr_info("%s invalid param num:%d\n", __func__, argc);
 			ret = -EINVAL;
@@ -163,7 +163,7 @@ static int aputop_dbg_set_parameter(int param, int argc, int *args)
 		if (argc == 1) {
 			rpmsg_data.cmd = APUTOP_DUMP_OPP_TBL;
 			rpmsg_data.data0 = args[0]; /* pseudo data */
-			aputop_send_tx_rpmsg(&rpmsg_data, 100);
+			aputop_send_rpmsg(&rpmsg_data, 100);
 		} else {
 			pr_info("%s invalid param num:%d\n", __func__, argc);
 			ret = -EINVAL;
@@ -173,7 +173,7 @@ static int aputop_dbg_set_parameter(int param, int argc, int *args)
 		if (argc == 1) {
 			rpmsg_data.cmd = APUTOP_CURR_STATUS;
 			rpmsg_data.data0 = args[0]; /* pseudo data */
-			aputop_send_tx_rpmsg(&rpmsg_data, 100);
+			aputop_send_rpmsg(&rpmsg_data, 100);
 		} else {
 			pr_info("%s invalid param num:%d\n", __func__, argc);
 			ret = -EINVAL;
@@ -186,7 +186,7 @@ static int aputop_dbg_set_parameter(int param, int argc, int *args)
 			rpmsg_data.data0 = args[0];
 			/* value of allow bit/bitmask */
 			rpmsg_data.data1 = args[1]; /* allow bitmask */
-			aputop_send_tx_rpmsg(&rpmsg_data, 100);
+			aputop_send_rpmsg(&rpmsg_data, 100);
 		} else {
 			pr_info("%s invalid param num:%d\n", __func__, argc);
 			ret = -EINVAL;
@@ -196,7 +196,7 @@ static int aputop_dbg_set_parameter(int param, int argc, int *args)
 		if (argc == 1) {
 			rpmsg_data.cmd = APUTOP_DPIDLE_SKIP;
 			rpmsg_data.data0 = args[0]; /* 0: disable 1: enable */
-			aputop_send_tx_rpmsg(&rpmsg_data, 100);
+			aputop_send_rpmsg(&rpmsg_data, 100);
 			pr_info("%s set apu dpidle_ctl: %d\n",
 				__func__, args[0]);
 		} else {
@@ -237,7 +237,7 @@ static void plat_dump_boost_mapping(struct seq_file *s,
 	}
 
 	step = kzalloc(sizeof(int)*mt8195_opp_tbl->tbl_size, GFP_KERNEL);
-	if (IS_ERR_OR_NULL(step))
+	if (!step)
 		return;
 
 	opp_min_idx = mt8195_opp_tbl->tbl_size - 1;
@@ -311,10 +311,10 @@ static int aputop_show_curr_status(struct seq_file *s, void *unused)
 {
 	struct apu_pwr_curr_info info;
 	struct rpc_status_dump cluster_dump[CLUSTER_NUM + 1];
-	struct platform_device *pdev = (struct platform_device *)s->private;
 	int i;
 
 	pr_info("%s ++\n", __func__);
+	memset(&cluster_dump, 0, sizeof(struct rpc_status_dump));
 	memcpy(&info, &curr_info, sizeof(struct apu_pwr_curr_info));
 
 	seq_puts(s, "\n");
@@ -332,21 +332,13 @@ static int aputop_show_curr_status(struct seq_file *s, void *unused)
 				info.buck_opp[i],
 				info.buck_volt[i]);
 	}
-	if (pm_runtime_get_if_in_use(&pdev->dev) > 0) {
-		for (i = 0 ; i < CLUSTER_NUM ; i++) {
-			mt8195_apu_dump_pwr_status(&cluster_dump[i]);
-			seq_printf(s,
-				"%s : rpc_status 0x%08x , conn_cg 0x%08x conn1_cg 0x%08x\n",
+	for (i = 0 ; i < CLUSTER_NUM ; i++) {
+		mt8195_apu_dump_pwr_status(&cluster_dump[i]);
+		seq_printf(s, "%s : rpc_status 0x%08x , conn_cg 0x%08x\n",
 				cluster_name[i],
 				cluster_dump[i].rpc_reg_status,
-				cluster_dump[i].conn_reg_status,
-				cluster_dump[i].conn1_reg_status);
-		}
-		pm_runtime_put(&pdev->dev);
-	} else {
-		seq_puts(s, "rpc_status OFF , conn_cg GATED\n");
+				cluster_dump[i].conn_reg_status);
 	}
-
 	seq_puts(s, "\n");
 
 	return 0;
@@ -356,7 +348,7 @@ static int apu_top_dbg_show(struct seq_file *s, void *unused)
 {
 	int ret = 0;
 	int args[1] = {0};
-	enum aputop_rpmsg_cmd cmd = get_curr_tx_rpmsg_cmd();
+	enum aputop_rpmsg_cmd cmd = get_curr_rpmsg_cmd();
 
 	pr_info("%s for aputop_rpmsg_cmd : %d\n", __func__, cmd);
 
@@ -389,8 +381,6 @@ ssize_t mt8195_apu_top_dbg_write(
 	char *tmp, *token, *cursor;
 	int ret, i, param;
 	unsigned int args[MAX_ARG];
-
-	pr_info("%s\n", __func__);
 
 	tmp = kzalloc(count + 1, GFP_KERNEL);
 	if (!tmp)
@@ -443,7 +433,7 @@ out:
 }
 #endif
 
-int mt8195_apu_top_tx_rpmsg_cb(int cmd, void *data, int len, void *priv, u32 src)
+int mt8195_apu_top_rpmsg_cb(int cmd, void *data, int len, void *priv, u32 src)
 {
 	int ret = 0;
 	int tbl_size = 0;

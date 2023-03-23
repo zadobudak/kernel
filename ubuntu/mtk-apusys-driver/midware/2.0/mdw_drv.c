@@ -7,7 +7,7 @@
 #include <linux/slab.h>
 #include <linux/of_device.h>
 #include <linux/types.h>
-//#include <linux/dma-direct.h>
+#include <linux/dma-direct.h>
 #include <linux/rpmsg.h>
 
 #include "apusys_core.h"
@@ -68,7 +68,9 @@ static int mdw_drv_open(struct inode *inode, struct file *filp)
 	mutex_init(&mpriv->mtx);
 	INIT_LIST_HEAD(&mpriv->mems);
 	INIT_LIST_HEAD(&mpriv->invokes);
-	INIT_LIST_HEAD(&mpriv->cmds);
+	atomic_set(&mpriv->active_cmds, 0);
+	idr_init(&mpriv->cmds);
+	atomic_set(&mpriv->exec_seqno, 0);
 
 	if (!atomic_read(&g_inited)) {
 		ret = mdw_dev->dev_funcs->sw_init(mdw_dev);
@@ -90,7 +92,7 @@ static int mdw_drv_open(struct inode *inode, struct file *filp)
 		goto out;
 
 	mdw_dev_session_create(mpriv);
-	mdw_flw_debug("mpriv(0x%llx)\n", (uint64_t) mpriv);
+	mdw_flw_debug("mpriv(0x%llx)\n", mpriv);
 
 out:
 	return ret;
@@ -104,8 +106,8 @@ static int mdw_drv_close(struct inode *inode, struct file *filp)
 	mdw_flw_debug("mpriv(0x%llx)\n", (uint64_t)mpriv);
 	mutex_lock(&mpriv->mtx);
 	atomic_set(&mpriv->active, 0);
-	mdw_mem_pool_destroy(&mpriv->cmd_buf_pool);
 	mdw_cmd_mpriv_release(mpriv);
+	mdw_mem_pool_destroy(&mpriv->cmd_buf_pool);
 	mutex_unlock(&mpriv->mtx);
 	mpriv->put(mpriv);
 
@@ -166,7 +168,7 @@ static int mdw_platform_probe(struct platform_device *pdev)
 	if (ret)
 		goto deinit_dbg;
 
-	pr_info("%s done\n", __func__);
+	pr_info("%s +\n", __func__);
 
 	goto out;
 
@@ -184,11 +186,7 @@ out:
 
 static int mdw_platform_remove(struct platform_device *pdev)
 {
-	struct mdw_device *mdev;
-
-	mdev = platform_get_drvdata(pdev);
-	if (!mdev)
-		return -EINVAL;
+	struct mdw_device *mdev = platform_get_drvdata(pdev);
 
 	mdev->dev_funcs->sw_deinit(mdev);
 	mdw_dev_deinit(mdev);
@@ -197,7 +195,7 @@ static int mdw_platform_remove(struct platform_device *pdev)
 	mdw_mem_deinit(mdev);
 	kfree(mdev);
 	mdw_dev = NULL;
-	pr_info("%s done\n", __func__);
+	pr_info("%s +\n", __func__);
 
 	return 0;
 }
@@ -224,7 +222,7 @@ static int mdw_rpmsg_probe(struct rpmsg_device *rpdev)
 	struct mdw_device *mdev = NULL;
 	int ret = 0;
 
-	pr_info("%s+\n", __func__);
+	pr_info("%s +\n", __func__);
 
 	if (mdw_dev) {
 		pr_info("%s already probe\n", __func__);
@@ -260,7 +258,7 @@ static int mdw_rpmsg_probe(struct rpmsg_device *rpdev)
 	if (ret)
 		goto deinit_dbg;
 
-	pr_info("%s done\n", __func__);
+	pr_info("%s -\n", __func__);
 
 	goto out;
 
@@ -287,7 +285,7 @@ static void mdw_rpmsg_remove(struct rpmsg_device *rpdev)
 	mdw_mem_deinit(mdev);
 	kfree(mdev);
 	mdw_dev = NULL;
-	pr_info("%s done\n", __func__);
+	pr_info("%s +\n", __func__);
 }
 
 static const struct of_device_id mdw_rpmsg_of_match[] = {

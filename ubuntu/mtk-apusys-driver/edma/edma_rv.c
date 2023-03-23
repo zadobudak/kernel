@@ -19,11 +19,14 @@
 #include <linux/rpmsg.h>
 
 #include "edma_dbgfs.h"
+#include "edma_driver.h"
+#include "edma_cmd_hnd.h"
+#include "apusys_power.h"
 #include "apusys_core.h"
+#include "edma_plat_internal.h"
 
 u8 g_edmaRV_log_lv = EDMA_LOG_DEBUG;
 
-#define EDMA_TAG "[edma]"
 #define LOG_RV_DBG(x, args...) \
 	{ \
 		if (g_edmaRV_log_lv >= EDMA_LOG_DEBUG) \
@@ -53,11 +56,12 @@ struct edma_ipi_data {
 struct edma_rv_dev {
 	struct rpmsg_device *rpdev;
 	struct rpmsg_endpoint *ept;
+	struct completion ack;
 	struct kobject *edmaRV_root;
-
 };
 
 static struct edma_rv_dev eRdev;
+static struct mutex edma_ipi_mtx;
 
 
 static int edma_rpmsg_cb(struct rpmsg_device *rpdev, void *data,
@@ -66,6 +70,7 @@ static int edma_rpmsg_cb(struct rpmsg_device *rpdev, void *data,
 	int ret = 0;
 
 	LOG_INF("%s len=%d, priv=%p, src=%d\n", __func__, len, priv, src);
+	complete(&eRdev.ack);
 	//ret = reviser_remote_rx_cb(data, len);
 
 	return ret;
@@ -77,7 +82,7 @@ static int edma_rpmsg_probe(struct rpmsg_device *rpdev)
 	int ret = 0;
 	struct rpmsg_channel_info chinfo = {};
 
-	LOG_INF("%s in\n", __func__);
+	LOG_INF("%s +\n", __func__);
 
 	eRdev.rpdev = rpdev;
 
@@ -88,15 +93,14 @@ static int edma_rpmsg_probe(struct rpmsg_device *rpdev)
 		edma_rpmsg_cb, &eRdev, chinfo);
 
 
-	//LOG_INF("Done, eRdev.ept = 0x%x\n", eRdev.ept);
-	LOG_INF("%s Done\n", __func__);
+	LOG_INF("Done, eRdev.ept = %p\n", eRdev.ept);
 
 	return ret;
 }
 
 static void edma_rpmsg_remove(struct rpmsg_device *rpdev)
 {
-	LOG_RV_DBG("%s in\n", __func__);
+	LOG_DBG("%s +\n", __func__);
 }
 
 static const struct of_device_id edma_rpmsg_of_match[] = {
@@ -131,9 +135,16 @@ static ssize_t edma_rvlog_store(struct kobject *kobj,
 					struct kobj_attribute *attr,
 					const char *buf, size_t count)
 {
-	unsigned int val;
+	unsigned int val = 0;
 	int ret;
 	struct edma_ipi_data mData;
+
+	if (!eRdev.ept) {
+		LOG_ERR("%s: eRdev.ept == NULL\n", __func__);
+		return count;
+	}
+
+	mutex_lock(&edma_ipi_mtx);
 
 	ret = kstrtouint(buf, 10, &val);
 
@@ -145,14 +156,20 @@ static ssize_t edma_rvlog_store(struct kobject *kobj,
 	mData.data = g_edmaRV_log_lv;
 
 	ret = rpmsg_send(eRdev.ept, &mData, sizeof(mData));
-	if (ret)
+	if (ret) {
 		LOG_ERR("send msg fail\n");
+		goto exit;
+	}
 
+	ret = wait_for_completion_timeout(&eRdev.ack, msecs_to_jiffies(100));
+	if (ret == 0)
+		LOG_WRN("%s: wait for completion timeout\n", __func__);
+exit:
+	mutex_unlock(&edma_ipi_mtx);
 
 	return count;
-
-
 }
+
 static const struct kobj_attribute edma_log_lv_attr =
 	__ATTR(edma_rv_log_lv, 0660, edma_rvlog_show,
 		edma_rvlog_store);
@@ -162,9 +179,12 @@ int edma_rv_setup(struct apusys_core_info *info)
 {
 	int ret = 0;
 
-	pr_info("%s in\n", __func__);
+	pr_info("%s +\n", __func__);
 
 	memset(&eRdev, 0, sizeof(eRdev));
+
+	init_completion(&eRdev.ack);
+	mutex_init(&edma_ipi_mtx);
 
 	eRdev.edmaRV_root = kobject_create_and_add("edma_rv", kernel_kobj);
 
@@ -172,10 +192,10 @@ int edma_rv_setup(struct apusys_core_info *info)
 		return -ENOMEM;
 
 	ret = sysfs_create_file(eRdev.edmaRV_root, &edma_log_lv_attr.attr);
-
 	if (ret)
-		LOG_ERR("%s create edma_log_lv_attr attribute fail, ret %d\n",
-			__func__, ret);
+		LOG_ERR("%s create edma_log_lv_attr attribute fail, ret %d\n", __func__, ret);
+
+
 
 	if (register_rpmsg_driver(&edma_rpmsg_driver)) {
 		LOG_ERR("failed to register RMPSG driver");
@@ -185,18 +205,8 @@ int edma_rv_setup(struct apusys_core_info *info)
 	return ret;
 }
 
-/* for apusys_init() */
-int edma_init(struct apusys_core_info *info)
-{
-	pr_info("%s in\n", __func__);
-	edma_rv_setup(info);
-
-	return 0;
-}
-
-void edma_exit(void)
+void edma_rv_shutdown(void)
 {
 	unregister_rpmsg_driver(&edma_rpmsg_driver);
-	sysfs_remove_file(eRdev.edmaRV_root, &edma_log_lv_attr.attr);
 	kobject_del(eRdev.edmaRV_root);
 }

@@ -57,19 +57,21 @@ static struct dentry *reviser_dbg_err_info;
 static struct dentry *reviser_dbg_err_reg;
 static struct dentry *reviser_dbg_err_debug;
 
+
 uint32_t g_rvr_klog;
 static uint32_t g_rvr_debug_op;
 static uint32_t g_rvr_remote_klog;
 static uint32_t g_reviser_vlm_ctx;
 static uint32_t g_reviser_mem_tcm_bank;
-static uint32_t g_reviser_mem_dram_bank;
-static uint32_t g_reviser_mem_dram_ctx;
+static uint16_t g_reviser_mem_dram_bank;
+static uint16_t g_reviser_mem_dram_ctx;
 
 //----------------------------------------------
 // user table dump
 static int reviser_dbg_show_remap_table(struct seq_file *s, void *unused)
 {
 	struct reviser_dev_info *rdv = s->private;
+
 
 	reviser_mgt_dmp_rmp(rdv, s);
 	return 0;
@@ -318,8 +320,8 @@ static ssize_t reviser_dbg_read_mem_dram(struct file *filp, char *buffer,
 
 	dram_max = rdv->plat.vlm_size * rdv->plat.dram_max;
 
-	dram_offset = g_reviser_mem_dram_ctx * rdv->plat.vlm_size +
-			g_reviser_mem_dram_bank * rdv->plat.bank_size;
+	dram_offset = (uint64_t) g_reviser_mem_dram_ctx * (uint64_t) rdv->plat.vlm_size +
+			(uint64_t) g_reviser_mem_dram_bank * (uint64_t) rdv->plat.bank_size;
 	if (dram_offset >= dram_max) {
 		LOG_ERR("copy dram out of range. 0x%llx\n", dram_offset);
 		return res;
@@ -500,6 +502,7 @@ static int reviser_dbg_show_err_reg(struct seq_file *s, void *unused)
 {
 	struct reviser_dev_info *rdv = s->private;
 
+
 	reviser_mgt_dmp_exception(rdv, s);
 	return 0;
 }
@@ -528,6 +531,8 @@ static int reviser_dbg_read_debug_op(void *data, u64 *val)
 	return ret;
 }
 
+
+
 static int reviser_dbg_write_debug_op(void *data, u64 val)
 {
 	int ret = 0;
@@ -539,7 +544,6 @@ static int reviser_dbg_write_debug_op(void *data, u64 val)
 		ret = -EINVAL;
 		goto out;
 	}
-
 out:
 	return ret;
 }
@@ -594,10 +598,12 @@ static ssize_t reviser_dbg_write_op(struct file *file, const char __user *user_b
 	if (!tmp)
 		return -ENOMEM;
 
-	if (copy_from_user(tmp, user_buf, count)) {
+	ret = copy_from_user(tmp, user_buf, count);
+	if (ret) {
 		ret = -EINVAL;
 		goto out;
 	}
+
 
 	tmp[count] = '\0';
 	cursor = tmp;
@@ -611,8 +617,8 @@ static ssize_t reviser_dbg_write_op(struct file *file, const char __user *user_b
 		}
 	}
 
-	for (i = 0; i < MAX_ARG; i++)
-		LOG_INFO("args[%d][%d]\n", i, argv[i]);
+	//for (i = 0; i < MAX_ARG; i++)
+	//	LOG_INFO("args[%d][%d]\n", i, argv[i]);
 
 
 	ret = reviser_remote_set_op(rdv, argv, MAX_ARG);
@@ -645,6 +651,7 @@ int reviser_dbg_init(struct reviser_dev_info *rdv, struct dentry *apu_dbg_root)
 	g_reviser_mem_dram_bank = 0;
 	g_reviser_mem_dram_ctx = 0;
 	g_rvr_debug_op = 0;
+
 
 	reviser_dbg_root = debugfs_create_dir(REVISER_DBG_DIR, apu_dbg_root);
 	reviser_dbg_table = debugfs_create_dir(REVISER_DBG_SUBDIR_TABLE,
@@ -752,12 +759,12 @@ int reviser_dbg_init(struct reviser_dev_info *rdv, struct dentry *apu_dbg_root)
 	/*  dump dram */
 	debugfs_create_u32("dram_bank", 0644,
 			reviser_dbg_mem,
-			&g_reviser_mem_dram_bank);
+			(uint32_t *) &g_reviser_mem_dram_bank);
 
 
 	debugfs_create_u32("dram_ctx", 0644,
 			reviser_dbg_mem,
-			&g_reviser_mem_dram_ctx);
+			(uint32_t *) &g_reviser_mem_dram_ctx);
 
 	reviser_dbg_mem_dram = debugfs_create_file("dram", 0644,
 			reviser_dbg_mem, rdv,

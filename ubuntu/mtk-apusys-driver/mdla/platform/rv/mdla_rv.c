@@ -22,6 +22,9 @@
 
 #include "mdla_rv.h"
 
+/* remove after lk/atf bootup flow ready */
+#define LK_BOOT_RDY 0
+
 #define DBGFS_USAGE_NAME    "help"
 #define DBGFS_MEM_NAME      "dbg_mem"
 
@@ -75,11 +78,11 @@ DEFINE_IPI_DBGFS_ATTRIBUTE(C13,            MDLA_IPI_PMU_COUNT,     13, "0x%llx\n
 DEFINE_IPI_DBGFS_ATTRIBUTE(C14,            MDLA_IPI_PMU_COUNT,     14, "0x%llx\n");
 DEFINE_IPI_DBGFS_ATTRIBUTE(C15,            MDLA_IPI_PMU_COUNT,     15, "0x%llx\n");
 DEFINE_IPI_DBGFS_ATTRIBUTE(preempt_times,  MDLA_IPI_PREEMPT_CNT,    0, "%llu\n");
-DEFINE_IPI_DBGFS_ATTRIBUTE(force_pwr_on,   MDLA_IPI_FORCE_PWR_ON,   0, "%lld\n");
-DEFINE_IPI_DBGFS_ATTRIBUTE(profiling,      MDLA_IPI_PROFILE_EN,     0, "%lld\n");
-DEFINE_IPI_DBGFS_ATTRIBUTE(dump_cmdbuf_en, MDLA_IPI_DUMP_CMDBUF_EN, 0, "%lld\n");
-DEFINE_IPI_DBGFS_ATTRIBUTE(info,           MDLA_IPI_INFO,           0, "%lld\n");
-
+DEFINE_IPI_DBGFS_ATTRIBUTE(force_pwr_on,   MDLA_IPI_FORCE_PWR_ON,   0, "%d\n");
+DEFINE_IPI_DBGFS_ATTRIBUTE(profiling,      MDLA_IPI_PROFILE_EN,     0, "%d\n");
+DEFINE_IPI_DBGFS_ATTRIBUTE(dump_cmdbuf_en, MDLA_IPI_DUMP_CMDBUF_EN, 0, "%d\n");
+DEFINE_IPI_DBGFS_ATTRIBUTE(info,           MDLA_IPI_INFO,           0, "%d\n");
+DEFINE_IPI_DBGFS_ATTRIBUTE(dbg_brk,        MDLA_IPI_HALT_STA,       0, "0x%llx\n");
 
 struct mdla_dbgfs_ipi_file {
 	int type0;
@@ -92,64 +95,37 @@ struct mdla_dbgfs_ipi_file {
 };
 
 static struct mdla_dbgfs_ipi_file ipi_dbgfs_file[] = {
-	{MDLA_IPI_PWR_TIME,      0,  BIT(2) | BIT(3), 0660, "poweroff_time",
-		&pwrtime_fops, 0},
-	{MDLA_IPI_TIMEOUT,       0,  BIT(2) | BIT(3), 0660,       "timeout",
-		&timeout_fops, 0},
-	{MDLA_IPI_ULOG,          0,  BIT(2) | BIT(3), 0660,          "ulog",
-		&ulog_fops, 0},
-	{MDLA_IPI_CMD_CHECK,     0,           BIT(2), 0660,     "cmd_check",
-		&cmd_check_fops, 0},
-	{MDLA_IPI_TRACE_ENABLE,  0,  BIT(2) | BIT(3), 0660,     "trace_log",
-		&pmu_trace_fops, 0},
-	{MDLA_IPI_PMU_COUNT,     1,           BIT(2), 0660,            "c1",
-		&C1_fops, 0},
-	{MDLA_IPI_PMU_COUNT,     2,           BIT(2), 0660,            "c2",
-		&C2_fops, 0},
-	{MDLA_IPI_PMU_COUNT,     3,           BIT(2), 0660,            "c3",
-		&C3_fops, 0},
-	{MDLA_IPI_PMU_COUNT,     4,           BIT(2), 0660,            "c4",
-		&C4_fops, 0},
-	{MDLA_IPI_PMU_COUNT,     5,           BIT(2), 0660,            "c5",
-		&C5_fops, 0},
-	{MDLA_IPI_PMU_COUNT,     6,           BIT(2), 0660,            "c6",
-		&C6_fops, 0},
-	{MDLA_IPI_PMU_COUNT,     7,           BIT(2), 0660,            "c7",
-		&C7_fops, 0},
-	{MDLA_IPI_PMU_COUNT,     8,           BIT(2), 0660,            "c8",
-		&C8_fops, 0},
-	{MDLA_IPI_PMU_COUNT,     9,           BIT(2), 0660,            "c9",
-		&C9_fops, 0},
-	{MDLA_IPI_PMU_COUNT,    10,           BIT(2), 0660,           "c10",
-		&C10_fops, 0},
-	{MDLA_IPI_PMU_COUNT,    11,           BIT(2), 0660,           "c11",
-		&C11_fops, 0},
-	{MDLA_IPI_PMU_COUNT,    12,           BIT(2), 0660,           "c12",
-		&C12_fops, 0},
-	{MDLA_IPI_PMU_COUNT,    13,           BIT(2), 0660,           "c13",
-		&C13_fops, 0},
-	{MDLA_IPI_PMU_COUNT,    14,           BIT(2), 0660,           "c14",
-		&C14_fops, 0},
-	{MDLA_IPI_PMU_COUNT,    15,           BIT(2), 0660,           "c15",
-		&C15_fops, 0},
-	{MDLA_IPI_PREEMPT_CNT,   0,  BIT(2) | BIT(3), 0660, "preempt_times",
-		&preempt_times_fops, 0},
-	{MDLA_IPI_FORCE_PWR_ON,   0,          BIT(3), 0660,   "force_pwr_on",
-		&force_pwr_on_fops, 0},
-	{MDLA_IPI_PROFILE_EN,     0,          BIT(3), 0660,      "profiling",
-		&profiling_fops, 0},
-	{MDLA_IPI_DUMP_CMDBUF_EN, 0,          BIT(3), 0660, "dump_cmdbuf_en",
-		&dump_cmdbuf_en_fops, 0},
-	{MDLA_IPI_INFO,           0,          BIT(3), 0660,           "info",
-		&info_fops, 0},
-	{NF_MDLA_IPI_TYPE_0,     0,                0,    0,            NULL,
-		NULL, 0}
+	{MDLA_IPI_PWR_TIME,       0, 0xC, 0660,  "poweroff_time",        &pwrtime_fops, 0},
+	{MDLA_IPI_TIMEOUT,        0, 0xC, 0660,        "timeout",        &timeout_fops, 0},
+	{MDLA_IPI_ULOG,           0, 0xC, 0660,           "ulog",           &ulog_fops, 0},
+	{MDLA_IPI_CMD_CHECK,      0, 0x4, 0660,      "cmd_check",      &cmd_check_fops, 0},
+	{MDLA_IPI_TRACE_ENABLE,   0, 0xC, 0660,      "pmu_trace",      &pmu_trace_fops, 0},
+	{MDLA_IPI_PMU_COUNT,      1, 0x4, 0660,             "c1",             &C1_fops, 0},
+	{MDLA_IPI_PMU_COUNT,      2, 0x4, 0660,             "c2",             &C2_fops, 0},
+	{MDLA_IPI_PMU_COUNT,      3, 0x4, 0660,             "c3",             &C3_fops, 0},
+	{MDLA_IPI_PMU_COUNT,      4, 0x4, 0660,             "c4",             &C4_fops, 0},
+	{MDLA_IPI_PMU_COUNT,      5, 0x4, 0660,             "c5",             &C5_fops, 0},
+	{MDLA_IPI_PMU_COUNT,      6, 0x4, 0660,             "c6",             &C6_fops, 0},
+	{MDLA_IPI_PMU_COUNT,      7, 0x4, 0660,             "c7",             &C7_fops, 0},
+	{MDLA_IPI_PMU_COUNT,      8, 0x4, 0660,             "c8",             &C8_fops, 0},
+	{MDLA_IPI_PMU_COUNT,      9, 0x4, 0660,             "c9",             &C9_fops, 0},
+	{MDLA_IPI_PMU_COUNT,     10, 0x4, 0660,            "c10",            &C10_fops, 0},
+	{MDLA_IPI_PMU_COUNT,     11, 0x4, 0660,            "c11",            &C11_fops, 0},
+	{MDLA_IPI_PMU_COUNT,     12, 0x4, 0660,            "c12",            &C12_fops, 0},
+	{MDLA_IPI_PMU_COUNT,     13, 0x4, 0660,            "c13",            &C13_fops, 0},
+	{MDLA_IPI_PMU_COUNT,     14, 0x4, 0660,            "c14",            &C14_fops, 0},
+	{MDLA_IPI_PMU_COUNT,     15, 0x4, 0660,            "c15",            &C15_fops, 0},
+	{MDLA_IPI_PREEMPT_CNT,    0, 0xC, 0660,  "preempt_times",  &preempt_times_fops, 0},
+	{MDLA_IPI_FORCE_PWR_ON,   0, 0xC, 0660,   "force_pwr_on",   &force_pwr_on_fops, 0},
+	{MDLA_IPI_PROFILE_EN,     0, 0x8, 0660,      "profiling",      &profiling_fops, 0},
+	{MDLA_IPI_DUMP_CMDBUF_EN, 0, 0xC, 0660, "dump_cmdbuf_en", &dump_cmdbuf_en_fops, 0},
+	{MDLA_IPI_INFO,           0, 0xC, 0660,           "info",           &info_fops, 0},
+	{MDLA_IPI_HALT_STA,       0, 0x8, 0660,        "dbg_brk",        &dbg_brk_fops, 0},
+	{NF_MDLA_IPI_TYPE_0,      0,   0,    0,             NULL,                 NULL, 0}
 };
 
-static unsigned int bootcode;
-static unsigned int maincode;
-
-static u32 core_mask;
+static u32 cfg0;
+static u32 cfg1;
 
 struct mdla_rv_mem {
 	void *buf;
@@ -158,8 +134,10 @@ struct mdla_rv_mem {
 };
 
 #define DEFAULT_DBG_SZ 0x1000
+#define DEFAULT_RV_DBG_SZ 0x2000
 static struct mdla_rv_mem dbg_mem;
 static struct mdla_rv_mem backup_mem;
+static struct mdla_rv_mem rv_dbg_mem;
 
 static char *mdla_plat_get_ipi_str(int idx)
 {
@@ -329,11 +307,11 @@ static int mdla_plat_send_addr_info(void *arg)
 {
 	msleep(1000);
 
-	if (bootcode && maincode) {
+	if (cfg0 && cfg1) {
 		mdla_verbose("%s(): send ipi for fw addr(0x%08x, 0x%08x)\n", __func__,
-				bootcode, maincode);
-		mdla_ipi_send(MDLA_IPI_ADDR, MDLA_IPI_ADDR_BOOT, (u64)bootcode);
-		mdla_ipi_send(MDLA_IPI_ADDR, MDLA_IPI_ADDR_MAIN, (u64)maincode);
+				cfg0, cfg1);
+		mdla_ipi_send(MDLA_IPI_ADDR, MDLA_IPI_ADDR_BOOT, (u64)cfg0);
+		mdla_ipi_send(MDLA_IPI_ADDR, MDLA_IPI_ADDR_MAIN, (u64)cfg1);
 	}
 
 	if (backup_mem.da) {
@@ -346,7 +324,10 @@ static int mdla_plat_send_addr_info(void *arg)
 		mdla_ipi_send(MDLA_IPI_ADDR, MDLA_IPI_ADDR_DBG_DATA_SZ, (u64)dbg_mem.size);
 	}
 
-	mdla_ipi_send(MDLA_IPI_PLAT, 0, (u64)core_mask);
+	if (rv_dbg_mem.da) {
+		mdla_ipi_send(MDLA_IPI_ADDR, MDLA_IPI_ADDR_RV_DATA, (u64)rv_dbg_mem.da);
+		mdla_ipi_send(MDLA_IPI_ADDR, MDLA_IPI_ADDR_RV_DATA_SZ, (u64)rv_dbg_mem.size);
+	}
 
 	return 0;
 }
@@ -427,6 +408,7 @@ static void mdla_plat_memory_show(struct seq_file *s)
 	mdla_rv_dbg_mem_show(s, NULL);
 }
 
+
 void mdla_plat_up_init(void)
 {
 	struct task_struct *init_task;
@@ -440,7 +422,7 @@ void mdla_plat_up_init(void)
 /* platform public functions */
 int mdla_rv_init(struct platform_device *pdev)
 {
-	int i, ret;
+	int i;
 	u32 nr_core_ids = mdla_util_get_core_num();
 
 	dev_info(&pdev->dev, "%s()\n", __func__);
@@ -459,24 +441,22 @@ int mdla_rv_init(struct platform_device *pdev)
 		mdla_plat_devices[i].dev = &pdev->dev;
 	}
 
-	mdla_plat_load_fw(&pdev->dev, &bootcode, &maincode);
+	mdla_plat_load_data(&pdev->dev, &cfg0, &cfg1);
 
-	ret = mdla_ipi_init();
-	if (ret != 0) {
+	if (mdla_ipi_init() != 0) {
 		dev_info(&pdev->dev, "register apu_ctrl channel : Fail\n");
 		if (mdla_plat_pwr_drv_ready())
 			mdla_pwr_device_unregister(pdev);
-		return ret;
+		return -1;
 	}
 
 	mdla_dbg_plat_cb()->dbgfs_plat_init = mdla_plat_dbgfs_init;
 	mdla_dbg_plat_cb()->memory_show     = mdla_plat_memory_show;
 
 	/* backup size * core num * preempt lv */
-	mdla_plat_alloc_mem(&backup_mem, 1024 * 4 * 4);
-	mdla_plat_alloc_mem(&dbg_mem, DEFAULT_DBG_SZ);
-
-	core_mask = mdla_plat_get_core_mask();
+	mdla_plat_alloc_mem(&backup_mem, 1024 * nr_core_ids * 4);
+	mdla_plat_alloc_mem(&dbg_mem, DEFAULT_DBG_SZ + 0x1000 * nr_core_ids);
+	mdla_plat_alloc_mem(&rv_dbg_mem, DEFAULT_RV_DBG_SZ);
 
 	return 0;
 }
@@ -487,12 +467,13 @@ void mdla_rv_deinit(struct platform_device *pdev)
 
 	mdla_plat_free_mem(&backup_mem);
 	mdla_plat_free_mem(&dbg_mem);
+	mdla_plat_free_mem(&rv_dbg_mem);
 	mdla_ipi_deinit();
 
 	if (mdla_plat_pwr_drv_ready()
 			&& mdla_pwr_device_unregister(pdev))
 		dev_info(&pdev->dev, "unregister mdla power fail\n");
 
-	mdla_plat_unload_fw(&pdev->dev);
+	mdla_plat_unload_data(&pdev->dev);
 }
 

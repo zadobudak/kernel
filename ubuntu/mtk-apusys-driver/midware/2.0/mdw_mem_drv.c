@@ -60,7 +60,7 @@ static int apumem_probe(struct platform_device *pdev)
 
 	mdw_mem_rsc_register(&pdev->dev, type);
 
-	pr_info("%s done\n", __func__);
+	pr_info("%s +\n", __func__);
 
 
 	return ret;
@@ -73,7 +73,7 @@ static int apumem_remove(struct platform_device *pdev)
 	of_property_read_u32(pdev->dev.of_node, "type", &type);
 	mdw_mem_rsc_unregister(type);
 
-	pr_info("%s done\n", __func__);
+	pr_info("%s +\n", __func__);
 	return 0;
 }
 

@@ -3,11 +3,11 @@
  * Copyright (c) 2020 MediaTek Inc.
  */
 
-#include <linux/delay.h>
 #include <linux/mutex.h>
 #include <linux/slab.h>
 #include <linux/vmalloc.h>
 #include <linux/rpmsg.h>
+#include <linux/delay.h>
 #include "reviser_cmn.h"
 #include "reviser_drv.h"
 #include "reviser_remote.h"
@@ -80,7 +80,7 @@ int reviser_remote_send_cmd_sync(void *drvinfo, void *request, void *reply, uint
 	int retry = 0;
 	bool find = false;
 	uint32_t *ptr;
-	uint32_t cnt = 50, i = 0;
+	uint32_t cnt = 100, i = 0;
 
 	if (drvinfo == NULL) {
 		LOG_ERR("invalid argument\n");
@@ -88,6 +88,7 @@ int reviser_remote_send_cmd_sync(void *drvinfo, void *request, void *reply, uint
 	}
 
 	rdv = (struct reviser_dev_info *)drvinfo;
+
 
 	snd_rmesg = (struct reviser_msg *) request;
 	mutex_lock(&g_rvr_msg->lock.mutex_cmd);
@@ -105,10 +106,15 @@ int reviser_remote_send_cmd_sync(void *drvinfo, void *request, void *reply, uint
 	for (i = 0; i < cnt; i++) {
 		ret = rpmsg_send(rdv->rpdev->ept, request, sizeof(struct reviser_msg));
 		/* send busy, retry */
-		if (ret == -EBUSY) {
-			if (!(i % 5))
+		if (ret == -EBUSY || ret == -EAGAIN) {
+			if (!(i % 10))
 				LOG_INFO("re-send ipi(%u/%u)\n", i, cnt);
-			msleep(20);
+			if (ret == -EAGAIN && i < 10)
+				usleep_range(200, 500);
+			else if (ret == -EAGAIN && i < 50)
+				usleep_range(1000, 2000);
+			else
+				usleep_range(10000, 11000);
 			continue;
 		}
 		break;
@@ -127,14 +133,13 @@ wait:
 				g_rvr_msg->lock.wait_rx,
 				g_rvr_msg->count,
 				msecs_to_jiffies(REVISER_REMOTE_TIMEOUT));
-
 	if (ret == -ERESTARTSYS) {
 		LOG_ERR("Wake up by signal!, retry again %d\n", retry);
 		msleep(20);
 		retry++;
 		goto wait;
 	}
-	if (ret == 0) {
+	if (!ret) {
 		LOG_ERR("wait command timeout!!\n");
 		ret = -ETIME;
 		goto out;
@@ -174,7 +179,7 @@ int reviser_remote_rx_cb(void *data, int len)
 	uint32_t *ptr;
 
 	if (len != sizeof(struct reviser_msg)) {
-		LOG_ERR("invalid len %d / %ld\n", len, sizeof(struct reviser_msg));
+		LOG_ERR("invalid len %d / %d\n", len, sizeof(struct reviser_msg));
 		return -EINVAL;
 	}
 
@@ -191,6 +196,8 @@ int reviser_remote_rx_cb(void *data, int len)
 	list_add_tail(&item->list, &g_rvr_msg->list_rx);
 	g_rvr_msg->count++;
 	spin_unlock_irqrestore(&g_rvr_msg->lock.lock_rx, flags);
+
+
 
 	wake_up_interruptible(&g_rvr_msg->lock.wait_rx);
 

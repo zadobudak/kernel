@@ -6,11 +6,7 @@
 #ifndef APU_IPI_H
 #define APU_IPI_H
 
-#if defined(APUSYS_AIOT)
-#include <linux/rpmsg/mtk_rpmsg.h>
-#else
 #include "mtk_apu_rpmsg.h"
-#endif
 
 #define APU_FW_VER_LEN	       (250)
 #define APU_SHARE_BUFFER_SIZE  (256)
@@ -35,11 +31,15 @@ enum {
 	APU_IPI_MVPU_TX,
 	APU_IPI_MVPU_RX,
 	APU_IPI_LOG_LEVEL,
+	APU_IPI_APS_TX,
+	APU_IPI_APS_RX,
+	APU_IPI_SAPU_LOCK,
+	APU_IPI_SCP_MIDDLEWARE,
+	APU_IPI_SCP_NP_RECOVER,
 	APU_IPI_MAX,
 };
 
 struct apu_run {
-	//u32 signaled;
 	s8 fw_ver[APU_FW_VER_LEN];
 	u32 signaled;
 	wait_queue_head_t wq;
@@ -47,6 +47,7 @@ struct apu_run {
 
 struct apu_ipi_desc {
 	struct mutex lock;
+	ipi_top_handler_t top_handler;
 	ipi_handler_t handler;
 	void *priv;
 
@@ -66,10 +67,10 @@ struct mtk_share_obj {
 void apu_ipi_remove(struct mtk_apu *apu);
 int apu_ipi_init(struct platform_device *pdev, struct mtk_apu *apu);
 int apu_ipi_register(struct mtk_apu *apu, u32 id,
-		ipi_handler_t handler, void *priv);
+		ipi_top_handler_t top_handler, ipi_handler_t handler, void *priv);
 void apu_ipi_unregister(struct mtk_apu *apu, u32 id);
 int apu_ipi_send(struct mtk_apu *apu, u32 id, void *data, u32 len,
-		u32 wait_ms);
+		 u32 wait_ms);
 int apu_ipi_lock(struct mtk_apu *apu);
 void apu_ipi_unlock(struct mtk_apu *apu);
 int apu_ipi_affin_enable(void);

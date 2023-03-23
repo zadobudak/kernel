@@ -12,6 +12,58 @@
 
 #define MDW_IS_HIGHADDR(addr) ((addr & 0xffffffff00000000) ? true : false)
 
+struct mdw_rv_msg_cmd {
+	/* ids */
+	uint64_t session_id;
+	uint64_t cmd_id;
+	uint32_t pid;
+	uint32_t tgid;
+	/* params */
+	uint32_t priority;
+	uint32_t hardlimit;
+	uint32_t softlimit;
+	uint32_t power_save;
+	uint32_t power_plcy;
+	uint32_t power_dtime;
+	uint32_t app_type;
+	uint32_t num_subcmds;
+	uint32_t subcmds_offset;
+	uint32_t num_cmdbufs;
+	uint32_t cmdbuf_infos_offset;
+	uint32_t adj_matrix_offset;
+	uint32_t exec_infos_offset;
+	uint32_t num_links;
+	uint32_t link_offset;
+} __packed;
+
+struct mdw_rv_msg_sc {
+	/* params */
+	uint32_t type;
+	uint32_t suggest_time;
+	uint32_t vlm_usage;
+	uint32_t vlm_ctx_id;
+	uint32_t vlm_force;
+	uint32_t boost;
+	uint32_t turbo_boost;
+	uint32_t min_boost;
+	uint32_t max_boost;
+	uint32_t hse_en;
+	uint32_t driver_time;
+	uint32_t ip_time;
+	uint32_t bw;
+	uint32_t pack_id;
+	uint32_t affinity;
+	/* cmdbufs info */
+	uint32_t cmdbuf_start_idx;
+	uint32_t num_cmdbufs;
+} __packed;
+
+struct mdw_rv_msg_cb {
+	uint64_t device_va;
+	uint32_t size;
+} __packed;
+
+
 static void mdw_rv_cmd_print(struct mdw_rv_msg_cmd *rc)
 {
 	mdw_cmd_debug("-------------------------\n");
@@ -70,7 +122,25 @@ static void mdw_rv_sc_print(struct mdw_rv_msg_sc *rsc,
 	mdw_cmd_debug("-------------------------\n");
 }
 
-struct mdw_rv_cmd *mdw_rv_cmd_create(struct mdw_fpriv *mpriv,
+static int mdw_rv_cmd_delete(struct mdw_cmd *c)
+{
+	struct mdw_rv_cmd *rc = (struct mdw_rv_cmd *)c->internal_cmd;
+
+	if (!rc)
+		return -EINVAL;
+
+	mdw_trace_begin("apumdw:rv_cmd_delete");
+	mdw_rv_cmd_set_affinity(c, false);
+	mdw_mem_pool_free(rc->cb);
+	kfree(rc);
+	c->internal_cmd = NULL;
+	c->del_internal = NULL;
+	mdw_trace_end();
+
+	return 0;
+}
+
+static struct mdw_rv_cmd *mdw_rv_cmd_create(struct mdw_fpriv *mpriv,
 	struct mdw_cmd *c)
 {
 	struct mdw_rv_cmd *rc = NULL;
@@ -81,8 +151,15 @@ struct mdw_rv_cmd *mdw_rv_cmd_create(struct mdw_fpriv *mpriv,
 	struct mdw_rv_msg_sc *rmsc = NULL;
 	struct mdw_rv_msg_cb *rmcb = NULL;
 
-	mdw_trace_begin("%s|cmd(0x%llx/0x%llx)", __func__, c->uid, c->kid);
-	mutex_lock(&mpriv->mtx);
+	mdw_trace_begin("apumdw:rv_cmd_create");
+
+	/* reuse internal cmd if exist */
+	if (c->internal_cmd) {
+		mdw_cmd_debug("reuse internal cmd\n");
+		rc = (struct mdw_rv_cmd *)c->internal_cmd;
+		rmc = (struct mdw_rv_msg_cmd *)rc->cb->vaddr;
+		goto reuse;
+	}
 
 	/* check mem address for rv */
 	if (MDW_IS_HIGHADDR(c->exec_infos->device_va) ||
@@ -98,8 +175,6 @@ struct mdw_rv_cmd *mdw_rv_cmd_create(struct mdw_fpriv *mpriv,
 
 	c->rvid = (uint64_t)&rc->s_msg;
 	init_completion(&rc->s_msg.cmplt);
-	/* set start timestamp */
-	rc->start_ts_ns = c->start_ts;
 
 	/* calc size and offset */
 	rc->c = c;
@@ -146,10 +221,6 @@ struct mdw_rv_cmd *mdw_rv_cmd_create(struct mdw_fpriv *mpriv,
 	rmc->exec_infos_offset = exec_infos_ofs;
 	mdw_rv_cmd_print(rmc);
 
-	/* copy adj matrix */
-	memcpy((void *)rmc + rmc->adj_matrix_offset, c->adj_matrix,
-		c->num_subcmds * c->num_subcmds * sizeof(uint8_t));
-
 	/* assign subcmds info */
 	rmsc = (void *)rmc + rmc->subcmds_offset;
 	rmcb = (void *)rmc + rmc->cmdbuf_infos_offset;
@@ -185,6 +256,18 @@ struct mdw_rv_cmd *mdw_rv_cmd_create(struct mdw_fpriv *mpriv,
 		acc_cb += c->subcmds[i].num_cmdbufs;
 	}
 
+	/* setup internal cmd */
+	c->del_internal = mdw_rv_cmd_delete;
+	c->internal_cmd = rc;
+
+reuse:
+	/* set start timestamp */
+	rc->start_ts_ns = c->start_ts;
+
+	/* copy adj matrix */
+	memcpy((void *)rmc + rmc->adj_matrix_offset, c->adj_matrix,
+		c->num_subcmds * c->num_subcmds * sizeof(uint8_t));
+
 	/* clear exec ret */
 	c->einfos->c.ret = 0;
 	c->einfos->c.sc_rets = 0;
@@ -201,23 +284,15 @@ free_rc:
 	kfree(rc);
 	rc = NULL;
 out:
-	mutex_unlock(&mpriv->mtx);
-	mdw_trace_end("%s|cmd(0x%llx/0x%llx)", __func__, c->uid, c->kid);
+	mdw_trace_end();
 	return rc;
 }
 
-int mdw_rv_cmd_delete(struct mdw_rv_cmd *rc)
+static void mdw_rv_cmd_done(struct mdw_rv_cmd *rc, int ret)
 {
 	struct mdw_cmd *c = rc->c;
 	struct mdw_rv_msg_cmd *rmc = NULL;
-	struct mdw_fpriv *mpriv = c->mpriv;
 
-	if (!rc)
-		return -EINVAL;
-
-	mdw_rv_cmd_set_affinity(c, false);
-
-	mutex_lock(&mpriv->mtx);
 	/* invalidate */
 	if (mdw_mem_invalidate(c->mpriv, rc->cb))
 		mdw_drv_warn("s(0x%llx) c(0x%llx/0x%llx/0x%llx) invalidate rcbs(%u) fail\n",
@@ -237,18 +312,13 @@ int mdw_rv_cmd_delete(struct mdw_rv_cmd *rc)
 			c->exec_infos->size);
 	}
 
-	mdw_mem_pool_free(rc->cb);
-	kfree(rc);
-	mutex_unlock(&mpriv->mtx);
-
-	return 0;
-}
-
-void mdw_rv_cmd_done(struct mdw_rv_cmd *rc, int ret)
-{
-	struct mdw_cmd *c = rc->c;
-
-	/* delete rv cmd and complete */
-	mdw_rv_cmd_delete(rc);
+	/* complete cmd */
 	c->complete(c, ret);
 }
+
+/* kernel-tinysys version <= v2 */
+const struct mdw_rv_cmd_func mdw_rv_cmd_func_v2 = {
+	.create = mdw_rv_cmd_create,
+	.delete = mdw_rv_cmd_delete,
+	.done = mdw_rv_cmd_done,
+};

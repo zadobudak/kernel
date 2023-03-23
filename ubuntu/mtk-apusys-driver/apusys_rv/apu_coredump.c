@@ -7,6 +7,7 @@
 #include <apu.h>
 #include <apu_excep.h>
 
+
 void apu_setup_dump(struct mtk_apu *apu, dma_addr_t da)
 {
 	/* Set dump addr in mbox */

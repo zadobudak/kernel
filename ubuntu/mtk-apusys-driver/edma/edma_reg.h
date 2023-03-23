@@ -1,8 +1,8 @@
 /* SPDX-License-Identifier: GPL-2.0 */
 /*
  * Copyright (c) 2019 MediaTek Inc.
- * Author: JB Tsai <jb.tsai@mediatek.com>
  */
+
 
 #ifndef __EDMA_REG_H__
 #define __EDMA_REG_H__
@@ -10,7 +10,7 @@
 #include <linux/kernel.h>
 #include <linux/io.h>
 
-#define EDMA_REG_SHOW_RANGE			0x10C
+#define EDMA_REG_SHOW_RANGE			0x150
 
 #define EDMA_REG_EX_R1			0xC00
 

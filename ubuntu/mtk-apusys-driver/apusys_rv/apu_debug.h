@@ -10,7 +10,7 @@
 extern struct mtk_apu *g_apu_struct;
 extern uint32_t g_apu_log;
 
-#define apu_drv_debug(x, ...) do { if (g_apu_log && g_apu_struct) \
+#define apu_drv_debug(x, ...) do { if (g_apu_log) \
 		dev_info(g_apu_struct->dev, \
 		"[debug] %s: " x, __func__, ##__VA_ARGS__); \
 		} while (0)

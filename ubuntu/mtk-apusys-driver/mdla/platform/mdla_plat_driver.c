@@ -2,13 +2,9 @@
 /*
  * Copyright (c) 2019 MediaTek Inc.
  */
-#include <linux/slab.h>
 #include <linux/types.h>
 #include <linux/of_device.h>
 #include <linux/dma-mapping.h>
-#if IS_ENABLED(CONFIG_MTK_SECURE_EFUSE)
-#include <mt-plat/mtk_devinfo.h>
-#endif
 
 #include <utilities/mdla_debug.h>
 #include <utilities/mdla_util.h>
@@ -18,7 +14,6 @@
 static u32 nr_core_ids = 1;
 static u32 default_polling_cmd_done;
 static u32 mdla_ver;
-static u32 core_mask;
 
 /* SW configuration */
 static bool pwr_rdy;
@@ -32,11 +27,6 @@ static int prof_ver;
 u32 mdla_plat_get_core_num(void)
 {
 	return nr_core_ids;
-}
-
-u32 mdla_plat_get_core_mask(void)
-{
-	return core_mask;
 }
 
 u32 mdla_plat_get_polling_cmd_time(void)
@@ -89,12 +79,8 @@ int mdla_plat_init(struct platform_device *pdev)
 	struct device *dev = &pdev->dev;
 	struct mdla_plat_drv *drv;
 	u32 major_ver = 0;
-#if IS_ENABLED(CONFIG_MTK_SECURE_EFUSE)
-	u32 *devinfo;
-#endif
-	int i;
 
-	of_property_read_u32(dev->of_node, "core_num", &nr_core_ids);
+	of_property_read_u32(dev->of_node, "core-num", &nr_core_ids);
 	if (nr_core_ids > MAX_CORE_NUM) {
 		dev_info(dev, "Invalid core number: %d\n", nr_core_ids);
 		nr_core_ids = 1;
@@ -104,18 +90,6 @@ int mdla_plat_init(struct platform_device *pdev)
 		dev_info(&pdev->dev, "ver = %x\n", mdla_ver);
 		mdla_dbg_set_version(mdla_ver);
 	}
-
-#if IS_ENABLED(CONFIG_MTK_SECURE_EFUSE)
-	devinfo = kmalloc(sizeof(u32), GFP_KERNEL);
-	*devinfo = get_devinfo_with_index(5);
-	for (i = 0; i < nr_core_ids; i++) {
-		if (!(*devinfo & MDLA_MASK(16+i)))
-			core_mask |= MDLA_MASK(i);
-	}
-#else
-	for (i = 0; i < nr_core_ids; i++)
-		core_mask |= MDLA_MASK(i);
-#endif
 
 	drv = (struct mdla_plat_drv *)of_device_get_match_data(dev);
 

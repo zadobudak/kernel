@@ -42,12 +42,9 @@ APUSYS_ATTR_USE static void _reviser_set_context_ID(void *drvinfo,
 APUSYS_ATTR_USE static void _reviser_set_remap_table(void *drvinfo,
 		uint32_t offset, uint8_t valid, uint8_t ID,
 		uint8_t src_page, uint8_t dst_page);
-
-#if APUSYS_SECURE
 static uint32_t _reviser_get_remap_table_reg(
 		uint8_t valid, uint8_t ID,
 		uint8_t src_page, uint8_t dst_page);
-#endif
 APUSYS_ATTR_USE static void _reviser_set_default_iova(void *drvinfo,
 		uint32_t iova);
 
@@ -295,7 +292,6 @@ void reviser_print_remap_table(void *drvinfo, void *s_file)
 		LOG_ERR("Can Not Read when power disable\n");
 		return;
 	}
-
 	for (i = 0; i < VLM_REMAP_TABLE_MAX; i++) {
 		offset[i] = _reviser_get_remap_offset(i);
 		if (offset[i] == REVISER_FAIL) {
@@ -362,9 +358,7 @@ static uint32_t _reviser_ctrl_reg_read(void *drvinfo, uint32_t offset)
 	struct reviser_dev_info *rdv = NULL;
 	int ret = 0;
 	size_t value = 0;
-#if APUSYS_SECURE
 	struct arm_smccc_res res;
-#endif
 
 	if (drvinfo == NULL) {
 		LOG_ERR("invalid argument\n");
@@ -522,8 +516,6 @@ static void  _reviser_set_remap_table(void *drvinfo,
 		_reviser_reg_set(rdv->rsc.ctrl.base,
 				offset, (1 << VLM_REMAP_VALID_OFFSET));
 }
-
-#if APUSYS_SECURE
 static uint32_t  _reviser_get_remap_table_reg(
 		uint8_t valid, uint8_t ID,
 		uint8_t src_page, uint8_t dst_page)
@@ -544,8 +536,6 @@ static uint32_t  _reviser_get_remap_table_reg(
 
 	return value;
 }
-#endif
-
 int reviser_type_convert(int type, enum REVISER_DEVICE_E *reviser_type)
 {
 	int ret = 0;
@@ -580,10 +570,8 @@ int reviser_set_remap_table(void *drvinfo,
 {
 	uint32_t offset = 0;
 	int ret = 0;
-#if APUSYS_SECURE
 	uint32_t value = 0;
 	struct arm_smccc_res res;
-#endif
 
 	DEBUG_TAG;
 
@@ -645,10 +633,8 @@ int reviser_set_boundary(void *drvinfo,
 		enum REVISER_DEVICE_E type, int index, uint8_t boundary)
 {
 	APUSYS_ATTR_USE uint32_t offset;
-#if APUSYS_SECURE
 	uint32_t value = 0;
 	struct arm_smccc_res res;
-#endif
 
 	DEBUG_TAG;
 
@@ -711,9 +697,7 @@ int reviser_set_context_ID(void *drvinfo, int type,
 	uint32_t offset = 0;
 	int ret = 0;
 	enum REVISER_DEVICE_E reviser_type = REVISER_DEVICE_NONE;
-#if APUSYS_SECURE
 	struct arm_smccc_res res;
-#endif
 
 	DEBUG_TAG;
 
@@ -794,10 +778,8 @@ int reviser_get_interrupt_offset(void *drvinfo)
 {
 	uint32_t offset = 0;
 	int ret = 0;
-#if APUSYS_SECURE
 	size_t reg_value;
 	struct arm_smccc_res res;
-#endif
 
 	struct reviser_dev_info *rdv = NULL;
 
@@ -862,10 +844,8 @@ int reviser_set_default_iova(void *drvinfo)
 {
 	int ret = 0;
 	struct reviser_dev_info *rdv = NULL;
-	uint32_t iova;
-#if APUSYS_SECURE
 	struct arm_smccc_res res;
-#endif
+	uint32_t iova;
 
 	if (drvinfo == NULL) {
 		LOG_ERR("invalid argument\n");

@@ -17,6 +17,7 @@
 #define DEBUG_DUMP_REG		(0) /* dump overall apu registers for debug */
 #define APMCU_REQ_RPC_SLEEP	(0) /* rpm suspend trigger sleep req to rpc */
 #define THERMAL_TEMP_UPDATE	(1) /* 1: update apu temperature periodically */
+#define APUPW_DUMP_FROM_APMCU	(0) /* 1: dump reg from APMCU, 0: from ATF */
 
 #define VAPU_DEF_VOLT		(opp_tbl->opp[0].vapu)
 #define VSRAM_DEF_VOLT		((VAPU_DEF_VOLT > VSRAM_CON_SAFE_VOLT) ?	\
@@ -35,13 +36,26 @@
 #define VCORE_CON_SAFE_VOLT	(600000)
 
 /* MHZ */
-#define KHZ			(1000)
-#define MHZ			(KHZ * KHZ)
 #define MDLA_DEFAULT_FREQ	(opp_tbl->opp[0].pll_freq[PLL_DLA] / 1000)
 #define MVPU_DEFAULT_FREQ	(opp_tbl->opp[0].pll_freq[PLL_VPU] / 1000)
 #define MNOC_DEFAULT_FREQ	(opp_tbl->opp[0].pll_freq[PLL_CONN] / 1000)
 
 #define TEMP_UPDATE_TIME	(3000) /* update apu temperature time */
+
+/* log lvl */
+enum {
+	APUSYS_PWR_LOG_ERR,
+	APUSYS_PWR_LOG_WARN,
+	APUSYS_PWR_LOG_INFO,
+	APUSYS_PWR_LOG_DEBUG,
+	APUSYS_PWR_LOG_VERBOSE,
+};
+
+#define LOG_DBG(format, args...) \
+	do { \
+		if (g_pwr_log_level >= APUSYS_PWR_LOG_DEBUG) \
+			pr_info("[apu_top_3] " format, ##args); \
+	} while (0)
 
 enum smc_rcx_pwr_op {
 	SMC_RCX_PWR_AFC_EN = 0,
@@ -91,11 +105,12 @@ enum dvfs_device_id {
 };
 
 enum apupw_reg {
+	apu_rpc,
 	sys_spm,
+	bcrm_fmem_pdn,
 	apu_rcx,
 	apu_vcore,
 	apu_md32_mbox,
-	apu_rpc,
 	apu_pcu,
 	apu_ao_ctl,
 	apu_pll,
@@ -257,4 +272,11 @@ void mt8188_apu_dump_rpc_status(enum t_acx_id id, struct rpc_status_dump *dump);
 #define APU_PCU_BUCK_ON_SLE0		0x00C0
 #define APU_PCU_BUCK_ON_SLE1		0x00C4
 #define APU_PCU_BUCK_ON_SETTLE_TIME	0x12C	/* 300us */
+
+/* xpu2apusys */
+#define INFRA_FMEM_BUS_u_SI21_CTRL_0		(0x2C)
+#define INFRA_FMEM_BUS_u_SI22_CTRL_0		(0x44)
+#define INFRA_FMEM_BUS_u_SI11_CTRL_0		(0x48)
+#define INFRA_FMEM_M6M7_BUS_u_SI24_CTRL_0	(0x1D0)
+
 #endif /* __MT8188_APUPWR_H__ */

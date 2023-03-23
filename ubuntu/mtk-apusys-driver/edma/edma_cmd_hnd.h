@@ -1,20 +1,24 @@
 /* SPDX-License-Identifier: GPL-2.0 */
 /*
  * Copyright (c) 2019 MediaTek Inc.
- * Author: JB Tsai <jb.tsai@mediatek.com>
  */
+
 
 #ifndef __EDMA_CMD_HND_H__
 #define __EDMA_CMD_HND_H__
 
 #include <linux/interrupt.h>
-#include "edma_ioctl.h"
 #include "edma_dbgfs.h"
+#include "edma_driver.h"
+
 
 #define EDMA_TAG "[edma]"
+
+#if IS_ENABLED(CONFIG_DEBUG_FS)
 #define EDMA_DEBUG
+#endif
+
 #ifdef EDMA_DEBUG
-//#define LOG_DBG(format, args...)    pr_debug(EDMA_TAG " " format, ##args)
 
 #define LOG_DBG(x, args...) \
 	{ \
@@ -53,7 +57,7 @@ int edma_sync_ext_mode(struct edma_device *edma_device,
 						struct edma_request *req);
 #endif
 int edma_execute(struct edma_sub *edma_sub, struct edma_ext *edma_ext);
-void edma_power_time_up(struct timer_list *power_timer);
+void edma_power_time_up(struct timer_list *tlist);
 void edma_start_power_off(struct work_struct *work);
 void edma_sw_reset(struct edma_sub *edma_sub);
 

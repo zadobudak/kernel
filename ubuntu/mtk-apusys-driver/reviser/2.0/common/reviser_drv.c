@@ -110,9 +110,11 @@ static int reviser_rprmsg_memory_func(void *arg)
 
 	LOG_INFO("reviser memory init\n");
 
+
 out:
 	return ret;
 }
+
 
 int reviser_set_init_info(struct mtk_apu *apu)
 {
@@ -254,7 +256,7 @@ static int reviser_get_addr(struct platform_device *pdev, void **reg, int num,
 		*size = 0;
 		*reg = NULL;
 		dev_info(&pdev->dev,
-			"(num = %d) at 0x%08lx map 0x%08lx base:0x%08x size:0x%08x\n",
+			"(num = %d) at 0x%08lx map 0x%08lx base:0x%08lx size:0x%08lx\n",
 			num, (unsigned long __force)res->start,
 			(unsigned long __force)res->end, *base, *size);
 		return -ENOMEM;
@@ -270,14 +272,15 @@ static int reviser_get_addr(struct platform_device *pdev, void **reg, int num,
 	*base = res->start;
 	*size = res->end - res->start + 1;
 	dev_info(&pdev->dev,
-		"(num = %d) at 0x%08lx map 0x%08lx base:0x%08x size:0x%08x\n",
+		"(num = %d) at 0x%08lx map 0x%08lx base:0x%08lx size:0x%08lx\n",
 		num, (unsigned long __force)res->start,
 		(unsigned long __force)res->end, *base, *size);
 	return 0;
 }
 static int reviser_map_dts(struct platform_device *pdev)
 {
-	int ret = 0, count;
+	int ret = 0;
+	int count = 0;
 	struct reviser_dev_info *rdv = platform_get_drvdata(pdev);
 	uint32_t dram_offset[3] = {0};
 	uint32_t slb_size = 0;
@@ -326,6 +329,7 @@ static int reviser_map_dts(struct platform_device *pdev)
 			rdv->plat.pool_size[REVSIER_POOL_TCM] / rdv->plat.bank_size;
 	rdv->plat.pool_max++;
 
+
 	if (reviser_get_addr(pdev, &rdv->rsc.isr.base, 3,
 			&rdv->rsc.isr.addr, &rdv->rsc.isr.size)) {
 		LOG_ERR("invalid address\n");
@@ -340,24 +344,18 @@ static int reviser_map_dts(struct platform_device *pdev)
 		goto free_int;
 	}
 	LOG_DBG_RVR_FLW("boundary: %08xh\n", rdv->plat.boundary);
-
 	count = of_property_count_u32_elems(pdev->dev.of_node,
-					    "default-dram");
+						"default-dram");
 	if (count < 0 || count > 3) {
 		LOG_ERR("Invalid default-dram input count %d\n", count);
 		ret = -ENODEV;
 		goto free_int;
 	}
 
-	ret = of_property_read_u32_array(pdev->dev.of_node,
-					 "default-dram",
-					 dram_offset,
-					 count);
-	if (ret) {
+	if (of_property_read_u32_array(pdev->dev.of_node, "default-dram", dram_offset, count)) {
 		LOG_ERR("Invalid dram_offset %d\n", ret);
 		goto free_int;
 	}
-
 	LOG_DBG_RVR_FLW("dram_offset: %08xh, %08xh, %08xh\n",
 			dram_offset[0], dram_offset[1], dram_offset[2]);
 	rdv->plat.fix_dram = dram_offset[0];
@@ -560,6 +558,7 @@ static int reviser_probe(struct platform_device *pdev)
 		apu_power_device_register(REVISER, pdev);
 	}
 
+
 	if (reviser_table_init(rdv)) {
 		LOG_ERR("table init fail\n");
 		ret = -EINVAL;
@@ -567,6 +566,7 @@ static int reviser_probe(struct platform_device *pdev)
 	}
 
 	reviser_dbg_init(rdv, g_apusys->dbg_root);
+
 
 	g_rdv = rdv;
 
@@ -643,7 +643,7 @@ static int reviser_rpmsg_probe(struct rpmsg_device *rpdev)
 	struct reviser_dev_info *rdv;
 	int ret = 0;
 
-	LOG_INFO("%s: name=%s, src=%d\n", __func__, rpdev->id.name, rpdev->src);
+	LOG_INFO("name=%s, src=%d\n", rpdev->id.name, rpdev->src);
 
 	if (!g_rdv) {
 		LOG_ERR("No Reviser Driver Init\n");

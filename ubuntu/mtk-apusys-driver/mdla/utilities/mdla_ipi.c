@@ -2,7 +2,6 @@
 /*
  * Copyright (c) 2019 MediaTek Inc.
  */
-
 #include <linux/types.h>
 #include <linux/kernel.h>
 #include <linux/miscdevice.h>
@@ -29,7 +28,6 @@ struct mdla_ipi_data {
 	u16 dir;
 	u64 data;
 };
-
 static struct mdla_ipi_data ipi_tx_recv_buf;
 static struct mdla_ipi_data ipi_rx_send_buf;
 static struct mutex mdla_ipi_mtx;
@@ -62,7 +60,9 @@ int mdla_ipi_send(int type_0, int type_1, u64 val)
 				ipi_cmd_send.data, ipi_cmd_send.data);
 
 	mutex_lock(&mdla_ipi_mtx);
+
 	rpmsg_send(mdla_tx_rpm_dev.ept, &ipi_cmd_send, sizeof(ipi_cmd_send));
+
 	mutex_unlock(&mdla_ipi_mtx);
 
 	return 0;
@@ -125,7 +125,9 @@ static int mdla_rpmsg_tx_cb(struct rpmsg_device *rpdev, void *data,
 
 static void mdla_ipi_up_msg(u32 type, u64 val)
 {
-	if (type == MDLA_IPI_MICRO_MSG_TIMEOUT)
+	mdla_err("tpye = %d, val = 0x%llx\n", type, val);
+
+	if (type == MDLA_IPI_MICROP_MSG_TIMEOUT)
 		mdla_aee_warn("MDLA", "MDLA timeout");
 }
 
@@ -135,6 +137,7 @@ static int mdla_rpmsg_rx_cb(struct rpmsg_device *rpdev, void *data,
 	struct mdla_ipi_data *d = (struct mdla_ipi_data *)data;
 
 	if (d->type0 == MDLA_IPI_MICROP_MSG) {
+
 		ipi_rx_send_buf.type0  = d->type0;
 		ipi_rx_send_buf.type1  = d->type1;
 		ipi_rx_send_buf.dir    = d->dir;
@@ -153,7 +156,6 @@ static int mdla_rpmsg_rx_cb(struct rpmsg_device *rpdev, void *data,
 				d->dir,
 				d->data,
 				d->data);
-
 	return 0;
 }
 
@@ -188,6 +190,7 @@ static int mdla_rpmsg_rx_probe(struct rpmsg_device *rpdev)
 static void mdla_rpmsg_remove(struct rpmsg_device *rpdev)
 {
 }
+
 
 static const struct of_device_id mdla_tx_rpmsg_of_match[] = {
 	{ .compatible = "mediatek,mdla-tx-rpmsg"},

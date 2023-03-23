@@ -9,13 +9,13 @@
 #include <linux/types.h>
 #include <linux/slab.h>
 
+#include <apusys_debug_api.h>
+
 #include <utilities/mdla_util.h>
 #include <utilities/mdla_debug.h>
 #include <utilities/mdla_profile.h>
 
 #include <platform/mdla_plat_api.h>
-
-//#include "apusys_dbg.h"
 
 static struct dentry *mdla_dbg_root;
 static struct proc_dir_entry *mdla_procfs_dir;
@@ -193,7 +193,7 @@ void mdla_dbg_dump(struct mdla_dev *mdla_info, struct command_entry *ce)
 {
 	mdla_debug_callback.dump_reg(mdla_info->mdla_id, NULL);
 	mdla_debug_callback.create_dump_cmdbuf(mdla_info, ce);
-	//apusys_reg_dump("mdla", false);
+	apusys_reg_dump("mdla", false);
 	mdla_aee_warn("MDLA", "MDLA timeout");
 }
 
@@ -313,6 +313,8 @@ void mdla_dbg_fs_setup(struct device *dev)
 		debugfs_create_devm_seqfile(dev, DBGFS_HW_REG_NAME, mdla_dbg_root,
 				mdla_dbg_register_show);
 
+	debugfs_create_devm_seqfile(dev, DBGFS_CMDBUF_NAME, mdla_dbg_root,
+				mdla_dbg_memory_show);
 	mdla_procfs_init();
 
 	/* Platform debug node */

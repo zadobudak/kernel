@@ -10,17 +10,16 @@
 #include <linux/arm-smccc.h>
 #include <linux/soc/mediatek/mtk_sip_svc.h>
 
-#include "apusys_secure.h"
-
+#define APUSYS_SECURE 1
 #define BOUNDARY_ALL_NO_CHANGE (0xFFFFFFFF)
 #define BOUNDARY_BIT_MASK (0x0F)
 
 #if APUSYS_SECURE
-#define APUSYS_ATTR_USE __attribute__((unused))
+#define APUSYS_ATTR_USE __always_unused
 #else
 #define APUSYS_ATTR_USE
 #endif
-/*
+
 enum MTK_APUSYS_KERNEL_OP {
 	MTK_APUSYS_KERNEL_OP_REVISER_SET_BOUNDARY = 0,
 	MTK_APUSYS_KERNEL_OP_SET_AO_DBG_SEL,
@@ -32,6 +31,6 @@ enum MTK_APUSYS_KERNEL_OP {
 	MTK_APUSYS_KERNEL_OP_DEVAPC_INIT_RCX,
 	MTK_APUSYS_KERNEL_OP_NUM
 };
-*/
+
 
 #endif

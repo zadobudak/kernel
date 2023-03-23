@@ -7,6 +7,23 @@
 
 #include "mdw_cmn.h"
 
+
+static void mdw_dev_clear_cmd_func(struct work_struct *wk)
+{
+	struct mdw_device *mdev =
+		container_of(wk, struct mdw_device, c_wk);
+	struct mdw_cmd *c = NULL, *tmp = NULL;
+	struct mdw_fpriv *mpriv = NULL;
+
+	mutex_lock(&mdev->c_mtx);
+	list_for_each_entry_safe(c, tmp, &mdev->d_cmds, d_node) {
+		list_del(&c->d_node);
+		mpriv = c->mpriv;
+		mdw_cmd_delete(c);
+	}
+	mutex_unlock(&mdev->c_mtx);
+}
+
 int mdw_dev_init(struct mdw_device *mdev)
 {
 	int ret = -ENODEV;
@@ -14,9 +31,16 @@ int mdw_dev_init(struct mdw_device *mdev)
 	mdw_drv_info("mdw dev init type(%d-%u)\n",
 		mdev->driver_type, mdev->mdw_ver);
 
+	INIT_LIST_HEAD(&mdev->d_cmds);
+	mutex_init(&mdev->c_mtx);
+	INIT_WORK(&mdev->c_wk, &mdw_dev_clear_cmd_func);
+	mdev->base_fence_ctx = dma_fence_context_alloc(MDW_FENCE_MAX_RINGS);
+	mdev->num_fence_ctx = MDW_FENCE_MAX_RINGS;
+	mutex_init(&mdev->f_mtx);
+
 	switch (mdev->driver_type) {
 	case MDW_DRIVER_TYPE_PLATFORM:
-		mdw_ap_set_func(mdev);
+		mdw_drv_err("not support platform probe\n");
 		break;
 	case MDW_DRIVER_TYPE_RPMSG:
 		mdw_rv_set_func(mdev);
@@ -63,7 +87,7 @@ void mdw_dev_session_delete(struct mdw_fpriv *mpriv)
 }
 
 int mdw_dev_validation(struct mdw_fpriv *mpriv, uint32_t dtype,
-	struct apusys_cmdbuf *cbs, uint32_t num)
+	struct mdw_cmd *cmd, struct apusys_cmdbuf *cbs, uint32_t num)
 {
 	struct apusys_device *adev = NULL;
 	struct apusys_cmd_valid_handle v_hnd;
@@ -76,6 +100,7 @@ int mdw_dev_validation(struct mdw_fpriv *mpriv, uint32_t dtype,
 	v_hnd.cmdbufs = cbs;
 	v_hnd.num_cmdbufs = num;
 	v_hnd.session = mpriv;
+	v_hnd.cmd = cmd;
 	adev = mpriv->mdev->adevs[dtype];
 	if (adev)
 		ret = adev->send_cmd(APUSYS_CMD_VALIDATE, &v_hnd, adev);

@@ -64,9 +64,6 @@ enum FUNC_FOOT_PRINT {
 	F_INIRQ_ERROR           = 0x71,
 	F_INIRQ_CDMA4ERROR      = 0x72,
 	F_INIRQ_STOP            = 0x73,
-	F_INIRQ_STOP_PASS_CHECK = 0x74,
-	F_INIRQ_STOP_FAIL_CHECK = 0x75,
-
 
 	/*
 	 * F_SET_STOP: for set stop bit function
@@ -164,7 +161,6 @@ void mdla_dbg_show_klog_info(struct seq_file *s, char *prefix);
 
 #define ce_func_trace(ce, val) (ce)->footprint = ((ce)->footprint << 8) | (val & 0xFF)
 
-#ifdef APU_AEE_ENABLE
 #if IS_ENABLED(CONFIG_MTK_AEE_FEATURE)
 #include <mt-plat/aee.h>
 #define mdla_aee_warn(key, format, args...) \
@@ -173,10 +169,10 @@ void mdla_dbg_show_klog_info(struct seq_file *s, char *prefix);
 		aee_kernel_warning("MDLA", \
 			"\nCRDISPATCH_KEY:" key "\n" format, ##args); \
 	} while (0)
-#endif
 #else
 #define mdla_aee_warn(key, format, args...)
 #endif
+
 
 #define redirect_output(...) pr_info(__VA_ARGS__)
 

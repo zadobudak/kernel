@@ -11,7 +11,7 @@ struct mtk_apu;
 struct apu_ipi_config {
 	u64 in_buf_da;
 	u64 out_buf_da;
-} __attribute__((__packed__));
+} __packed;
 
 struct vpu_init_info {
 	uint32_t vpu_num;
@@ -25,24 +25,34 @@ struct vpu_init_info {
 	uint32_t cmd_addr[3];
 	uint32_t log_addr[3];
 	uint32_t log_size[3];
-} __attribute__((__packed__));
+} __packed;
 
 struct apusys_chip_data {
 	uint32_t s_code;
 	uint32_t b_code;
 	uint32_t r_code;
 	uint32_t a_code;
-} __attribute__((__packed__));
+} __packed;
 
 struct logger_init_info {
 	uint32_t iova;
 	uint32_t iova_h;
-} __attribute__((__packed__));
+	uint32_t aov_iova;
+	uint32_t aov_iova_h;
+	uint32_t aov_buf_sz;
+} __packed;
 
 struct reviser_init_info {
 	uint32_t boundary;
 	uint64_t dram[32];
-} __attribute__ ((__packed__));
+} __packed;
+
+struct mvpu_preempt_data {
+	uint32_t itcm_buffer_core_0[5];
+	uint32_t l1_buffer_core_0[5];
+	uint32_t itcm_buffer_core_1[5];
+	uint32_t l1_buffer_core_1[5];
+} __packed;
 
 enum user_config {
 	eAPU_IPI_CONFIG = 0x0,
@@ -50,12 +60,13 @@ enum user_config {
 	eAPUSYS_CHIP_DATA,
 	eLOGGER_INIT_INFO,
 	eREVISER_INIT_INFO,
+	eMVPU_PREEMPT_DATA,
 	eUSER_CONFIG_MAX
 };
 
 struct config_v1_entry_table {
 	u32 user_entry[eUSER_CONFIG_MAX];
-} __attribute__((__packed__));
+} __packed;
 
 struct config_v1 {
 	/* header begin */
@@ -82,8 +93,9 @@ struct config_v1 {
 	u8 user2_data[sizeof(struct apusys_chip_data)];
 	u8 user3_data[sizeof(struct logger_init_info)];
 	u8 user4_data[sizeof(struct reviser_init_info)];
+	u8 user5_data[sizeof(struct mvpu_preempt_data)];
 	/* user data payload end */
-} __attribute__((__packed__));
+} __packed;
 
 void apu_ipi_config_remove(struct mtk_apu *apu);
 int apu_ipi_config_init(struct mtk_apu *apu);

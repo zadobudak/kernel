@@ -13,22 +13,26 @@
 #include <linux/pm_runtime.h>
 #include <linux/kernel.h>
 
+#if IS_ENABLED(CONFIG_MTK_AEE_FEATURE)
 #include "mt-plat/aee.h"
+#endif
 
 #include "apusys_power.h"
 #include "apusys_secure.h"
 #include "../apu.h"
 #include "../apu_debug.h"
 #include "../apu_config.h"
+#include "../apu_hw.h"
 #include "../apu_excep.h"
+
 
 /* for IPI IRQ affinity tuning*/
 static struct cpumask perf_cpus, normal_cpus;
 
+
 static uint32_t apusys_rv_smc_call(struct device *dev, uint32_t smc_id,
 	uint32_t a2)
 {
-#if APUSYS_SECURE
 	struct arm_smccc_res res;
 
 	dev_info(dev, "%s: smc call %d\n",
@@ -42,9 +46,6 @@ static uint32_t apusys_rv_smc_call(struct device *dev, uint32_t smc_id,
 			smc_id, res.a0);
 
 	return res.a0;
-#else
-	return 0;
-#endif
 }
 
 static int mt8188_rproc_init(struct mtk_apu *apu)
@@ -60,7 +61,6 @@ static int mt8188_rproc_exit(struct mtk_apu *apu)
 static void apu_setup_reviser(struct mtk_apu *apu, int boundary, int ns, int domain)
 {
 	struct device *dev = apu->dev;
-	struct mtk_apu_reg_ofs *reg_ofs = &apu->platdata->ofs;
 	unsigned long flags;
 
 	if (apu->platdata->flags & F_SECURE_BOOT) {
@@ -70,76 +70,69 @@ static void apu_setup_reviser(struct mtk_apu *apu, int boundary, int ns, int dom
 		spin_lock_irqsave(&apu->reg_lock, flags);
 		/* setup boundary */
 		iowrite32(0x4 | boundary,
-			apu->apu_sctrl_reviser + reg_ofs->userfw_ctxt);
+			apu->apu_sctrl_reviser + USERFW_CTXT);
 		iowrite32(0x4 | boundary,
-			apu->apu_sctrl_reviser + reg_ofs->secfw_ctxt);
+			apu->apu_sctrl_reviser + SECUREFW_CTXT);
 
 		/* setup iommu ctrl(mmu_ctrl | mmu_en) */
 		if (apu->platdata->flags & F_BYPASS_IOMMU)
-			iowrite32(0x2,
-				  apu->apu_sctrl_reviser + reg_ofs->iommu_ctrl);
+			iowrite32(0x2, apu->apu_sctrl_reviser + UP_IOMMU_CTRL);
 		else
-			iowrite32(0x3,
-				  apu->apu_sctrl_reviser + reg_ofs->iommu_ctrl);
+			iowrite32(0x3, apu->apu_sctrl_reviser + UP_IOMMU_CTRL);
 
 		/* setup ns/domain */
 		iowrite32(ns << 4 | domain,
-			apu->apu_sctrl_reviser + reg_ofs->normal_dns);
+			apu->apu_sctrl_reviser + UP_NORMAL_DOMAIN_NS);
 		iowrite32(ns << 4 | domain,
-			apu->apu_sctrl_reviser + reg_ofs->pri_dns);
+			apu->apu_sctrl_reviser + UP_PRI_DOMAIN_NS);
 		spin_unlock_irqrestore(&apu->reg_lock, flags);
 
 		apu_drv_debug("%s: UP_IOMMU_CTRL = 0x%x\n",
 			__func__,
-			ioread32(apu->apu_sctrl_reviser + reg_ofs->iommu_ctrl));
+			ioread32(apu->apu_sctrl_reviser + UP_IOMMU_CTRL));
 		apu_drv_debug("%s: UP_NORMAL_DOMAIN_NS = 0x%x\n",
 			__func__,
-			ioread32(apu->apu_sctrl_reviser + reg_ofs->normal_dns));
+			ioread32(apu->apu_sctrl_reviser + UP_NORMAL_DOMAIN_NS));
 		apu_drv_debug("%s: UP_PRI_DOMAIN_NS = 0x%x\n",
 			__func__,
-			ioread32(apu->apu_sctrl_reviser + reg_ofs->pri_dns));
+			ioread32(apu->apu_sctrl_reviser + UP_PRI_DOMAIN_NS));
 		apu_drv_debug("%s: USERFW_CTXT = 0x%x\n",
 			__func__,
-			ioread32(apu->apu_sctrl_reviser + reg_ofs->userfw_ctxt));
+			ioread32(apu->apu_sctrl_reviser + USERFW_CTXT));
 		apu_drv_debug("%s: SECUREFW_CTXT = 0x%x\n",
 			__func__,
-			ioread32(apu->apu_sctrl_reviser + reg_ofs->secfw_ctxt));
+			ioread32(apu->apu_sctrl_reviser + SECUREFW_CTXT));
 
 		if ((apu->platdata->flags & F_BYPASS_IOMMU) ||
 			(apu->platdata->flags & F_PRELOAD_FIRMWARE)) {
 			spin_lock_irqsave(&apu->reg_lock, flags);
 			/* vld=1, partial_enable=1 */
 			iowrite32(0x7,
-				apu->apu_sctrl_reviser + reg_ofs->core0_vabase0);
+				apu->apu_sctrl_reviser + UP_CORE0_VABASE0);
 			/* for 34 bit mva */
 			iowrite32(0x1 | (u32) (apu->code_da >> 2),
-				apu->apu_sctrl_reviser + reg_ofs->core0_mvabase0);
+				apu->apu_sctrl_reviser + UP_CORE0_MVABASE0);
 
 			/* vld=1, partial_enable=1 */
 			iowrite32(0x3,
-				apu->apu_sctrl_reviser + reg_ofs->core0_vabase1);
+				apu->apu_sctrl_reviser + UP_CORE0_VABASE1);
 			/* for 34 bit mva */
 			iowrite32(0x1 | (u32) (apu->code_da >> 2),
-				apu->apu_sctrl_reviser +
-				reg_ofs->core0_mvabase1);
+				apu->apu_sctrl_reviser + UP_CORE0_MVABASE1);
 			spin_unlock_irqrestore(&apu->reg_lock, flags);
 
 			apu_drv_debug("%s: UP_CORE0_VABASE0 = 0x%x\n",
 				__func__,
-				ioread32(apu->apu_sctrl_reviser +
-					 reg_ofs->core0_vabase0));
+				ioread32(apu->apu_sctrl_reviser + UP_CORE0_VABASE0));
 			apu_drv_debug("%s: UP_CORE0_MVABASE0 = 0x%x\n",
 				__func__,
-				ioread32(apu->apu_sctrl_reviser +
-					 reg_ofs->core0_mvabase0));
+				ioread32(apu->apu_sctrl_reviser + UP_CORE0_MVABASE0));
 			apu_drv_debug("%s: UP_CORE0_VABASE1 = 0x%x\n",
 				__func__,
-				ioread32(apu->apu_sctrl_reviser +
-					 reg_ofs->core0_vabase1));
+				ioread32(apu->apu_sctrl_reviser + UP_CORE0_VABASE1));
 			apu_drv_debug("%s: UP_CORE0_MVABASE1 = 0x%x\n",
 				__func__,
-				ioread32(apu->apu_sctrl_reviser +
-					 reg_ofs->core0_mvabase1));
+				ioread32(apu->apu_sctrl_reviser + UP_CORE0_MVABASE1));
 		}
 	}
 }
@@ -158,7 +151,6 @@ static void apu_setup_devapc(struct mtk_apu *apu)
 static void apu_reset_mp(struct mtk_apu *apu)
 {
 	struct device *dev = apu->dev;
-	struct mtk_apu_reg_ofs *reg_ofs = &apu->platdata->ofs;
 	unsigned long flags;
 
 	if (apu->platdata->flags & F_SECURE_BOOT) {
@@ -167,39 +159,34 @@ static void apu_reset_mp(struct mtk_apu *apu)
 	} else {
 		spin_lock_irqsave(&apu->reg_lock, flags);
 		/* reset uP */
-		iowrite32(0, apu->md32_sysctrl + reg_ofs->md32_sys_ctrl);
+		iowrite32(0, apu->md32_sysctrl + MD32_SYS_CTRL);
 		spin_unlock_irqrestore(&apu->reg_lock, flags);
 
 		udelay(10);
 
 		spin_lock_irqsave(&apu->reg_lock, flags);
 		/* md32_g2b_cg_en | md32_dbg_en | md32_soft_rstn */
-		iowrite32(0xc01, apu->md32_sysctrl + reg_ofs->md32_sys_ctrl);
+		iowrite32(0xc01, apu->md32_sysctrl + MD32_SYS_CTRL);
 		spin_unlock_irqrestore(&apu->reg_lock, flags);
 		apu_drv_debug("%s: MD32_SYS_CTRL = 0x%x\n",
-			__func__,
-			ioread32(apu->md32_sysctrl + reg_ofs->md32_sys_ctrl));
+			__func__, ioread32(apu->md32_sysctrl + MD32_SYS_CTRL));
 
 		spin_lock_irqsave(&apu->reg_lock, flags);
 		/* md32 clk enable */
-		iowrite32(0x1, apu->md32_sysctrl + reg_ofs->md32_clk_en);
+		iowrite32(0x1, apu->md32_sysctrl + MD32_CLK_EN);
 		/* set up_wake_host_mask0 for wdt/mbox irq */
-		iowrite32(0x1c0001, apu->md32_sysctrl +
-				    reg_ofs->up_wake_host_mask0);
+		iowrite32(0x1c0001, apu->md32_sysctrl + UP_WAKE_HOST_MASK0);
 		spin_unlock_irqrestore(&apu->reg_lock, flags);
 		apu_drv_debug("%s: MD32_CLK_EN = 0x%x\n",
-			__func__,
-			ioread32(apu->md32_sysctrl + reg_ofs->md32_clk_en));
+			__func__, ioread32(apu->md32_sysctrl + MD32_CLK_EN));
 		apu_drv_debug("%s: UP_WAKE_HOST_MASK0 = 0x%x\n",
-			__func__, ioread32(apu->md32_sysctrl +
-					   reg_ofs->up_wake_host_mask0));
+			__func__, ioread32(apu->md32_sysctrl + UP_WAKE_HOST_MASK0));
 	}
 }
 
 static void apu_setup_boot(struct mtk_apu *apu)
 {
 	struct device *dev = apu->dev;
-	struct mtk_apu_reg_ofs *reg_ofs = &apu->platdata->ofs;
 	unsigned long flags;
 	int boot_from_tcm;
 
@@ -220,29 +207,26 @@ static void apu_setup_boot(struct mtk_apu *apu)
 		if ((apu->platdata->flags & F_BYPASS_IOMMU) ||
 			(apu->platdata->flags & F_PRELOAD_FIRMWARE))
 			iowrite32((u32)apu->code_da,
-				apu->apu_ao_ctl + reg_ofs->md32_boot_ctrl);
+				apu->apu_ao_ctl + MD32_BOOT_CTRL);
 		else
 			iowrite32((u32)CODE_BUF_DA | boot_from_tcm,
-				apu->apu_ao_ctl + reg_ofs->md32_boot_ctrl);
+				apu->apu_ao_ctl + MD32_BOOT_CTRL);
 		spin_unlock_irqrestore(&apu->reg_lock, flags);
 		apu_drv_debug("%s: MD32_BOOT_CTRL = 0x%x\n",
-			__func__,
-			ioread32(apu->apu_ao_ctl + reg_ofs->md32_boot_ctrl));
+			__func__, ioread32(apu->apu_ao_ctl + MD32_BOOT_CTRL));
 
 		spin_lock_irqsave(&apu->reg_lock, flags);
 		/* set predefined MPU region for cache access */
-		iowrite32(0xAB, apu->apu_ao_ctl + reg_ofs->md32_pre_def);
+		iowrite32(0xAB, apu->apu_ao_ctl + MD32_PRE_DEFINE);
 		spin_unlock_irqrestore(&apu->reg_lock, flags);
 		apu_drv_debug("%s: MD32_PRE_DEFINE = 0x%x\n",
-			__func__,
-			ioread32(apu->apu_ao_ctl + reg_ofs->md32_pre_def));
+			__func__, ioread32(apu->apu_ao_ctl + MD32_PRE_DEFINE));
 	}
 }
 
 static void apu_start_mp(struct mtk_apu *apu)
 {
 	struct device *dev = apu->dev;
-	struct mtk_apu_reg_ofs *reg_ofs = &apu->platdata->ofs;
 	int i;
 	unsigned long flags;
 
@@ -252,7 +236,7 @@ static void apu_start_mp(struct mtk_apu *apu)
 	} else {
 		spin_lock_irqsave(&apu->reg_lock, flags);
 		/* Release runstall */
-		iowrite32(0x0, apu->apu_ao_ctl + reg_ofs->md32_runstall);
+		iowrite32(0x0, apu->apu_ao_ctl + MD32_RUNSTALL);
 		spin_unlock_irqrestore(&apu->reg_lock, flags);
 
 		if ((apu->platdata->flags & F_SECURE_BOOT) == 0)
@@ -329,12 +313,14 @@ static int mt8188_apu_power_init(struct mtk_apu *apu)
 	apu->power_dev = &pdev->dev;
 	of_node_put(np);
 
+
 	/* apu iommu 0 */
 	np = of_parse_phandle(dev->of_node, "apu_iommu0", 0);
 	if (!np) {
 		dev_info(dev, "failed to parse apu_iommu0 node\n");
 		return -EINVAL;
 	}
+
 	if (!of_device_is_available(np)) {
 		dev_info(dev, "unable to find apu_iommu0 node\n");
 		of_node_put(np);
@@ -352,6 +338,7 @@ static int mt8188_apu_power_init(struct mtk_apu *apu)
 
 	apu->apu_iommu0 = &pdev->dev;
 	of_node_put(np);
+
 
 	/* apu iommu 1 */
 	np = of_parse_phandle(dev->of_node, "apu_iommu1", 0);
@@ -383,57 +370,85 @@ static int mt8188_apu_power_init(struct mtk_apu *apu)
 
 static int mt8188_apu_power_on(struct mtk_apu *apu)
 {
-	int ret, timeout;
+	struct device *dev = apu->dev;
+	int ret, timeout, i;
 
 	/* to force apu top power on synchronously */
 	ret = pm_runtime_get_sync(apu->power_dev);
 	if (ret < 0) {
-		dev_info(apu->dev,
-			"%s: call to get_sync(power_dev) failed, ret=%d\n",
-			__func__, ret);
+		dev_info(dev,
+			 "%s: call to get_sync(power_dev) failed, ret=%d\n",
+			 __func__, ret);
 		/* apusys_rv_aee_warn("APUSYS_RV", "APUSYS_RV_RPM_GET_PWR_ERROR"); */
 		return ret;
 	}
 
 	/* to notify IOMMU power on */
-	ret = pm_runtime_get_sync(apu->apu_iommu0);
-	if (ret < 0)
-		goto iommu_get_error;
+	/* workaround possible nested disable issue */
+	i = 0;
+	do {
+		ret = pm_runtime_get_sync(apu->apu_iommu0);
+		/*try atmost 7 times since disable_depth is 3-bit wide */
+		if (ret == -EACCES && i <= 7) {
+			pm_runtime_enable(apu->apu_iommu0);
+			pm_runtime_put_sync(apu->apu_iommu0);
+			i++;
+			dev_info(apu->dev,
+				 "%s: %s is disabled. Enable and retry(%d)\n",
+				 __func__,
+				 to_platform_device(apu->apu_iommu0)->name, i);
+		} else if (ret < 0)
+			goto iommu_get_error;
 
-	ret = pm_runtime_get_sync(apu->apu_iommu1);
-	if (ret < 0)
-		pm_runtime_put_sync(apu->apu_iommu0);
+	} while (ret < 0);
+
+	i = 0;
+	/* workaround possible nested disable issue */
+	do {
+		ret = pm_runtime_get_sync(apu->apu_iommu1);
+		/*try atmost 7 times since disable_depth is 3-bit wide */
+		if (ret == -EACCES && i <= 7) {
+			pm_runtime_enable(apu->apu_iommu1);
+			pm_runtime_put_sync(apu->apu_iommu1);
+			i++;
+			dev_info(apu->dev,
+				 "%s: %s is disabled. Enable and retry(%d)\n",
+				 __func__,
+				 to_platform_device(apu->apu_iommu1)->name, i);
+			continue;
+		} else if (ret < 0)
+			pm_runtime_put_sync(apu->apu_iommu0);
+
+	} while (ret < 0);
 
 iommu_get_error:
 	if (ret < 0) {
 		dev_info(apu->dev,
-			"%s: call to get_sync(iommu) failed, ret=%d\n",
-			__func__, ret);
+			 "%s: call to get_sync(iommu) failed, ret=%d\n",
+			 __func__, ret);
 		apusys_rv_aee_warn("APUSYS_RV", "APUSYS_IOMMU_RPM_GET_ERROR");
 		goto error_put_power_dev;
 	}
 
 	/* polling IOMMU rpm state till active */
-	apu_drv_debug("start polling iommu on\n");
 	timeout = 5000;
 	while ((!pm_runtime_active(apu->apu_iommu0) ||
-			!pm_runtime_active(apu->apu_iommu1)) && timeout-- > 0)
+	       !pm_runtime_active(apu->apu_iommu1)) && timeout-- > 0)
 		msleep(20);
 	if (timeout <= 0) {
 		dev_info(apu->dev, "%s: polling iommu on timeout!!\n",
-			__func__);
+			 __func__);
 		WARN_ON(0);
 		apusys_rv_aee_warn("APUSYS_RV", "APUSYS_RV_IOMMU_ON_TIMEOUT");
 		ret = -ETIMEDOUT;
 		goto error_put_iommu_dev;
 	}
-	apu_drv_debug("polling iommu on done\n");
 
 	ret = pm_runtime_get_sync(apu->dev);
 	if (ret < 0) {
 		dev_info(apu->dev,
-			"%s: call to get_sync(dev) failed, ret=%d\n",
-			__func__, ret);
+			 "%s: call to get_sync(dev) failed, ret=%d\n",
+			 __func__, ret);
 		apusys_rv_aee_warn("APUSYS_RV", "APUSYS_RV_RPM_GET_ERROR");
 		goto error_put_iommu_dev;
 	}
@@ -452,79 +467,99 @@ error_put_power_dev:
 
 static int mt8188_apu_power_off(struct mtk_apu *apu)
 {
-	int ret, timeout;
+	struct device *dev = apu->dev;
+	int ret, timeout, i;
 
 	ret = pm_runtime_put_sync(apu->dev);
 	if (ret) {
-		dev_info(apu->dev,
-			"%s: call to put_sync(dev) failed, ret=%d\n",
-			__func__, ret);
-		/* apusys_rv_aee_warn("APUSYS_RV", "APUSYS_RV_RPM_PUT_ERROR"); */
+		dev_info(dev,
+			 "%s: call to put_sync(dev) failed, ret=%d\n",
+			 __func__, ret);
+		apusys_rv_aee_warn("APUSYS_RV", "APUSYS_RV_RPM_PUT_ERROR");
 		return ret;
 	}
 
 	/* to notify IOMMU power off */
-	ret = pm_runtime_put_sync(apu->apu_iommu1);
-	if (ret < 0)
-		goto iommu_put_error;
+	/* workaround possible nested disable issue */
+	i = 0;
+	do {
+		ret = pm_runtime_put_sync(apu->apu_iommu1);
+		/*try atmost 7 times since disable_depth is 3-bit wide */
+		if (ret == -EACCES && i <= 7) {
+			pm_runtime_enable(apu->apu_iommu1);
+			pm_runtime_get_sync(apu->apu_iommu1);
+			i++;
+			dev_info(apu->dev,
+				 "%s: %s is disabled. Enable and retry(%d)\n",
+				 __func__,
+				 to_platform_device(apu->apu_iommu1)->name, i);
+		} else if (ret < 0)
+			goto iommu_put_error;
 
-	ret = pm_runtime_put_sync(apu->apu_iommu0);
-	if (ret < 0)
-		pm_runtime_get_sync(apu->apu_iommu1);
+	} while (ret < 0);
+
+	i = 0;
+	do {
+		ret = pm_runtime_put_sync(apu->apu_iommu0);
+		/*try atmost 7 times since disable_depth is 3-bit wide */
+		if (ret == -EACCES && i <= 7) {
+			pm_runtime_enable(apu->apu_iommu0);
+			pm_runtime_get_sync(apu->apu_iommu0);
+			i++;
+			dev_info(apu->dev,
+				 "%s: %s is disabled. Enable and retry(%d)\n",
+				 __func__,
+				 to_platform_device(apu->apu_iommu0)->name, i);
+		} else if (ret < 0)
+			pm_runtime_get_sync(apu->apu_iommu1);
+
+	} while (ret < 0);
 
 iommu_put_error:
 	if (ret < 0) {
 		dev_info(apu->dev,
-			"%s: call to put_sync(iommu) failed, ret=%d\n",
-			__func__, ret);
+			 "%s: call to put_sync(iommu) failed, ret=%d\n",
+			 __func__, ret);
 		apusys_rv_aee_warn("APUSYS_RV", "APUSYS_IOMMU_RPM_PUT_ERROR");
 		goto error_get_rv_dev;
 	}
 
 	/* polling IOMMU rpm state till suspended */
-	apu_drv_debug("start polling iommu off\n");
 	timeout = 5000;
 	while ((!pm_runtime_suspended(apu->apu_iommu0) ||
-		!pm_runtime_suspended(apu->apu_iommu1)) && timeout-- > 0)
+	       !pm_runtime_suspended(apu->apu_iommu1)) && timeout-- > 0)
 		msleep(20);
 	if (timeout <= 0) {
 		dev_info(apu->dev, "%s: polling iommu off timeout!!\n",
-			__func__);
-		apu_ipi_unlock(apu);
+			 __func__);
 		WARN_ON(0);
 		apusys_rv_aee_warn("APUSYS_RV", "APUSYS_RV_IOMMU_OFF_TIMEOUT");
 		ret = -ETIMEDOUT;
 		goto error_get_iommu_dev;
 	}
 
-	apu_drv_debug("polling iommu off done\n");
-
 	/* to force apu top power off synchronously */
 	ret = pm_runtime_put_sync(apu->power_dev);
 	if (ret) {
 		dev_info(apu->dev,
-			"%s: call to put_sync(power_dev) failed, ret=%d\n",
-			__func__, ret);
-		apusys_rv_aee_warn("APUSYS_RV", "APUSYS_RV_RPM_PUT_PWR_ERROR");
+			 "%s: call to put_sync(power_dev) failed, ret=%d\n",
+			 __func__, ret);
+		/* apusys_rv_aee_warn("APUSYS_RV", "APUSYS_RV_RPM_PUT_PWR_ERROR"); */
 		goto error_get_iommu_dev;
 	}
 
 	/* polling APU TOP rpm state till suspended */
-	apu_drv_debug("start polling power off\n");
 	timeout = 500;
 	while (!pm_runtime_suspended(apu->power_dev) && timeout-- > 0)
 		msleep(20);
 	if (timeout <= 0) {
 		dev_info(apu->dev, "%s: polling power off timeout!!\n",
-			__func__);
-		apu_ipi_unlock(apu);
+			 __func__);
 		WARN_ON(0);
 		apusys_rv_aee_warn("APUSYS_RV", "APUSYS_RV_PWRDN_TIMEOUT");
 		ret = -ETIMEDOUT;
 		goto error_get_power_dev;
 	}
-
-	apu_drv_debug("polling power done\n");
 
 	return 0;
 
@@ -677,31 +712,26 @@ static void mt8188_apu_memmap_remove(struct mtk_apu *apu)
 
 static void mt8188_rv_cg_gating(struct mtk_apu *apu)
 {
-	struct mtk_apu_reg_ofs *reg_ofs = &apu->platdata->ofs;
-
-	iowrite32(0x0, apu->md32_sysctrl + reg_ofs->md32_clk_en);
+	iowrite32(0x0, apu->md32_sysctrl + MD32_CLK_EN);
 }
 
 static void mt8188_rv_cg_ungating(struct mtk_apu *apu)
 {
-	struct mtk_apu_reg_ofs *reg_ofs = &apu->platdata->ofs;
-
-	iowrite32(0x1, apu->md32_sysctrl + reg_ofs->md32_clk_en);
+	iowrite32(0x1, apu->md32_sysctrl + MD32_CLK_EN);
 }
 
 static void mt8188_rv_cachedump(struct mtk_apu *apu)
 {
 	int offset;
 	unsigned long flags;
-	struct mtk_apu_reg_ofs *reg_ofs = &apu->platdata->ofs;
 
 	struct apu_coredump *coredump =
 		(struct apu_coredump *) apu->coredump_buf;
 
 	spin_lock_irqsave(&apu->reg_lock, flags);
 	/* set APU_UP_SYS_DBG_EN for cache dump enable through normal APB */
-	iowrite32(ioread32(apu->md32_sysctrl + reg_ofs->dbg_bus_sel) |
-		(1UL << 16), apu->md32_sysctrl + reg_ofs->dbg_bus_sel);
+	iowrite32(ioread32(apu->md32_sysctrl + DBG_BUS_SEL) |
+		APU_UP_SYS_DBG_EN, apu->md32_sysctrl + DBG_BUS_SEL);
 	spin_unlock_irqrestore(&apu->reg_lock, flags);
 
 	for (offset = 0; offset < CACHE_DUMP_SIZE/sizeof(uint32_t); offset++)
@@ -710,16 +740,15 @@ static void mt8188_rv_cachedump(struct mtk_apu *apu)
 
 	spin_lock_irqsave(&apu->reg_lock, flags);
 	/* clear APU_UP_SYS_DBG_EN */
-	iowrite32(ioread32(apu->md32_sysctrl + reg_ofs->dbg_bus_sel) &
-		~(1UL << 16), apu->md32_sysctrl + reg_ofs->dbg_bus_sel);
+	iowrite32(ioread32(apu->md32_sysctrl + DBG_BUS_SEL) &
+		~(APU_UP_SYS_DBG_EN), apu->md32_sysctrl + DBG_BUS_SEL);
 	spin_unlock_irqrestore(&apu->reg_lock, flags);
 }
 
 const struct mtk_apu_platdata mt8188_platdata = {
-	.flags		= F_PRELOAD_FIRMWARE | F_AUTO_BOOT | F_REQUIRE_VPU_INIT
-			| F_SECURE_BOOT | F_SECURE_COREDUMP | F_MAP_IOVA
-			| F_APUSYS_SECURE,
-	.sec_iova       = 0x200000UL,
+	.flags		= F_PRELOAD_FIRMWARE | F_AUTO_BOOT
+				| F_SECURE_BOOT | F_SECURE_COREDUMP
+				| F_KERNALLOAD_IMAGE,
 	.ops		= {
 		.init	= mt8188_rproc_init,
 		.exit	= mt8188_rproc_exit,
@@ -736,24 +765,5 @@ const struct mtk_apu_platdata mt8188_platdata = {
 		.irq_affin_init = mt8188_irq_affin_init,
 		.irq_affin_set = mt8188_irq_affin_set,
 		.irq_affin_unset = mt8188_irq_affin_unset,
-	},
-	.ofs		= {
-		.normal_dns		= 0x0000,
-		.pri_dns		= 0x0004,
-		.iommu_ctrl		= 0x0008,
-		.core0_vabase0		= 0x000c,
-		.core0_mvabase0		= 0x0010,
-		.core0_vabase1		= 0x0014,
-		.core0_mvabase1		= 0x0018,
-		.userfw_ctxt		= 0x1000,
-		.secfw_ctxt		= 0x1004,
-		.md32_sys_ctrl		= 0x0000,
-		.dbg_bus_sel		= 0x0098,
-		.md32_clk_en		= 0x00b8,
-		.up_wake_host_mask0	= 0x00bc,
-		.md32_pre_def		= 0x0000,
-		.md32_boot_ctrl		= 0x0004,
-		.md32_runstall		= 0x0008,
-		.mbox_host_cfg		= 0x0048,
 	},
 };

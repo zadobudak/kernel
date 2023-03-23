@@ -1,8 +1,8 @@
 /* SPDX-License-Identifier: GPL-2.0 */
 /*
  * Copyright (c) 2019 MediaTek Inc.
- * Author: JB Tsai <jb.tsai@mediatek.com>
  */
+
 
 #ifndef __EDMA_DBGFS_H__
 #define __EDMA_DBGFS_H__
@@ -17,6 +17,7 @@ enum edma_dbg_cfg {
 };
 
 enum {
+	EDMA_LOG_ERROR = 0,
 	EDMA_LOG_WARN,
 	EDMA_LOG_INFO,
 	EDMA_LOG_DEBUG,

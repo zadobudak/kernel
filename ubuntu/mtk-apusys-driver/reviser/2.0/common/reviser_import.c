@@ -11,11 +11,16 @@
 #if IS_ENABLED(CONFIG_MTK_SLBC)
 #include "slbc_ops.h"
 #endif
-int reviser_alloc_slb(uint32_t type, uint32_t size, uint64_t *ret_addr, uint64_t *ret_size)
+
+int reviser_alloc_slb(uint32_t type, uint32_t size, uint64_t *ret_addr,
+						uint64_t *ret_size, uint32_t slb_wait_time)
 {
 	int ret = 0;
-	#if IS_ENABLED(CONFIG_MTK_SLBC)
+#if IS_ENABLED(CONFIG_MTK_SLBC)
 	struct slbc_data slb;
+
+	slb.paddr = 0;
+	slb.size = 0;
 
 	switch (type) {
 	case REVISER_MEM_TYPE_EXT:
@@ -27,6 +32,7 @@ int reviser_alloc_slb(uint32_t type, uint32_t size, uint64_t *ret_addr, uint64_t
 		/* TODO, should allocate via reviser function */
 		slb.uid = UID_AINR;
 		slb.type = TP_BUFFER;
+		slb.timeout = slb_wait_time;
 		break;
 	default:
 		LOG_ERR("Invalid type %u\n", type);
@@ -43,16 +49,14 @@ int reviser_alloc_slb(uint32_t type, uint32_t size, uint64_t *ret_addr, uint64_t
 
 	*ret_addr = (size_t) slb.paddr;
 	*ret_size = slb.size;
-	#else
-		ret = -5; //SLB is disabled
-	#endif
 out:
+#endif
 	return ret;
 }
 int reviser_free_slb(uint32_t type, uint64_t addr)
 {
 	int ret = 0;
-	#if IS_ENABLED(CONFIG_MTK_SLBC)
+#if IS_ENABLED(CONFIG_MTK_SLBC)
 	struct slbc_data slb;
 
 	switch (type) {
@@ -75,9 +79,7 @@ int reviser_free_slb(uint32_t type, uint64_t addr)
 		LOG_ERR("slbc_release Fail %d\n", ret);
 		goto out;
 	}
-	#else
-		ret = -5; //SLB is disabled
-	#endif
 out:
+#endif
 	return ret;
 }

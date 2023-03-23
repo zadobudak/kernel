@@ -28,6 +28,7 @@ enum {
 	MDW_IPI_MSG_STATUS_BUSY,
 	MDW_IPI_MSG_STATUS_ERR,
 	MDW_IPI_MSG_STATUS_TIMEOUT,
+	MDW_IPI_MSG_STATUS_ABORT,
 };
 
 struct mdw_ipi_ucmd {
@@ -41,7 +42,7 @@ struct mdw_ipi_apu_cmd {
 	uint64_t start_ts_ns; // cmd time
 	uint64_t iova;
 	uint32_t size;
-} __attribute__((__packed__));
+} __packed;
 
 struct mdw_ipi_handshake {
 	uint32_t h_id;
@@ -81,7 +82,7 @@ struct mdw_ipi_param {
 struct mdw_stat {
 	uint32_t task_num[APUSYS_DEVICE_LAST][MDW_QUEUE_MAX];
 	uint32_t task_loading[APUSYS_DEVICE_LAST][MDW_QUEUE_MAX][2];
-} __attribute__((__packed__));
+} __packed;
 
 struct mdw_ipi_msg {
 	uint64_t sync_id;
@@ -93,7 +94,7 @@ struct mdw_ipi_msg {
 		struct mdw_ipi_param p;
 		struct mdw_ipi_ucmd u;
 	};
-} __attribute__((__packed__));
+} __packed;
 
 struct mdw_ipi_msg_sync {
 	struct mdw_ipi_msg msg;

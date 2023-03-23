@@ -1,66 +1,51 @@
-obj-m += apu_top.o
+CONFIG_DEVFREQ_THERMAL = y
 
+# common part
+EXTRA_CFLAGS  += -I$(top)/drivers/devfreq/
+EXTRA_CFLAGS  += -I$(top)/drivers/soc/mediatek/
+EXTRA_CFLAGS  += -I$(top)/drivers/misc/mediatek/include
+EXTRA_CFLAGS  += -I$(top)/debug/
+EXTRA_CFLAGS  += -I$(top)/include/
+EXTRA_CFLAGS  += -DCONFIG_DEVFREQ_THERMAL
 
-# 2.0
+# apusys power driver v2.5
+EXTRA_CFLAGS  += -I$(top)/power/2.5/inc/
+SRC := 2.5/common/apu-clk.o 2.5/common/apu-common.o 2.5/common/apu-regulator.o 2.5/common/apu-rpc.o 2.5/common/apu-of.o 2.5/common/apu-plat.o  2.5/common/apu-driver.o 2.5/common/apu-dbg.o 2.5/common/apu-trace.o
+SRC += 2.5/governor/gov-apusys.o 2.5/governor/gov-user.o 2.5/governor/common.o 2.5/governor/gov-constrain.o 2.5/governor/gov-apusys-pe.o
+SRC += 2.5/devices/dev-freq-core.o 2.5/devices/dev-freq-conn.o 2.5/devices/dev-freq-vpu.o 2.5/devices/dev-freq-mdla.o 2.5/devices/dev-cb.o 2.5/devices/dev-freq-iommu.o
 
-EXTRA_CFLAGS += -I$(srctree)/$(src)/debug/
-EXTRA_CFLAGS += -I$(srctree)/include/
-EXTRA_CFLAGS += -I$(srctree)/$(src)/2.0/
-EXTRA_CFLAGS += -I$(srctree)/$(src)/power/2.0/test/
+# apusys power driver v3.0
+EXTRA_CFLAGS  += -I$(top)/power/
+EXTRA_CFLAGS  += -I$(top)/power/3.0/inc/
+EXTRA_CFLAGS  += -I$(top)/power/3.0/inc/platform/
+SRC += 3.0/aputop_drv.o
+SRC += 3.0/aputop_rpmsg.o
 
-# FPGA environment
-ifeq ($(CONFIG_MTK_FPGA),y)
-subdir-EXTRA_CFLAGS += -DMTK_FPGA_PORTING
-else ifeq ($(CONFIG_FPGA_EARLY_PORTING),y)
-subdir-EXTRA_CFLAGS += -DMTK_FPGA_PORTING
+ifneq ($(wildcard $(top)/power/3.0/platform/mt8188_aputop.c),)
+subdir-ccflags-y += -DMT8188_PLAT_DATA
+SRC += 3.0/platform/mt8188_aputop.o
 endif
-
-apu_top-objs += 2.0/apusys_power_driver.o
-apu_top-objs += 2.0/apusys_power_ctl.o
-apu_top-objs += 2.0/apusys_power_debug.o
-EXTRA_CFLAGS += -I$(srctree)/$(src)/2.0/dummy/
-APUPW_PLATFORM_DIR = dummy
-
-
-apu_top-objs += 2.0/$(APUPW_PLATFORM_DIR)/hal_config_power.o
-apu_top-objs += 2.0/$(APUPW_PLATFORM_DIR)/apusys_power_cust.o
-apu_top-objs += 2.0/$(APUPW_PLATFORM_DIR)/apu_platform_resource.o
-apu_top-objs += 2.0/$(APUPW_PLATFORM_DIR)/apu_platform_debug.o
-apu_top-objs += 2.0/$(APUPW_PLATFORM_DIR)/apusys_power_rule_check.o
-
-
-ifneq (,$(findstring aging,$(PROJECT_DTB_NAMES)))
-subdir-EXTRA_CFLAGS += -DAGING_MARGIN
+ifneq ($(wildcard $(top)/power/3.0/platform/mt8188_pwr_func.c),)
+SRC += 3.0/platform/mt8188_pwr_func.o
 endif
-
-
-# 3.0
-EXTRA_CFLAGS += -I$(srctree)/$(src)/../include/
-EXTRA_CFLAGS += -I$(srctree)/$(src)/midware/2.0/
-EXTRA_CFLAGS += -I$(srctree)/$(src)/power/
-EXTRA_CFLAGS += -I$(srctree)/$(src)/3.0/inc/
-EXTRA_CFLAGS += -I$(srctree)/$(src)/3.0/inc/platform/
-
-#src = $(srctree)/drivers/misc/mediatek/apusys/power/3.0
-#apu_top-objs += $(shell cd $(top) && find . -name "*.c" | sed 's/\.c/\.o/g')
-apu_top-objs += apu_top_entry.o
-apu_top-objs += 3.0/aputop_drv.o
-apu_top-objs += 3.0/aputop_rpmsg.o
-ifneq ($(wildcard $(srctree)/$(src)/3.0/platform/mt8188_aputop.c),)
-apu_top-objs += 3.0/platform/mt8188_aputop.o
-apu_top-objs += 3.0/platform/mt8188_pwr_func.o
+ifneq ($(wildcard $(top)/power/3.0/platform/mt8195_aputop.c),)
+subdir-ccflags-y += -DMT8195_PLAT_DATA
+SRC += 3.0/platform/mt8195_aputop.o
 endif
-ifneq ($(wildcard $(srctree)/$(src)/3.0/platform/mt8195_aputop.c),)
-apu_top-objs += 3.0/platform/mt8195_aputop.o
-apu_top-objs += 3.0/platform/mt8195_pwr_func.o
+ifneq ($(wildcard $(top)/power/3.0/platform/mt8195_pwr_func.c),)
+SRC += 3.0/platform/mt8195_pwr_func.o
 endif
+SRC += apu_top_entry.o
 
 ifeq ($(CONFIG_DEVFREQ_THERMAL),y)
-apu_top-objs += 3.0/apu_devfreq_cooling.o
-ifneq ($(wildcard $(srctree)/$(src)/3.0/platform/mt8188_apu_devfreq_cooling.c),)
-apu_top-objs += 3.0/platform/mt8188_apu_devfreq_cooling.o
+SRC += 3.0/apu_devfreq_cooling.o
+ifneq ($(wildcard $(top)/power/3.0/platform/mt8188_apu_devfreq_cooling.c),)
+SRC += 3.0/platform/mt8188_apu_devfreq_cooling.o
 endif
-ifneq ($(wildcard $(srctree)/$(src)/3.0/platform/mt8195_apu_devfreq_cooling.c),)
-apu_top-objs += 3.0/platform/mt8195_apu_devfreq_cooling.o
+ifneq ($(wildcard $(top)/power/3.0/platform/mt8195_apu_devfreq_cooling.c),)
+SRC += 3.0/platform/mt8195_apu_devfreq_cooling.o
 endif
 endif
+
+obj-m += apu_top.o
+apu_top-objs = $(SRC)

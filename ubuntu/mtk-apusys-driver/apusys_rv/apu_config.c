@@ -44,12 +44,12 @@ void apu_config_user_ptr_init(const struct mtk_apu *apu)
 	entry_table->user_entry[2] = offsetof(struct config_v1, user2_data);
 	entry_table->user_entry[3] = offsetof(struct config_v1, user3_data);
 	entry_table->user_entry[4] = offsetof(struct config_v1, user4_data);
+	entry_table->user_entry[5] = offsetof(struct config_v1, user5_data);
 }
 
 int apu_config_setup(struct mtk_apu *apu)
 {
 	struct device *dev = apu->dev;
-	struct mtk_apu_reg_ofs *reg_ofs = &apu->platdata->ofs;
 	unsigned long flags;
 	int ret;
 
@@ -71,7 +71,7 @@ int apu_config_setup(struct mtk_apu *apu)
 	spin_lock_irqsave(&apu->reg_lock, flags);
 	/* Set config addr in mbox */
 	iowrite32((u32)apu->conf_da,
-		  apu->apu_mbox + reg_ofs->mbox_host_cfg);
+		apu->apu_mbox + MBOX_HOST_CONFIG_ADDR);
 	spin_unlock_irqrestore(&apu->reg_lock, flags);
 
 	apu->conf_buf->time_offset = sched_clock();
@@ -84,23 +84,23 @@ int apu_config_setup(struct mtk_apu *apu)
 
 	//@@@ret = reviser_set_init_info(apu);
 	//@@@if (ret) {
-	//@@@	dev_info(dev, "apu reviser config init failed\n");
+	//@@@	dev_info(apu->dev, "apu reviser config init failed\n");
 	//@@@	goto out;
 	//@@@}
 
-	#if IS_ENABLED(CONFIG_MTK_APUSYS_VPU)
+#if IS_ENABLED(CONFIG_MTK_APUSYS_VPU)
 	ret = vpu_set_init_info(apu);
 	if (ret) {
 		dev_info(apu->dev, "apu vpu config init failed\n");
 		goto out;
 	}
-	#endif	
+#endif
 
-	///@@@	ret = power_set_chip_info(apu);
-	///@@@	if (ret) {
-	///@@@		dev_info(apu->dev, "set chip info fail ret:%d\n", ret);
-	///@@@		goto out;
-	///@@@	}
+	//@@@ret = power_set_chip_info(apu);
+	//@@@if (ret) {
+	//@@@	dev_info(apu->dev, "set chip info fail ret:%d\n", ret);
+	//@@@	goto out;
+	//@@@}
 
 	ret = sw_logger_config_init(apu);
 	if (ret) {
@@ -110,7 +110,7 @@ int apu_config_setup(struct mtk_apu *apu)
 
 	ret = hw_logger_config_init(apu);
 	if (ret) {
-		dev_info(dev, "hw logger config init failed\n");
+		dev_info(apu->dev, "hw logger config init failed\n");
 		goto out;
 	}
 

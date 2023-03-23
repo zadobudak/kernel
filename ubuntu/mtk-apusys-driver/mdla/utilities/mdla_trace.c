@@ -18,6 +18,7 @@ bool mdla_trace_enable(void)
 	return cfg_apusys_trace;
 }
 
+#if IS_ENABLED(CONFIG_FTRACE)
 void mdla_trace_begin(u32 core_id, struct command_entry *ce)
 {
 	char buf[TRACE_LEN] = {0};
@@ -54,12 +55,13 @@ void mdla_trace_reset(u32 core_id, const char *str)
 	if (!mdla_trace_enable())
 		return;
 
-//	trace_tag_customer("C|%d|mdla-%d,reset:%s|0",
-//			  task_pid_nr(current), core_id, str);
+	trace_tag_customer("C|%d|mdla-%d,reset:%s|0",
+			  task_pid_nr(current), core_id, str);
 }
 
 void mdla_trace_pmu_polling(u32 core_id, u32 *c)
 {
 	trace_mdla_polling(core_id, c);
 }
+#endif
 

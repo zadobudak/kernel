@@ -158,6 +158,8 @@ union mdw_mem_args {
 
 enum mdw_cmd_ioctl_op {
 	MDW_CMD_IOCTL_RUN,
+	MDW_CMD_IOCTL_RUN_STALE,
+	MDW_CMD_IOCTL_DEL,
 };
 
 enum {
@@ -209,21 +211,33 @@ struct mdw_subcmd_info {
 	uint32_t driver_time;
 	uint32_t ip_time;
 	uint32_t bw;
+	uint32_t affinity;
 
 	/* cmdbufs */
 	uint32_t num_cmdbufs;
 	uint64_t cmdbufs;
 };
 
+struct mdw_subcmd_link_v1 {
+	uint32_t producer_idx;
+	uint32_t consumer_idx;
+	uint32_t vid;
+	uint64_t va;
+	uint64_t x;
+	uint64_t y;
+};
+
 struct mdw_cmd_in {
-	uint32_t op; //enum mdw_cmd_ioctl_op
+	uint32_t op;
+	uint64_t reserved;
+	int64_t id;
 	union {
 		struct {
-			uint64_t usr_id;
 			uint64_t uid;
 			uint32_t priority;
 			uint32_t hardlimit;
 			uint32_t softlimit;
+			uint32_t fastmem_ms;
 			uint32_t power_save;
 			uint32_t power_plcy;
 			uint32_t power_dtime;
@@ -234,6 +248,8 @@ struct mdw_cmd_in {
 			uint64_t adj_matrix;
 			uint64_t fence;
 			uint64_t exec_infos;
+			uint32_t num_links;
+			uint64_t links;
 		} exec;
 	};
 };

@@ -15,9 +15,7 @@
 #include "mdw_mem.h"
 #include "mdw_trace.h"
 
-#if defined(APUSYS_AIOT)
 MODULE_IMPORT_NS(DMA_BUF);
-#endif
 
 struct mdw_mem_dma_attachment {
 	struct sg_table *sgt;
@@ -46,10 +44,10 @@ struct mdw_mem_dma {
 };
 
 #define mdw_mem_dma_show(d) \
-	mdw_mem_debug("mem(0x%llx/%d/0x%llx/0x%x/0x%llx/0x%x/%d/%ld)(%d)\n", \
+	mdw_mem_debug("mem(0x%llx/%d/0x%llx/0x%x/0x%llx/0x%x/%d/%d)(%d)\n", \
 	(uint64_t) d->mmem, d->mmem->handle, (uint64_t)d->mmem->vaddr, d->mmem->size, \
 	d->dma_addr, d->dma_size, d->mmem->need_handle, \
-	file_count(d->mmem->dbuf->file), current->pid)
+	file_count(d->mmem->dbuf->file), task_pid_nr(current))
 
 static struct sg_table *mdw_mem_dma_dup_sg(struct sg_table *table)
 {
@@ -133,8 +131,8 @@ static int mdw_mem_dma_allocate_sgt(const char *buf,
 
 	*vaddr = va;
 
-	mdw_mem_debug("buf: 0x%llx, len: 0x%lx, sgt: 0x%llx nr_pages: %d va %p\n",
-		(uint64_t) buf, len, (uint64_t) sgt, nr_pages, va);
+	mdw_mem_debug("buf: 0x%llx, len: 0x%lx, sgt: 0x%llx nr_pages: %d va 0x%llx\n",
+		buf, len, sgt, nr_pages, va);
 
 	return 0;
 }
@@ -211,11 +209,7 @@ static struct sg_table *mdw_dmabuf_map_dma(struct dma_buf_attachment *attach,
 {
 	struct mdw_mem_dma_attachment *a = attach->priv;
 	struct sg_table *table = NULL;
-	#if defined(APUSYS_AIOT)
 	int attr = 0;
-	#else
-	int attr = attach->dma_map_attrs;
-	#endif
 	int ret = 0;
 
 	table = a->sgt;
@@ -237,11 +231,7 @@ static void mdw_dmabuf_unmap_dma(struct dma_buf_attachment *attach,
 				    enum dma_data_direction dir)
 {
 	struct mdw_mem_dma_attachment *a = attach->priv;
-	#if defined(APUSYS_AIOT)
 	int attr = 0;
-	#else
-	int attr = attach->dma_map_attrs;
-	#endif
 
 	mdw_mem_debug("\n");
 
@@ -252,16 +242,16 @@ static void mdw_dmabuf_unmap_dma(struct dma_buf_attachment *attach,
 	dma_unmap_sgtable(attach->dev, sgt, dir, attr);
 }
 
-#if defined(APUSYS_AIOT)
-static int mdw_dmabuf_vmap(struct dma_buf *dbuf, struct iosys_map  *map)
-#else
-static void *mdw_dmabuf_vmap(struct dma_buf *dbuf)
-#endif
+static int mdw_dmabuf_vmap(struct dma_buf *dbuf, struct iosys_map *dbuf_map)
 {
 	struct mdw_mem_dma *mdbuf = dbuf->priv;
 
 	mdw_mem_debug("dmabuf vmap: 0x%llx\n", (uint64_t) mdbuf->vaddr);
-	return mdbuf->vaddr;
+	if (dbuf_map->is_iomem)
+		dbuf_map->vaddr_iomem = mdbuf->vaddr;
+	else
+		dbuf_map->vaddr = mdbuf->vaddr;
+	return 0;
 }
 
 static int mdw_dmabuf_invalidate(struct dma_buf *dbuf,
@@ -316,7 +306,7 @@ static void mdw_dmabuf_release(struct dma_buf *dbuf)
 
 	mdw_mem_dma_free_sgt(&mdbuf->sgt);
 	vunmap(mdbuf->vaddr);
-	kvfree(mdbuf->buf);
+	vfree(mdbuf->buf);
 	kfree(mdbuf);
 	m->release(m);
 }
@@ -397,12 +387,12 @@ int mdw_mem_dma_alloc(struct mdw_mem *mem)
 	if (mem->flags & F_MDW_MEM_HIGHADDR) {
 		dev = mdw_mem_rsc_get_dev(APUSYS_MEMORY_DATA);
 		if (dev)
-			mdw_mem_debug("data %llx dev %s\n",
+			mdw_mem_debug("data %x dev %s\n",
 				mem->flags, dev_name(dev));
 	} else {
 		dev = mdw_mem_rsc_get_dev(APUSYS_MEMORY_CODE);
 		if (dev)
-			mdw_mem_debug("code %llx dev %s\n",
+			mdw_mem_debug("code %x dev %s\n",
 				mem->flags, dev_name(dev));
 	}
 	if (mem->flags & F_MDW_MEM_CACHEABLE)
@@ -416,7 +406,7 @@ int mdw_mem_dma_alloc(struct mdw_mem *mem)
 		goto free_mdw_dbuf;
 	}
 
-	kva = kvzalloc(mdbuf->dma_size, GFP_KERNEL);
+	kva = vzalloc(mdbuf->dma_size);
 	if (!kva) {
 		ret = -ENOMEM;
 		goto free_mdw_dbuf;
@@ -467,7 +457,7 @@ int mdw_mem_dma_alloc(struct mdw_mem *mem)
 free_sgt:
 	mdw_mem_dma_free_sgt(&mdbuf->sgt);
 free_buf:
-	kvfree(kva);
+	vfree(kva);
 free_mdw_dbuf:
 	kfree(mdbuf);
 out:

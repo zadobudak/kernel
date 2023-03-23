@@ -13,7 +13,7 @@
 #define apu_tp_foreach(tbl, t) \
 	for ((t) = (tbl); (t) && (t)->name != NULL; (t)++)
 
-static void apu_tp_lookup(struct tracepoint *tp, void *priv)
+void apu_tp_lookup(struct tracepoint *tp, void *priv)
 {
 	struct apu_tp_tbl *t, *tbl;
 
@@ -35,16 +35,17 @@ static void apu_tp_lookup(struct tracepoint *tp, void *priv)
  */
 void apu_tp_exit(struct apu_tp_tbl *tbl)
 {
-	#ifdef CONFIG_TRACEPOINTS
 	struct apu_tp_tbl *t;
 
 	apu_tp_foreach(tbl, t) {
 		if (!t->tp)
 			continue;
+
+#if IS_ENABLED(CONFIG_TRACEPOINTS)
 		tracepoint_probe_unregister(t->tp, t->func, NULL);
+#endif
 		t->registered = false;
 	}
-	#endif
 }
 
 /**
@@ -58,7 +59,7 @@ static void for_each_apu_tracepoint(
 	void (*fct)(struct tracepoint *tp, void *priv),
 	void *priv, struct module *mod)
 {
-	#ifdef CONFIG_TRACEPOINTS
+#if IS_ENABLED(CONFIG_TRACEPOINTS)
 	tracepoint_ptr_t *iter, *begin, *end;
 
 	if (IS_ERR_OR_NULL(mod) || !fct)
@@ -69,7 +70,7 @@ static void for_each_apu_tracepoint(
 
 	for (iter = begin; iter < end; iter++)
 		fct(tracepoint_ptr_deref(iter), priv);
-	#endif
+#endif
 }
 #endif
 
@@ -83,14 +84,15 @@ static void for_each_apu_tracepoint(
  */
 int apu_tp_init_mod(struct apu_tp_tbl *tbl, struct module *mod)
 {
-	#ifdef CONFIG_TRACEPOINTS
 	struct apu_tp_tbl *t;
 
 #ifdef MODULE
 	for_each_apu_tracepoint(apu_tp_lookup, tbl, THIS_MODULE);
 	for_each_apu_tracepoint(apu_tp_lookup, tbl, mod);
 #else
+#if IS_ENABLED(CONFIG_TRACEPOINTS)
 	for_each_kernel_tracepoint(apu_tp_lookup, tbl);
+#endif
 #endif
 
 	apu_tp_foreach(tbl, t) {
@@ -99,10 +101,12 @@ int apu_tp_init_mod(struct apu_tp_tbl *tbl, struct module *mod)
 			apu_tp_exit(tbl);  /* free registered entries */
 			return -EINVAL;
 		}
+
+#if IS_ENABLED(CONFIG_TRACEPOINTS)
 		tracepoint_probe_register(t->tp, t->func, NULL);
+#endif
 		t->registered = true;
 	}
-	#endif
 	return 0;
 }
 

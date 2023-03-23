@@ -121,7 +121,7 @@ static uint32_t mdw_rv_get_info(struct mdw_device *mdev,
 	enum mdw_info_type type)
 {
 	struct mdw_rv_dev *mrdev = (struct mdw_rv_dev *)mdev->dev_specific;
-	int val;
+	int val = 0;
 
 	mdw_rv_dev_get_param(mrdev, type, &val);
 	return val;
@@ -154,5 +154,5 @@ static const struct mdw_dev_func mdw_rv_func = {
 void mdw_rv_set_func(struct mdw_device *mdev)
 {
 	mdev->dev_funcs = &mdw_rv_func;
-	mdev->uapi_ver = 2;
+	mdev->uapi_ver = 3;
 }

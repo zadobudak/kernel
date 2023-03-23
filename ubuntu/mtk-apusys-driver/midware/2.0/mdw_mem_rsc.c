@@ -24,7 +24,7 @@ int mdw_mem_rsc_init(void)
 	memset(&rsc_mem_mgr, 0, sizeof(rsc_mem_mgr));
 	mutex_init(&rsc_mem_mgr.mtx);
 
-	pr_info("%s done\n", __func__);
+	pr_info("%s +\n", __func__);
 
 	return 0;
 

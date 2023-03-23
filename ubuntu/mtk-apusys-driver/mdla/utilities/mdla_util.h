@@ -10,7 +10,6 @@
 
 #include <common/mdla_device.h>
 
-
 /* MDLA command priority level */
 enum MDLA_PRIORITY {
 	MDLA_LOW_PRIORITY,
@@ -20,11 +19,7 @@ enum MDLA_PRIORITY {
 };
 
 /* apusys MDLA device priority level */
-#if IS_ENABLED(CONFIG_MTK_APUSYS_RT_SUPPORT)
 #define PRIORITY_LEVEL      2
-#else
-#define PRIORITY_LEVEL      1
-#endif
 
 /* platform */
 const struct of_device_id *mdla_util_get_device_id(void);
@@ -53,7 +48,7 @@ enum CMD_MODE {
 };
 
 struct mdla_pmu_info;
-struct apusys_cmd_hnd;
+struct apusys_cmd_handle;
 
 void mdla_util_pmu_cmd_timer(bool enable);
 
@@ -63,8 +58,8 @@ struct mdla_util_pmu_ops {
 
 	void (*clr_counter_variable)(struct mdla_pmu_info *pmu);
 	void (*clr_cycle_variable)(struct mdla_pmu_info *pmu);
-	u32 (*get_num_evt)(u32 core_id, u16 priority);
-	void (*set_num_evt)(u32 core_id, u16 priority, u32 val);
+	u32 (*get_num_evt)(u32 core_id, int priority);
+	void (*set_num_evt)(u32 core_id, int priority, int val);
 	void (*set_percmd_mode)(struct mdla_pmu_info *pmu, u32 mode);
 	int (*get_curr_mode)(struct mdla_pmu_info *pmu);
 	u32 (*get_perf_end)(struct mdla_pmu_info *pmu);
@@ -91,9 +86,7 @@ struct mdla_util_pmu_ops {
 			u32 counter_idx, u32 val);
 	struct mdla_pmu_info *(*get_info)(u32 core_id, u16 priority);
 	int (*apu_cmd_prepare)(struct mdla_dev *mdla_info,
-			struct apusys_cmd_hnd *apusys_hd, u16 priority);
-	bool (*apu_pmu_valid)(struct mdla_dev *mdla_info,
-			struct apusys_cmd_hnd *apusys_hd, u16 priority);
+			struct apusys_cmd_handle *apusys_hd, u16 priority);
 };
 
 struct mdla_util_pmu_ops *mdla_util_pmu_ops_get(void);
@@ -101,9 +94,9 @@ struct mdla_util_pmu_ops *mdla_util_pmu_ops_get(void);
 /* apusys pmu operation */
 void mdla_util_apusys_pmu_support(bool enable);
 int mdla_util_apu_pmu_handle(struct mdla_dev *mdla_info,
-	struct apusys_cmd_hnd *apusys_hd, u16 priority);
+	struct apusys_cmd_handle *apusys_hd, u16 priority);
 void mdla_util_apu_pmu_update(struct mdla_dev *mdla_info,
-	struct apusys_cmd_hnd *apusys_hd, u16 priority);
+	struct apusys_cmd_handle *apusys_hd, u16 priority);
 
 /* apusys cmdbuf list */
 #define MIN_CMDBUF_NUM          2

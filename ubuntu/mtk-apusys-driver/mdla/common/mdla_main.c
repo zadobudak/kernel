@@ -10,7 +10,9 @@
 #include <common/mdla_device.h>
 
 #include <utilities/mdla_debug.h>
-#include "apusys_core.h"
+
+
+struct apusys_core_info;
 
 static struct mdla_dev *mdla_devices;
 static u32 mdla_device_num;
@@ -30,7 +32,6 @@ void mdla_set_device(struct mdla_dev *dev, u32 num)
 }
 
 int mdla_init(struct apusys_core_info *info)
-//int mdla_init(void)
 {
 	mdla_dbg_fs_init(NULL);
 
@@ -58,7 +59,6 @@ void mdla_exit(void)
 static int mdla_mod_init(void)
 {
 	return mdla_init(NULL);
-	/*return mdla_init();*/
 }
 
 static void mdla_mod_exit(void)
@@ -75,7 +75,6 @@ MODULE_LICENSE("GPL");
 static int mdla_mod_init(void)
 {
 	return mdla_init(NULL);
-	/*return mdla_init();*/
 }
 late_initcall(mdla_mod_init);
 #endif

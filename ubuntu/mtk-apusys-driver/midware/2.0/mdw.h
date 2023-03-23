@@ -34,6 +34,11 @@
 #define MDW_DEFAULT_TIMEOUT_MS (30*1000)
 #define MDW_BOOST_MAX (100)
 #define MDW_DEFAULT_ALIGN (16)
+#define MDW_UTIL_CMD_MAX_SIZE (1*1024*1024)
+
+#define MDW_CMD_IDR_MIN (1)
+#define MDW_CMD_IDR_MAX (64)
+#define MDW_FENCE_MAX_RINGS (64)
 
 #define MDW_ALIGN(x, align) ((x+align-1) & (~(align-1)))
 
@@ -54,6 +59,8 @@ struct mdw_mem_map {
 	struct sg_table *sgt;
 	struct kref map_ref;
 	struct mdw_mem *m;
+	void (*get)(struct mdw_mem_map *map);
+	void (*put)(struct mdw_mem_map *map);
 };
 
 struct mdw_mem_invoke {
@@ -155,6 +162,8 @@ enum mdw_info_type {
 	MDW_INFO_MIN_DTIME,
 	MDW_INFO_MIN_ETIME,
 
+	MDW_INFO_RESERV_TIME_REMAIN,
+
 	MDW_INFO_MAX,
 };
 
@@ -213,9 +222,20 @@ struct mdw_device {
 	struct mutex m_mtx;
 	struct mutex mctl_mtx;
 
+	/* cmd clear wq */
+	struct mutex c_mtx;
+	struct list_head d_cmds;
+	struct work_struct c_wk;
+
 	/* device functions */
 	const struct mdw_dev_func *dev_funcs;
 	void *dev_specific;
+
+	/* fence info */
+	uint64_t base_fence_ctx;
+	uint32_t num_fence_ctx;
+	unsigned long fence_ctx_mask[BITS_TO_LONGS(MDW_FENCE_MAX_RINGS)];
+	struct mutex f_mtx;
 };
 
 struct mdw_fpriv {
@@ -223,9 +243,11 @@ struct mdw_fpriv {
 
 	struct list_head mems;
 	struct list_head invokes;
-	struct list_head cmds;
 	struct mutex mtx;
 	struct mdw_mem_pool cmd_buf_pool;
+	struct idr cmds;
+	atomic_t active_cmds;
+	atomic_t exec_seqno;
 
 	/* ref count for cmd/mem */
 	atomic_t active;
@@ -253,14 +275,20 @@ struct mdw_fence {
 	struct dma_fence base_fence;
 	struct mdw_device *mdev;
 	spinlock_t lock;
+	char name[32];
+};
+
+struct mdw_cmd_map_invoke {
+	struct list_head c_node;
+	struct mdw_mem_map *map;
 };
 
 struct mdw_cmd {
 	pid_t pid;
 	pid_t tgid;
+	char comm[16];
 	uint64_t kid;
 	uint64_t uid;
-	uint64_t usr_id;
 	uint64_t rvid;
 	uint32_t priority;
 	uint32_t hardlimit;
@@ -268,8 +296,10 @@ struct mdw_cmd {
 	uint32_t power_save;
 	uint32_t power_plcy;
 	uint32_t power_dtime;
+	uint32_t fastmem_ms;
 	uint32_t app_type;
 	uint32_t num_subcmds;
+	uint32_t num_links;
 	struct mdw_subcmd_info *subcmds; //from usr
 	struct mdw_subcmd_kinfo *ksubcmds;
 	uint32_t num_cmdbufs;
@@ -278,15 +308,23 @@ struct mdw_cmd {
 	struct mdw_mem *exec_infos;
 	struct mdw_exec_info *einfos;
 	uint8_t *adj_matrix;
+	struct mdw_subcmd_link_v1 *links;
 
 	struct mutex mtx;
-	struct list_head u_item;
+	struct list_head map_invokes; //mdw_cmd_map_invoke
+	struct list_head d_node; //mdev->d_cmds
+
+	int id;
+	struct kref ref;
+	atomic_t is_running;
 
 	uint64_t start_ts;
 	uint64_t end_ts;
 
 	struct mdw_fpriv *mpriv;
+	void *internal_cmd;
 	int (*complete)(struct mdw_cmd *c, int ret);
+	int (*del_internal)(struct mdw_cmd *c);
 
 	struct mdw_fence *fence;
 	struct work_struct t_wk;
@@ -307,30 +345,28 @@ struct mdw_dev_func {
 	int (*unregister_device)(struct apusys_device *adev);
 };
 
-#ifdef APU_AEE_ENABLE
 #if IS_ENABLED(CONFIG_MTK_AEE_FEATURE)
 #include <aee.h>
-#define mdw_exception(format, args...) \
+#define _mdw_exception(key, reason, args...) \
 	do { \
-		pr_info("apusys mdw:" format, ##args); \
-		aee_kernel_warning("APUSYS_AP_EXCEPTION_APUSYS_MIDDLEWARE", \
-			"\nCRDISPATCH_KEY:APUSYS_MIDDLEWARE\n" format, \
-			##args); \
+		char info[150];\
+		mdw_drv_err(reason, args); \
+		if (snprintf(info, 150, "apu_mdw:" reason, args) > 0) { \
+			aee_kernel_exception(info, \
+				"\nCRDISPATCH_KEY:%s\n", key); \
+		} else { \
+			mdw_drv_err("apu_mdw: %s snprintf fail(%d)\n", __func__, __LINE__); \
+		} \
 	} while (0)
-#define dma_exception(format, args...) \
-	do { \
-		pr_info("apusys mdw:" format, ##args); \
-		aee_kernel_warning("APUSYS_AP_EXCEPTION_APUSYS_MIDDLEWARE", \
-			"\nCRDISPATCH_KEY:APUSYS_EDMA\n" format, \
-	##args); \
-	} while (0)
-#endif
+#define mdw_exception(reason, args...) _mdw_exception("APUSYS_MIDDLEWARE", reason, ##args)
+#define dma_exception(reason, args...) _mdw_exception("APUSYS_EDMA", reason, ##args)
+#define aps_exception(reason, args...) _mdw_exception("APUSYS_APS", reason, ##args)
 #else
-#define mdw_exception(format, args...)
-#define dma_exception(format, args...)
+#define mdw_exception(reason, args...)
+#define dma_exception(reason, args...)
+#define aps_exception(reason, args...)
 #endif
 
-void mdw_ap_set_func(struct mdw_device *mdev);
 void mdw_rv_set_func(struct mdw_device *mdev);
 
 long mdw_ioctl(struct file *filep, unsigned int cmd, unsigned long arg);
@@ -339,6 +375,8 @@ int mdw_mem_ioctl(struct mdw_fpriv *mpriv, void *data);
 int mdw_cmd_ioctl(struct mdw_fpriv *mpriv, void *data);
 int mdw_util_ioctl(struct mdw_fpriv *mpriv, void *data);
 
+void mdw_cmd_delete(struct mdw_cmd *c);
+int mdw_cmd_invoke_map(struct mdw_cmd *c, struct mdw_mem_map *map);
 void mdw_cmd_mpriv_release(struct mdw_fpriv *mpriv);
 void mdw_mem_mpriv_release(struct mdw_fpriv *mpriv);
 
@@ -368,6 +406,6 @@ void mdw_dev_deinit(struct mdw_device *mdev);
 void mdw_dev_session_create(struct mdw_fpriv *mpriv);
 void mdw_dev_session_delete(struct mdw_fpriv *mpriv);
 int mdw_dev_validation(struct mdw_fpriv *mpriv, uint32_t dtype,
-	struct apusys_cmdbuf *cbs, uint32_t num);
+	struct mdw_cmd *cmd, struct apusys_cmdbuf *cbs, uint32_t num);
 
 #endif

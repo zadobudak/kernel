@@ -22,10 +22,17 @@
 #if IS_ENABLED(CONFIG_DEVFREQ_THERMAL)
 static int apu_devfreq_probe(struct platform_device *pdev)
 {
-	if (pwr_data->plat_apu_devfreq_cooling_register)
-		pwr_data->plat_apu_devfreq_cooling_register(pdev);
+	int ret = 0;
 
-	return 0;
+	if (pwr_data->plat_apu_devfreq_cooling_register)
+		ret = pwr_data->plat_apu_devfreq_cooling_register(pdev);
+
+	if (!ret) {
+		if (pwr_data->plat_apu_devfreq_cooling_stop_monitor)
+			pwr_data->plat_apu_devfreq_cooling_stop_monitor(pdev);
+	}
+
+	return ret;
 }
 
 static int apu_devfreq_remove(struct platform_device *pdev)

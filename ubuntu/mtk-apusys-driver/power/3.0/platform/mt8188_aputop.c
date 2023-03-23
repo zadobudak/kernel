@@ -24,7 +24,6 @@
 
 #include "apusys_secure.h"
 #include "aputop_rpmsg.h"
-#include "apu_log.h"
 #include "apu_top.h"
 #include "mt8188_apupwr.h"
 #include "mt8188_apupwr_prot.h"
@@ -32,15 +31,18 @@
 
 #define LOCAL_DBG	(0)
 
+int g_pwr_log_level = 7; //APUSYS_PWR_LOG_ERR;
+
 /* Below reg_name has to 1-1 mapping DTS's name */
 static const char *reg_name[APUPW_MAX_REGS] = {
-	"sys_spm", "apu_rcx", "apu_vcore", "apu_md32_mbox",
-	"apu_rpc", "apu_pcu", "apu_ao_ctl", "apu_pll", "apu_acc",
+	"apu_rpc", "sys_spm", "bcrm_fmem_pdn", "apu_rcx", "apu_vcore",
+	"apu_md32_mbox", "apu_pcu", "apu_ao_ctl", "apu_pll", "apu_acc",
 	"apu_are0", "apu_are1", "apu_are2",
 	"apu_acx0", "apu_acx0_rpc_lite",
 };
 
 static struct apu_power apupw;
+static uint32_t g_opp_cfg_acx0;
 
 static void aputop_dump_pwr_res(void);
 
@@ -61,21 +63,20 @@ static struct timer_list apu_thermal_timer;
  * The following name of each clock struct
  * MUST mapping to clock-names @dts
  **********************************************/
-static struct clk *clk_top_dsp_sel;		/* CONN */
-static struct clk *clk_top_dsp1_sel;
-static struct clk *clk_top_dsp2_sel;
-static struct clk *clk_top_dsp3_sel;
-static struct clk *clk_top_dsp4_sel;
-static struct clk *clk_top_dsp5_sel;
-static struct clk *clk_top_dsp6_sel;
-static struct clk *clk_top_dsp7_sel;
+static struct clk *clk_top_dsp;		/* CONN */
+static struct clk *clk_top_dsp1;
+static struct clk *clk_top_dsp2;
+static struct clk *clk_top_dsp3;
+static struct clk *clk_top_dsp4;
+static struct clk *clk_top_dsp5;
+static struct clk *clk_top_dsp6;
+static struct clk *clk_top_dsp7;
 
 struct tiny_dvfs_opp_tbl *opp_tbl;
 
 static uint32_t apusys_pwr_smc_call(struct device *dev, uint32_t smc_id,
 		uint32_t a2)
 {
-#if APUSYS_SECURE
 	struct arm_smccc_res res;
 
 	arm_smccc_smc(MTK_SIP_APUSYS_CONTROL, smc_id,
@@ -84,10 +85,8 @@ static uint32_t apusys_pwr_smc_call(struct device *dev, uint32_t smc_id,
 		dev_info(dev, "%s: smc call %d return error(%ld)\n",
 				__func__,
 				smc_id, res.a0);
+
 	return res.a0;
-#else
-	return 0;
-#endif
 }
 
 #if APU_POWER_INIT
@@ -108,7 +107,7 @@ static void apu_vote_vcore_dvfsrc(int enable)
 		if (vcore_dvfsrc_reg_id) {
 			regulator_set_voltage(vcore_dvfsrc_reg_id,
 						VCORE_CON_SAFE_VOLT, INT_MAX);
-			LOG_DBG("%s vote vcore-dvfsrc to %d\n", __func__,
+			pr_info("%s vote vcore-dvfsrc to %d\n", __func__,
 				VCORE_CON_SAFE_VOLT);
 		}
 	} else {
@@ -116,7 +115,7 @@ static void apu_vote_vcore_dvfsrc(int enable)
 		if (vcore_dvfsrc_reg_id) {
 			regulator_set_voltage(vcore_dvfsrc_reg_id,
 						VCORE_CON_DEF_VOLT, INT_MAX);
-			LOG_DBG("%s vote vcore-dvfsrc to %d\n", __func__,
+			pr_info("%s vote vcore-dvfsrc to %d\n", __func__,
 				VCORE_CON_DEF_VOLT);
 		}
 	}
@@ -128,6 +127,7 @@ static int init_opp_table(struct platform_device *pdev)
 				   "PLL_MVPU", "PLL_MDLA"};
 	static const char * const buck_name[] = {"BUCK_VAPU", "BUCK_VSRAM",
 					  "BUCK_VCORE"};
+	struct tiny_dvfs_opp_entry tmp_entry = {0};
 	struct of_phandle_iterator it;
 	struct device_node *np, *child_np = NULL;
 	struct device *dev = NULL;
@@ -194,20 +194,45 @@ static int init_opp_table(struct platform_device *pdev)
 	if (opp_tbl == NULL)
 		return 0;
 
+	/* Sort opp table by vapu */
+	for (i = 0; i < (opp_tbl->tbl_size - 1); i++) {
+		for (j = i + 1; j < opp_tbl->tbl_size; j++) {
+			if (opp_tbl->opp[j].vapu > opp_tbl->opp[i].vapu) {
+				memcpy(&tmp_entry, &opp_tbl->opp[j],
+					sizeof(struct tiny_dvfs_opp_entry));
+				memcpy(&opp_tbl->opp[j], &opp_tbl->opp[i],
+					sizeof(struct tiny_dvfs_opp_entry));
+				memcpy(&opp_tbl->opp[i], &tmp_entry,
+					sizeof(struct tiny_dvfs_opp_entry));
+			}
+		}
+	}
+
 	/* first line */
-	sprintf(buf, "| # | %s |", buck_name[0]);
-	for (i = 0; i < PLL_NUM; i++)
-		sprintf(buf + strlen(buf), " %s |", pll_name[i]);
+	ret = sprintf(buf, "| # | %s |", buck_name[0]);
+	if (ret < 0)
+		pr_info("%s sprintf fail\n", __func__);
+
+	for (i = 0; i < PLL_NUM; i++) {
+		ret = sprintf(buf + strlen(buf), " %s |", pll_name[i]);
+		if (ret < 0)
+			pr_info("%s sprintf fail\n", __func__);
+	}
 	pr_info("%s\n", buf);
 
 	for (i = 0; i < opp_tbl->tbl_size; i++) {
 		buf[0] = 0;
-		sprintf(buf + strlen(buf),
+		ret = sprintf(buf + strlen(buf),
 			"| %d |   %d  |", i, opp_tbl->opp[i].vapu);
+		if (ret < 0)
+			pr_info("%s sprintf fail\n", __func__);
 
-		for (j = 0; j < PLL_NUM; j++)
-			sprintf(buf + strlen(buf),
+		for (j = 0; j < PLL_NUM; j++) {
+			ret = sprintf(buf + strlen(buf),
 				"  %07d |", opp_tbl->opp[i].pll_freq[j]);
+			if (ret < 0)
+				pr_info("%s sprintf fail\n", __func__);
+		}
 
 		pr_info("%s\n", buf);
 	}
@@ -270,14 +295,14 @@ static int init_plat_pwr_res(struct platform_device *pdev)
 		pr_info("regulator_get vapu_reg_id failed\n");
 
 	/* devm_clk_get , not real prepare_clk */
-	PREPARE_CLK(clk_top_dsp_sel);
-	PREPARE_CLK(clk_top_dsp1_sel);
-	PREPARE_CLK(clk_top_dsp2_sel);
-	PREPARE_CLK(clk_top_dsp3_sel);
-	PREPARE_CLK(clk_top_dsp4_sel);
-	PREPARE_CLK(clk_top_dsp5_sel);
-	PREPARE_CLK(clk_top_dsp6_sel);
-	PREPARE_CLK(clk_top_dsp7_sel);
+	PREPARE_CLK(clk_top_dsp);
+	PREPARE_CLK(clk_top_dsp1);
+	PREPARE_CLK(clk_top_dsp2);
+	PREPARE_CLK(clk_top_dsp3);
+	PREPARE_CLK(clk_top_dsp4);
+	PREPARE_CLK(clk_top_dsp5);
+	PREPARE_CLK(clk_top_dsp6);
+	PREPARE_CLK(clk_top_dsp7);
 	if (ret_clk < 0)
 		return ret_clk;
 
@@ -287,14 +312,14 @@ static int init_plat_pwr_res(struct platform_device *pdev)
 
 static void destroy_plat_pwr_res(void)
 {
-	UNPREPARE_CLK(clk_top_dsp_sel);
-	UNPREPARE_CLK(clk_top_dsp1_sel);
-	UNPREPARE_CLK(clk_top_dsp2_sel);
-	UNPREPARE_CLK(clk_top_dsp3_sel);
-	UNPREPARE_CLK(clk_top_dsp4_sel);
-	UNPREPARE_CLK(clk_top_dsp5_sel);
-	UNPREPARE_CLK(clk_top_dsp6_sel);
-	UNPREPARE_CLK(clk_top_dsp7_sel);
+	UNPREPARE_CLK(clk_top_dsp);
+	UNPREPARE_CLK(clk_top_dsp1);
+	UNPREPARE_CLK(clk_top_dsp2);
+	UNPREPARE_CLK(clk_top_dsp3);
+	UNPREPARE_CLK(clk_top_dsp4);
+	UNPREPARE_CLK(clk_top_dsp5);
+	UNPREPARE_CLK(clk_top_dsp6);
+	UNPREPARE_CLK(clk_top_dsp7);
 
 	if (vapu_reg_id)
 		regulator_put(vapu_reg_id);
@@ -347,14 +372,14 @@ static void plt_pwr_res_ctl(int enable)
 
 #if ENABLE_SOC_CLK_MUX
 		/* clk_prepare_enable */
-		ENABLE_CLK(clk_top_dsp_sel);
-		ENABLE_CLK(clk_top_dsp1_sel);
-		ENABLE_CLK(clk_top_dsp2_sel);
-		ENABLE_CLK(clk_top_dsp3_sel);
-		ENABLE_CLK(clk_top_dsp4_sel);
-		ENABLE_CLK(clk_top_dsp5_sel);
-		ENABLE_CLK(clk_top_dsp6_sel);
-		ENABLE_CLK(clk_top_dsp7_sel);
+		ENABLE_CLK(clk_top_dsp);
+		ENABLE_CLK(clk_top_dsp1);
+		ENABLE_CLK(clk_top_dsp2);
+		ENABLE_CLK(clk_top_dsp3);
+		ENABLE_CLK(clk_top_dsp4);
+		ENABLE_CLK(clk_top_dsp5);
+		ENABLE_CLK(clk_top_dsp6);
+		ENABLE_CLK(clk_top_dsp7);
 		if (ret_clk < 0)
 			pr_info("%s fail enable clk : %d\n", __func__, ret_clk);
 #else
@@ -365,14 +390,14 @@ static void plt_pwr_res_ctl(int enable)
 
 #if ENABLE_SOC_CLK_MUX
 		/* clk_disable_unprepare */
-		DISABLE_CLK(clk_top_dsp7_sel);
-		DISABLE_CLK(clk_top_dsp6_sel);
-		DISABLE_CLK(clk_top_dsp5_sel);
-		DISABLE_CLK(clk_top_dsp4_sel);
-		DISABLE_CLK(clk_top_dsp3_sel);
-		DISABLE_CLK(clk_top_dsp2_sel);
-		DISABLE_CLK(clk_top_dsp1_sel);
-		DISABLE_CLK(clk_top_dsp_sel);
+		DISABLE_CLK(clk_top_dsp7);
+		DISABLE_CLK(clk_top_dsp6);
+		DISABLE_CLK(clk_top_dsp5);
+		DISABLE_CLK(clk_top_dsp4);
+		DISABLE_CLK(clk_top_dsp3);
+		DISABLE_CLK(clk_top_dsp2);
+		DISABLE_CLK(clk_top_dsp1);
+		DISABLE_CLK(clk_top_dsp);
 #else
 		LOG_DBG("%s skip disable soc PLL since HW auto\n", __func__);
 #endif
@@ -474,7 +499,8 @@ static void __apu_pll_init(void)
 		pcw_val = 0;
 		get_pll_pcw(pll_freq_out[pll_idx], &posdiv_val, &pcw_val);
 		LOG_DBG("[%s][%d] freq = %d, div = 0x%x, pcw = 0x%x\n",
-			__func__, __LINE__, pll_freq_out[pll_idx], posdiv_val, pcw_val);
+			__func__, __LINE__,
+			pll_freq_out[pll_idx], posdiv_val, pcw_val);
 
 		/*
 		 * postdiv offset (0x000C), [26:24] RG_PLL_POSDIV
@@ -835,6 +861,7 @@ static int __apu_are_init(struct device *dev)
 }
 #endif /* APU_POWER_INIT */
 
+#if APUPW_DUMP_FROM_APMCU
 static void are_dump_entry(int are_hw)
 {
 	int are_id, are_entry_max_id;
@@ -900,12 +927,14 @@ static void are_dump_entry(int are_hw)
 				pr_info(
 					"APU_ARE_DUMP %d-%03d 0x%08x 0x%08x 0x%08lx 0x%08x %d\n",
 					are_hw, entry, reg, data,
-					(uintptr_t)target_addr, target_data, err_flag);
+					(uintptr_t)target_addr,
+					target_data, err_flag);
 			}
 		}
 
 	}
 }
+#endif
 
 #if APMCU_REQ_RPC_SLEEP
 /* backup solution : send request for RPC sleep from APMCU */
@@ -988,6 +1017,7 @@ static int __apu_wake_rpc_rcx(struct device *dev)
 	apusys_pwr_smc_call(dev,
 			MTK_APUSYS_KERNEL_OP_APUSYS_PWR_RCX,
 			SMC_RCX_PWR_WAKEUP_RPC);
+
 	ret = readl_relaxed_poll_timeout_atomic(
 			(apupw.regs[apu_rpc] + APU_RPC_INTF_PWR_RDY),
 			val, (val & 0x1UL), 50, 10000);
@@ -1014,6 +1044,7 @@ static int __apu_wake_rpc_rcx(struct device *dev)
 	apusys_pwr_smc_call(dev,
 			MTK_APUSYS_KERNEL_OP_APUSYS_PWR_RCX,
 			SMC_RCX_PWR_CG_EN);
+
 out:
 	return ret;
 }
@@ -1029,7 +1060,8 @@ static int __apu_wake_rpc_acx(struct device *dev, enum t_acx_id acx_id)
 		rpc_lite_base = apu_acx0_rpc_lite;
 		acx_base = apu_acx0;
 	} else {
-		dev_info(dev, "[%s] acx_id(acx_id) shouble be ACX0\n", __func__);
+		dev_info(dev, "[%s] acx_id(acx_id) shouble be ACX0\n",
+				__func__);
 		goto out;
 	}
 
@@ -1122,7 +1154,8 @@ static int __apu_pwr_ctl_acx_engines(struct device *dev,
 			apupw.regs[rpc_lite_base] + APU_RPC_SW_FIFO_WE);
 	ret = readl_relaxed_poll_timeout_atomic(
 			(apupw.regs[rpc_lite_base] + APU_RPC_INTF_PWR_RDY),
-			val, (val & dev_mtcmos_chk) == dev_mtcmos_chk, 50, 200000);
+			val, (val & dev_mtcmos_chk) == dev_mtcmos_chk,
+			50, 200000);
 	if (ret) {
 		pr_info("%s config acx%d_rpc 0x%x fail, ret %d\n",
 				__func__, acx_id, dev_mtcmos_ctl, ret);
@@ -1178,6 +1211,62 @@ out:
 #endif /* !APU_PWR_SOC_PATH */
 #endif /* APU_POWER_BRING_UP */
 
+static int __apu_xpu2apusys_d4_slv_en(int en)
+{
+	void __iomem *addr = 0;
+	uint32_t val = 0;
+
+	switch (en) {
+	case 0:
+		pr_info("[%s] xpu2apusys d4 slv dis\n", __func__);
+
+		addr = apupw.regs[bcrm_fmem_pdn] + INFRA_FMEM_BUS_u_SI21_CTRL_0;
+		val = apu_readl(addr);
+		apu_writel((val | (0x1 << 12)), addr);
+
+		addr = apupw.regs[bcrm_fmem_pdn] + INFRA_FMEM_BUS_u_SI22_CTRL_0;
+		val = apu_readl(addr);
+		apu_writel((val | (0x1 << 13)), addr);
+
+		addr = apupw.regs[bcrm_fmem_pdn] + INFRA_FMEM_BUS_u_SI11_CTRL_0;
+		val = apu_readl(addr);
+		apu_writel((val | (0x1 << 11)), addr);
+
+		addr = apupw.regs[bcrm_fmem_pdn]
+				+ INFRA_FMEM_M6M7_BUS_u_SI24_CTRL_0;
+		val = apu_readl(addr);
+		apu_writel((val | (0x1 << 15)), addr);
+
+		break;
+	case 1:
+		pr_info("[%s] xpu2apusys d4 slv en\n", __func__);
+
+		addr = apupw.regs[bcrm_fmem_pdn] + INFRA_FMEM_BUS_u_SI21_CTRL_0;
+		val = apu_readl(addr);
+		apu_writel((val & ~(0x1 << 12)), addr);
+
+		addr = apupw.regs[bcrm_fmem_pdn] + INFRA_FMEM_BUS_u_SI22_CTRL_0;
+		val = apu_readl(addr);
+		apu_writel((val & ~(0x1 << 13)), addr);
+
+		addr = apupw.regs[bcrm_fmem_pdn] + INFRA_FMEM_BUS_u_SI11_CTRL_0;
+		val = apu_readl(addr);
+		apu_writel((val & ~(0x1 << 11)), addr);
+
+		addr = apupw.regs[bcrm_fmem_pdn]
+				+ INFRA_FMEM_M6M7_BUS_u_SI24_CTRL_0;
+		val = apu_readl(addr);
+		apu_writel((val & ~(0x1 << 15)), addr);
+
+		break;
+	default:
+		pr_info("%s invalid op: %d\n", __func__, en);
+		break;
+	}
+
+	return 0;
+}
+
 static int mt8188_apu_top_on(struct device *dev)
 {
 	int ret = 0;
@@ -1194,6 +1283,8 @@ static int mt8188_apu_top_on(struct device *dev)
 		apupw_aee_warn("APUSYS_POWER", "APUSYS_POWER_WAKEUP_FAIL");
 		return -1;
 	}
+
+	__apu_xpu2apusys_d4_slv_en(0);
 
 	mt8188_apu_devfreq_cooling_start();
 
@@ -1226,7 +1317,11 @@ static int mt8188_apu_top_off(struct device *dev)
 	if (pwr_data->plat_apu_thermal_timer_func)
 		del_timer_sync(&apu_thermal_timer);
 #endif
-	mt8188_apu_devfreq_cooling_stop();
+
+	/* john TODO: temp mark, need to modify common part */
+	// mt8188_apu_devfreq_cooling_stop();
+
+	__apu_xpu2apusys_d4_slv_en(1);
 
 #if APMCU_REQ_RPC_SLEEP
 	/* backup solution : send request for RPC sleep from APMCU */
@@ -1439,27 +1534,27 @@ static int mt8188_apu_top_pb(struct platform_device *pdev)
 	}
 
 #if APU_POWER_INIT
-	ENABLE_CLK(clk_top_dsp_sel);
-	ENABLE_CLK(clk_top_dsp1_sel);
-	ENABLE_CLK(clk_top_dsp2_sel);
-	ENABLE_CLK(clk_top_dsp3_sel);
-	ENABLE_CLK(clk_top_dsp4_sel);
-	ENABLE_CLK(clk_top_dsp5_sel);
-	ENABLE_CLK(clk_top_dsp6_sel);
-	ENABLE_CLK(clk_top_dsp7_sel);
+	ENABLE_CLK(clk_top_dsp);
+	ENABLE_CLK(clk_top_dsp1);
+	ENABLE_CLK(clk_top_dsp2);
+	ENABLE_CLK(clk_top_dsp3);
+	ENABLE_CLK(clk_top_dsp4);
+	ENABLE_CLK(clk_top_dsp5);
+	ENABLE_CLK(clk_top_dsp6);
+	ENABLE_CLK(clk_top_dsp7);
 
 	/* before apu power init, ensure soc regulator/clk is ready */
 	init_hw_setting(&pdev->dev);
 
 #if !APU_POWER_BRING_UP
-	DISABLE_CLK(clk_top_dsp7_sel);
-	DISABLE_CLK(clk_top_dsp6_sel);
-	DISABLE_CLK(clk_top_dsp5_sel);
-	DISABLE_CLK(clk_top_dsp4_sel);
-	DISABLE_CLK(clk_top_dsp3_sel);
-	DISABLE_CLK(clk_top_dsp2_sel);
-	DISABLE_CLK(clk_top_dsp1_sel);
-	DISABLE_CLK(clk_top_dsp_sel);
+	DISABLE_CLK(clk_top_dsp7);
+	DISABLE_CLK(clk_top_dsp6);
+	DISABLE_CLK(clk_top_dsp5);
+	DISABLE_CLK(clk_top_dsp4);
+	DISABLE_CLK(clk_top_dsp3);
+	DISABLE_CLK(clk_top_dsp2);
+	DISABLE_CLK(clk_top_dsp1);
+	DISABLE_CLK(clk_top_dsp);
 #endif /* !APU_POWER_BRING_UP */
 #endif /* APU_POWER_INIT */
 
@@ -1488,6 +1583,7 @@ static int mt8188_apu_top_pb(struct platform_device *pdev)
 	init_plat_chip_data(pdev);
 
 	mt8188_apu_devfreq_cooling_init(pdev, apupw.regs[apu_md32_mbox]);
+
 #if APU_POWER_BRING_UP
 #if !APU_PWR_SOC_PATH
 	/* power bring up shall use soc PLL */
@@ -1517,8 +1613,6 @@ static int mt8188_apu_top_pb(struct platform_device *pdev)
 		__apu_pwr_ctl_acx_engines(&pdev->dev, ACX0, DLA0, 1);
 		break;
 	}
-#else
-	pm_runtime_get_sync(&pdev->dev);
 #endif /* APU_POWER_BRING_UP */
 
 	aputop_dump_pwr_res();
@@ -1534,8 +1628,6 @@ static int mt8188_apu_top_rm(struct platform_device *pdev)
 
 	LOG_DBG("%s +\n", __func__);
 
-	if (fpga_type != 0)
-		pm_runtime_put_sync(&pdev->dev);
 #if THERMAL_TEMP_UPDATE
 	destroy_apu_thermal();
 #endif
@@ -1548,6 +1640,27 @@ static int mt8188_apu_top_rm(struct platform_device *pdev)
 	opp_tbl = NULL;
 
 	LOG_DBG("%s -\n", __func__);
+
+	return 0;
+}
+
+static int mt8188_apu_top_suspend(struct device *dev)
+{
+	g_opp_cfg_acx0 = apu_readl(
+			apupw.regs[apu_md32_mbox] + ACX0_LIMIT_OPP_REG);
+
+	LOG_DBG("%s backup data 0x%08x\n", __func__,
+			g_opp_cfg_acx0);
+	return 0;
+}
+
+static int mt8188_apu_top_resume(struct device *dev)
+{
+	LOG_DBG("%s restore data 0x%08x\n", __func__,
+			g_opp_cfg_acx0);
+
+	apu_writel(g_opp_cfg_acx0,
+			apupw.regs[apu_md32_mbox] + ACX0_LIMIT_OPP_REG);
 
 	return 0;
 }
@@ -1572,14 +1685,14 @@ static void aputop_dump_pwr_res(void)
 
 	pr_info("%s d:%ld d1:%ld d2:%ld d3:%ld d4:%ld d5:%ld d6:%ld d7:%ld\n",
 			__func__,
-			clk_get_rate(clk_top_dsp_sel),
-			clk_get_rate(clk_top_dsp1_sel),
-			clk_get_rate(clk_top_dsp2_sel),
-			clk_get_rate(clk_top_dsp3_sel),
-			clk_get_rate(clk_top_dsp4_sel),
-			clk_get_rate(clk_top_dsp5_sel),
-			clk_get_rate(clk_top_dsp6_sel),
-			clk_get_rate(clk_top_dsp7_sel));
+			clk_get_rate(clk_top_dsp),
+			clk_get_rate(clk_top_dsp1),
+			clk_get_rate(clk_top_dsp2),
+			clk_get_rate(clk_top_dsp3),
+			clk_get_rate(clk_top_dsp4),
+			clk_get_rate(clk_top_dsp5),
+			clk_get_rate(clk_top_dsp6),
+			clk_get_rate(clk_top_dsp7));
 
 	/* mt8188_apu_dump_rpc_status(RCX, NULL); */
 
@@ -1592,6 +1705,7 @@ static int mt8188_apu_top_func(struct platform_device *pdev,
 		enum aputop_func_id func_id, struct aputop_func_param *aputop)
 {
 	char buf[32];
+	int ret = 0;
 
 	pr_info("%s func_id : %d\n", __func__, aputop->func_id);
 
@@ -1612,19 +1726,24 @@ static int mt8188_apu_top_func(struct platform_device *pdev,
 		aputop_dump_pwr_res();
 
 		memset(buf, 0, sizeof(buf));
-		snprintf(buf, 32, "phys 0x%08x: ",
+		ret = snprintf(buf, 32, "phys 0x%08x: ",
 				(u32)(apupw.phy_addr[apu_rpc]));
+		if (ret <= 0)
+			pr_info("%s: snprintf fail\n", __func__);
 		print_hex_dump(KERN_ERR, buf, DUMP_PREFIX_OFFSET, 16, 4,
 				apupw.regs[apu_rpc], 0x300, true);
 
 		memset(buf, 0, sizeof(buf));
-		snprintf(buf, 32, "phys 0x%08x: ",
+		ret = snprintf(buf, 32, "phys 0x%08x: ",
 				(u32)(apupw.phy_addr[apu_pcu]));
+		if (ret <= 0)
+			pr_info("%s: snprintf fail\n", __func__);
 		print_hex_dump(KERN_ERR, buf, DUMP_PREFIX_OFFSET, 16, 4,
 				apupw.regs[apu_pcu], 0x100, true);
 
 		apusys_pwr_smc_call(&pdev->dev,
 				MTK_APUSYS_KERNEL_OP_APUSYS_PWR_DUMP, 0);
+
 #if DEBUG_DUMP_REG
 		aputop_dump_all_reg();
 #endif
@@ -1636,11 +1755,15 @@ static int mt8188_apu_top_func(struct platform_device *pdev,
 		test_ipi_wakeup_apu();
 		break;
 	case APUTOP_FUNC_ARE_DUMP1:
+#if APUPW_DUMP_FROM_APMCU
 		are_dump_entry(0);
 		are_dump_entry(1);
+#endif
 		break;
 	case APUTOP_FUNC_ARE_DUMP2:
+#if APUPW_DUMP_FROM_APMCU
 		are_dump_entry(2);
+#endif
 		break;
 	default:
 		pr_info("%s invalid func_id : %d\n", __func__, aputop->func_id);
@@ -1656,13 +1779,14 @@ const struct apupwr_plat_data mt8188_plat_data = {
 	.plat_aputop_off       = mt8188_apu_top_off,
 	.plat_aputop_pb        = mt8188_apu_top_pb,
 	.plat_aputop_rm        = mt8188_apu_top_rm,
+	.plat_aputop_suspend   = mt8188_apu_top_suspend,
+	.plat_aputop_resume    = mt8188_apu_top_resume,
 	.plat_aputop_func      = mt8188_apu_top_func,
 #if IS_ENABLED(CONFIG_DEBUG_FS)
 	.plat_aputop_dbg_open  = mt8188_apu_top_dbg_open,
 	.plat_aputop_dbg_write = mt8188_apu_top_dbg_write,
 #endif
-	.plat_tx_rpmsg_callback   = mt8188_apu_top_tx_rpmsg_cb,
-	.plat_rx_rpmsg_callback   = mt8188_apu_top_rx_rpmsg_cb,
+	.plat_rpmsg_callback   = mt8188_apu_top_rpmsg_cb,
 
 	.plat_apu_devfreq_cooling_register      =
 				mt8188_apu_devfreq_cooling_register,

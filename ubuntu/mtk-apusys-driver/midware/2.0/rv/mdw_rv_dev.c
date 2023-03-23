@@ -15,21 +15,6 @@
 
 #define MDW_CMD_IPI_TIMEOUT (10*1000) //ms
 
-static inline void mdw_rv_dev_trace(struct mdw_rv_cmd *rc, bool done)
-{
-	trace_mdw_rv_cmd(done,
-		rc->c->pid,
-		rc->c->tgid,
-		rc->c->uid,
-		rc->c->kid,
-		rc->c->rvid,
-		rc->c->num_subcmds,
-		rc->c->num_cmdbufs,
-		rc->c->priority,
-		rc->c->softlimit,
-		rc->c->power_dtime,
-		rc->c->einfos->c.sc_rets);
-}
 
 static void mdw_rv_dev_msg_insert(struct mdw_rv_dev *mrdev,
 	struct mdw_ipi_msg_sync *s_msg)
@@ -46,25 +31,21 @@ static void mdw_rv_dev_msg_remove(struct mdw_rv_dev *mrdev,
 static struct mdw_ipi_msg_sync *mdw_rv_dev_msg_find(struct mdw_rv_dev *mrdev,
 	uint64_t sync_id)
 {
-	struct mdw_ipi_msg_sync *s_msg = NULL;
-	struct list_head *tmp = NULL, *list_ptr = NULL;
+	struct mdw_ipi_msg_sync *s_msg = NULL, *tmp = NULL;
 
 	mdw_drv_debug("get msg(0x%llx)\n", sync_id);
 
-	list_for_each_safe(list_ptr, tmp, &mrdev->s_list) {
-		s_msg = list_entry(list_ptr, struct mdw_ipi_msg_sync, ud_item);
+	list_for_each_entry_safe(s_msg, tmp, &mrdev->s_list, ud_item) {
 		if (s_msg->msg.sync_id == sync_id)
-			break;
-		s_msg = NULL;
+			return s_msg;
 	}
-
-	return s_msg;
+	return NULL;
 }
 
 static int mdw_rv_dev_send_msg(struct mdw_rv_dev *mrdev, struct mdw_ipi_msg_sync *s_msg)
 {
 	int ret = 0;
-	uint32_t cnt = 50, i = 0;
+	uint32_t cnt = 100, i = 0;
 
 	s_msg->msg.sync_id = (uint64_t)s_msg;
 	mdw_drv_debug("sync id(0x%llx) (0x%llx/%u)\n",
@@ -77,18 +58,22 @@ static int mdw_rv_dev_send_msg(struct mdw_rv_dev *mrdev, struct mdw_ipi_msg_sync
 
 	/* send & retry */
 	for (i = 0; i < cnt; i++) {
-		mdw_trace_begin("%s ipi", __func__);
+		mdw_trace_begin("apumdw:send_ipi|msg:0x%llx", s_msg->msg.sync_id);
 		ret = rpmsg_send(mrdev->ept, &s_msg->msg, sizeof(s_msg->msg));
-		mdw_trace_end("%s ipi", __func__);
+		mdw_trace_end();
 
 		/* send busy, retry */
-		if (ret == -EBUSY) {
-			if (!(i % 5))
+		if (ret == -EBUSY || ret == -EAGAIN) {
+			if (!(i % 10))
 				mdw_drv_info("re-send ipi(%u/%u)\n", i, cnt);
-			msleep(20);
+			if (ret == -EAGAIN && i < 10)
+				usleep_range(200, 500);
+			else if (ret == -EAGAIN && i < 50)
+				usleep_range(1000, 2000);
+			else
+				usleep_range(10000, 11000);
 			continue;
 		}
-
 		break;
 	}
 
@@ -177,6 +162,7 @@ static void mdw_rv_ipi_cmplt_cmd(struct mdw_ipi_msg_sync *s_msg)
 	struct mdw_rv_cmd *rc =
 		container_of(s_msg, struct mdw_rv_cmd, s_msg);
 	struct mdw_cmd *c = rc->c;
+	struct mdw_rv_dev *mrdev = (struct mdw_rv_dev *)c->mpriv->mdev->dev_specific;
 
 	switch (s_msg->msg.ret) {
 	case MDW_IPI_MSG_STATUS_BUSY:
@@ -199,9 +185,8 @@ static void mdw_rv_ipi_cmplt_cmd(struct mdw_ipi_msg_sync *s_msg)
 		mdw_drv_err("cmd(%p/0x%llx) ret(%d/0x%llx) time(%llu) pid(%d/%d)\n",
 			c->mpriv, c->kid, ret, c->einfos->c.sc_rets,
 			c->einfos->c.total_us, c->pid, c->tgid);
-
-	mdw_rv_dev_trace(rc, true);
-	mdw_rv_cmd_done(rc, ret);
+	mdw_cmd_trace(rc->c, MDW_CMD_DONE);
+	mrdev->cmd_funcs->done(rc, ret);
 }
 
 static int mdw_rv_dev_send_cmd(struct mdw_rv_dev *mrdev, struct mdw_rv_cmd *rc)
@@ -209,7 +194,7 @@ static int mdw_rv_dev_send_cmd(struct mdw_rv_dev *mrdev, struct mdw_rv_cmd *rc)
 	int ret = 0;
 
 	mdw_drv_debug("pid(%d) run cmd(0x%llx/0x%llx) dva(0x%llx) size(%u)\n",
-		current->pid, rc->c->kid, rc->c->rvid,
+		task_pid_nr(current), rc->c->kid, rc->c->rvid,
 		rc->cb->device_va, rc->cb->size);
 
 	rc->s_msg.msg.id = MDW_IPI_APU_CMD;
@@ -217,13 +202,13 @@ static int mdw_rv_dev_send_cmd(struct mdw_rv_dev *mrdev, struct mdw_rv_cmd *rc)
 	rc->s_msg.msg.c.size = rc->cb->size;
 	rc->s_msg.msg.c.start_ts_ns = rc->start_ts_ns;
 	rc->s_msg.complete = mdw_rv_ipi_cmplt_cmd;
-	mdw_rv_dev_trace(rc, false);
+	mdw_cmd_trace(rc->c, MDW_CMD_START);
 
 	/* send */
 	ret = mdw_rv_dev_send_msg(mrdev, &rc->s_msg);
 	if (ret) {
-		mdw_rv_dev_trace(rc, true);
-		mdw_drv_err("pid(%d) send msg fail\n", current->pid);
+		mdw_cmd_trace(rc->c, MDW_CMD_DONE);
+		mdw_drv_err("pid(%d) send msg fail\n", task_pid_nr(current));
 	}
 
 	return ret;
@@ -236,9 +221,9 @@ int mdw_rv_dev_run_cmd(struct mdw_fpriv *mpriv, struct mdw_cmd *c)
 	int ret = 0;
 	uint64_t kid = c->kid, uid = c->uid;
 
-	mdw_trace_begin("%s|cmd(0x%llx/0x%llx)", __func__, kid, uid);
+	mdw_trace_begin("apumdw:dev_run|cmd:0x%llx/0x%llx", uid, kid);
 
-	rc = mdw_rv_cmd_create(mpriv, c);
+	rc = mrdev->cmd_funcs->create(mpriv, c);
 	if (!rc) {
 		ret = -EINVAL;
 		goto out;
@@ -247,12 +232,10 @@ int mdw_rv_dev_run_cmd(struct mdw_fpriv *mpriv, struct mdw_cmd *c)
 	mdw_drv_debug("run rc(0%llx)\n", (uint64_t)rc);
 	mutex_lock(&mrdev->mtx);
 	ret = mdw_rv_dev_send_cmd(mrdev, rc);
-	if (ret)
-		mdw_rv_cmd_delete(rc);
 	mutex_unlock(&mrdev->mtx);
 
 out:
-	mdw_trace_end("%s|cmd(0x%llx/0x%llx)", __func__, kid, uid);
+	mdw_trace_end();
 	return ret;
 }
 
@@ -268,7 +251,7 @@ static int mdw_rv_callback(struct rpmsg_device *rpdev, void *data,
 	mutex_lock(&mrdev->msg_mtx);
 	s_msg = mdw_rv_dev_msg_find(mrdev, msg->sync_id);
 	if (!s_msg) {
-		mdw_exception("get msg fail(0x%llx)\n", msg->sync_id);
+		mdw_exception("get ipi msg fail(0x%llx)", msg->sync_id);
 	} else {
 		memcpy(&s_msg->msg, msg, sizeof(*msg));
 		list_del(&s_msg->ud_item);
@@ -293,6 +276,7 @@ int mdw_rv_dev_set_param(struct mdw_rv_dev *mrdev, enum mdw_info_type type, uint
 		ret = -EINVAL;
 		goto out;
 	}
+	memset(&msg, 0, sizeof(msg));
 	msg.id = MDW_IPI_PARAM;
 	msg.p.type = type;
 	msg.p.dir = MDW_INFO_SET;
@@ -328,6 +312,8 @@ int mdw_rv_dev_get_param(struct mdw_rv_dev *mrdev, enum mdw_info_type type, uint
 		break;
 	case MDW_INFO_MIN_DTIME:
 	case MDW_INFO_MIN_ETIME:
+	case MDW_INFO_RESERV_TIME_REMAIN:
+		memset(&msg, 0, sizeof(msg));
 		msg.id = MDW_IPI_PARAM;
 		msg.p.type = type;
 		msg.p.dir = MDW_INFO_GET;
@@ -369,7 +355,7 @@ static int mdw_rv_dev_handshake(struct mdw_rv_dev *mrdev)
 	memcpy(mrdev->dev_mask, &msg.h.basic.dev_bmp, sizeof(mrdev->dev_mask));
 	memcpy(mrdev->mem_mask, &msg.h.basic.mem_bmp, sizeof(mrdev->mem_mask));
 	mrdev->rv_version = msg.h.basic.version;
-	mdw_drv_warn("apusys: rv infos(%u)(0x%lx/0x%llx)(0x%lx/0x%llx)\n",
+	mdw_drv_warn("apusys: rv infos(%u)(0x%x/0x%llx)(0x%x/0x%llx)\n",
 		mrdev->rv_version, mrdev->dev_mask[0],
 		msg.h.basic.dev_bmp, mrdev->mem_mask[0], msg.h.basic.mem_bmp);
 
@@ -448,6 +434,11 @@ static void mdw_rv_dev_init_func(struct work_struct *wk)
 		return;
 	}
 
+	if (mrdev->rv_version < 2)
+		mrdev->cmd_funcs = &mdw_rv_cmd_func_v2;
+	else
+		mrdev->cmd_funcs = &mdw_rv_cmd_func_v3;
+
 	memcpy(mdev->dev_mask, mrdev->dev_mask, sizeof(mrdev->dev_mask));
 	mdev->inited = true;
 	mdw_drv_info("late init done\n");
@@ -486,7 +477,6 @@ int mdw_rv_dev_init(struct mdw_device *mdev)
 	}
 
 	/* Allocate stat buffer */
-
 	dma_set_coherent_mask(dev, DMA_BIT_MASK(32));
 	mrdev->stat = dma_alloc_coherent(dev, sizeof(struct mdw_stat),
 			&mrdev->stat_iova, GFP_KERNEL);

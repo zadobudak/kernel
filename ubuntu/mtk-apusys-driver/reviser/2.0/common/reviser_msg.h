@@ -50,7 +50,7 @@ struct reviser_msg {
 	uint32_t ack;
 	uint32_t sn;
 	uint32_t data[12];
-} __attribute__((__packed__));
+} __packed;
 
 
 #endif

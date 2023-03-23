@@ -46,7 +46,6 @@ static int mdla_pwr_dummy_off(u32 core_id, int suspend, bool force)
 	return 0;
 }
 static void mdla_pwr_dummy_hw_reset(u32 core_id, const char *str) {}
-static void mdla_pwr_dummy_sw_reset(u32 core_id) {}
 static void mdla_pwr_dummy_opp(u32 a0, int a1) {}
 static void mdla_pwr_dummy_lock(u32 a0) {}
 static void mdla_pwr_dummy_ops(u32 a0) {}
@@ -60,22 +59,13 @@ static struct mdla_pwr_ops mdla_power = {
 	.set_opp_by_boost   = mdla_pwr_dummy_opp,
 	.switch_off_on      = mdla_pwr_dummy_ops,
 	.hw_reset           = mdla_pwr_dummy_hw_reset,
-	.sw_reset           = mdla_pwr_dummy_sw_reset,
 	.lock               = mdla_pwr_dummy_lock,
 	.unlock             = mdla_pwr_dummy_lock,
 	.wake_lock          = mdla_pwr_dummy_lock,
 	.wake_unlock        = mdla_pwr_dummy_lock,
 };
 
-#ifdef IS_KERNEL_4_14
-static void mdla_pwr_timeup(unsigned long data)
-{
-	struct mdla_pwr_ctrl *pwr_ctrl;
 
-	pwr_ctrl = mdla_get_device(data)->power;
-	schedule_work(&pwr_ctrl->power_off_work);
-}
-#else
 static void mdla_pwr_timeup(struct timer_list *timer)
 {
 	struct mdla_pwr_ctrl *pwr_ctrl;
@@ -83,7 +73,7 @@ static void mdla_pwr_timeup(struct timer_list *timer)
 	pwr_ctrl = container_of(timer, struct mdla_pwr_ctrl, power_off_timer);
 	schedule_work(&pwr_ctrl->power_off_work);
 }
-#endif
+
 static void mdla_pwr_off(struct work_struct *work)
 {
 	struct mdla_pwr_ctrl *pwr_ctrl;
@@ -282,12 +272,6 @@ void mdla_pwr_reset_setup(void (*hw_reset)(u32 core_id, const char *str))
 		mdla_power.hw_reset = hw_reset;
 }
 
-void mdla_pwr_sw_reset_setup(void (*sw_reset)(u32 core_id))
-{
-	if (sw_reset)
-		mdla_power.sw_reset = sw_reset;
-}
-
 int mdla_pwr_device_register(struct platform_device *pdev,
 			int (*on)(u32 core_id, bool force),
 			int (*off)(u32 core_id, int suspend, bool force))
@@ -338,23 +322,18 @@ int mdla_pwr_device_register(struct platform_device *pdev,
 
 		pwr_ctrl->mdla_id = i;
 		mutex_init(&pwr_ctrl->lock);
-#ifdef IS_KERNEL_4_14
-		pwr_ctrl->power_off_timer.data = i;
-		pwr_ctrl->power_off_timer.function = mdla_pwr_timeup;
-		init_timer(&pwr_ctrl->power_off_timer);
-#else
 		timer_setup(&pwr_ctrl->power_off_timer, mdla_pwr_timeup, 0);
-#endif
 
 		pwr_ctrl->power_off_cb_func = mdla_pwr_off;
 		INIT_WORK(&pwr_ctrl->power_off_work,
 				pwr_ctrl->power_off_cb_func);
 
-		if (snprintf(ws_str, sizeof(ws_str), "mdla_%d", i) > 0)
+		if (snprintf(ws_str, sizeof(ws_str), "mdla_%d", i) > 0) {
 			pwr_ctrl->wakeup = wakeup_source_register(NULL, ws_str);
 
-		if (!pwr_ctrl->wakeup)
-			mdla_err("mdla%d wakelock register fail!\n", i);
+			if (!pwr_ctrl->wakeup)
+				mdla_err("mdla%d wakelock register fail!\n", i);
+		}
 
 		mdla_device = mdla_get_device(i);
 		mdla_device->power          = pwr_ctrl;

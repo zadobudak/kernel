@@ -27,14 +27,11 @@
 #include <linux/proc_fs.h>
 #include <linux/spinlock.h>
 #include <linux/sched/signal.h>
-#ifdef APU_AEE_ENABLE
-#if IS_ENABLED(CONFIG_MTK_AEE_FEATURE)
+#if IS_ENABLED(CONFIG_MTK_AEE_IPANIC)
 #include <mt-plat/mrdump.h>
-#endif
 #endif
 
 #include "apusys_core.h"
-#include "apu_excep.h"
 #include "sw_logger.h"
 
 #define SW_LOGGER_DEV_NAME "apu_sw_logger"
@@ -214,12 +211,7 @@ int sw_logger_config_init(struct mtk_apu *apu)
 			LOGGER_ERR("%s: sw_logger_buf_alloc fail\n", __func__);
 			return ret;
 		}
-#if APU_AEE_ENABLE
-		(void)mrdump_mini_add_extra_file(
-				(unsigned long)sw_log_buf,
-				__pa_nodebug(sw_log_buf),
-				APU_LOG_SIZE, "APUSYS_RV_SW_LOG");
-#endif
+		/* TODO, mrdump */
 	}
 
 	spin_lock_irqsave(&sw_logger_spinlock, flags);
@@ -253,7 +245,7 @@ int sw_logger_ipi_init(struct mtk_apu *apu)
 
 	g_apu = apu;
 
-	ret = apu_ipi_register(g_apu, APU_IPI_LOG_LEVEL,
+	ret = apu_ipi_register(g_apu, APU_IPI_LOG_LEVEL, NULL,
 			apu_sw_log_level_ipi_handler, NULL);
 	if (ret)
 		LOGGER_ERR("Fail in apu_sw_log_level_ipi_init\n");
@@ -270,24 +262,25 @@ static ssize_t set_debuglv(struct file *flip,
 						   const char __user *buffer,
 						   size_t count, loff_t *f_pos)
 {
-	char *tmp, *cursor;
+	char tmp[16] = {0};
 	int ret;
 	unsigned int input = 0;
 
-	tmp = kzalloc(count + 1, GFP_KERNEL);
-	if (!tmp)
-		return -ENOMEM;
+	if (count == 0 || count + 1 >= 16)
+		return -EINVAL;
 
 	ret = copy_from_user(tmp, buffer, count);
 	if (ret) {
-		LOGGER_ERR("copy_from_user failed, ret=%d\n", ret);
-		kfree(tmp);
-		return count;
+		LOGGER_ERR("copy_from_user failed (%d)\n", ret);
+		goto out;
 	}
 
 	tmp[count] = '\0';
-	cursor = tmp;
-	ret = kstrtouint(cursor, 0, &input);
+	ret = kstrtouint(tmp, 16, &input);
+	if (ret) {
+		LOGGER_ERR("kstrtouint failed (%d)\n", ret);
+		goto out;
+	}
 
 	LOGGER_INFO("set uP debug lv = 0x%x\n", input);
 
@@ -298,8 +291,7 @@ static ssize_t set_debuglv(struct file *flip,
 
 	if (ret)
 		LOGGER_ERR("Failed for sw_logger log level send.\n");
-
-	kfree(tmp);
+out:
 
 	return count;
 }
@@ -307,9 +299,9 @@ static ssize_t set_debuglv(struct file *flip,
 static const struct proc_ops apusys_debug_fops = {
 	.proc_open = sw_logger_open,
 	.proc_read = show_debuglv,
-	.proc_lseek = seq_lseek,
-	.proc_release = seq_release,
 	.proc_write = set_debuglv,
+	.proc_lseek = seq_lseek,
+	.proc_release = single_release,
 };
 
 static ssize_t show_debugAttr(struct file *filp, char __user *buffer,
@@ -321,7 +313,7 @@ static ssize_t show_debugAttr(struct file *filp, char __user *buffer,
 
 	if (sw_log_buf) {
 		len += scnprintf(buf + len, sizeof(buf) - len,
-						"sw_log_buf = 0x%p\n",
+						"sw_log_buf = 0x%llx\n",
 						sw_log_buf);
 
 		spin_lock_irqsave(&sw_logger_spinlock, flags);
@@ -348,31 +340,31 @@ static ssize_t set_debugAttr(struct file *flip,
 						     const char __user *buffer,
 						     size_t count, loff_t *f_pos)
 {
-	char *tmp, *cursor;
+	char tmp[16] = {0};
 	int ret;
 	unsigned int input = 0;
 
-	tmp = kzalloc(count + 1, GFP_KERNEL);
-	if (!tmp)
-		return -ENOMEM;
+	if (count == 0 || count + 1 >= 16)
+		return -EINVAL;
 
 	ret = copy_from_user(tmp, buffer, count);
 	if (ret) {
-		LOGGER_ERR("copy_from_user failed, ret=%d\n", ret);
-		kfree(tmp);
-		return count;
+		LOGGER_ERR("copy_from_user failed (%d)\n", ret);
+		goto out;
 	}
 
 	tmp[count] = '\0';
-	cursor = tmp;
-	ret = kstrtouint(cursor, 10, &input);
+	ret = kstrtouint(tmp, 10, &input);
+	if (ret) {
+		LOGGER_ERR("kstrtouint failed (%d)\n", ret);
+		goto out;
+	}
 
 	LOGGER_INFO("set debug lv = %d\n", input);
 
 	if (input <= DEBUG_LOG_DEBUG)
 		g_sw_logger_log_lv = input;
-
-	kfree(tmp);
+out:
 
 	return count;
 }
@@ -382,7 +374,7 @@ static const struct proc_ops sw_logger_attr_fops = {
 	.proc_read = show_debugAttr,
 	.proc_write = set_debugAttr,
 	.proc_lseek = seq_lseek,
-	.proc_release = seq_release,
+	.proc_release = single_release,
 };
 
 /**
@@ -411,11 +403,8 @@ static void *seq_start(struct seq_file *s, loff_t *pos)
 	} else {
 		r_ptr = g_log_r_ptr;
 	}
-	/*
-	 * Since we dump full log,
-	 * skip overflow_flg = ioread32(LOG_OV_FLG);
-	 */
-	overflow_flg = 0;
+
+	overflow_flg = ioread32(LOG_OV_FLG);
 	spin_unlock_irqrestore(&sw_logger_spinlock, flags);
 
 	sw_logger_buf_invalidate();
@@ -442,7 +431,7 @@ static void *seq_start(struct seq_file *s, loff_t *pos)
 			pSeqData->is_finished = 0;
 		}
 	}
-	LOGGER_INFO("%s v = 0x%p\n", __func__, pSeqData);
+	LOGGER_INFO("%s v = 0x%x\n", __func__, pSeqData);
 
 	return pSeqData;
 }
@@ -526,7 +515,7 @@ static void *seq_startl(struct seq_file *s, loff_t *pos)
 		return NULL;
 	}
 
-	LOGGER_INFO("%s v = 0x%p\n", __func__, pSeqData_lock);
+	LOGGER_INFO("%s v = 0x%x\n", __func__, pSeqData_lock);
 
 	return pSeqData_lock;
 }
@@ -606,7 +595,7 @@ static void seq_stop(struct seq_file *s, void *v)
 {
 	unsigned long flags;
 
-	LOGGER_INFO("%s v = 0x%p\n", __func__, v);
+	LOGGER_INFO("%s v = 0x%x\n", __func__, v);
 
 	if (pSeqData != NULL) {
 		if (pSeqData->is_finished == 1) {
@@ -621,15 +610,15 @@ static void seq_stop(struct seq_file *s, void *v)
 			if (v != NULL)
 				kfree(v);
 			else {
-				LOGGER_INFO("%s free v FAIL!\n", __func__);
+				LOGGER_INFO(" %s free v FAIL!\n", __func__, v);
 				if (pSeqData != NULL) {
 					LOGGER_INFO(
-						"%s free pSeqData = 0x%p\n",
+						"%s free pSeqData = 0x%x\n",
 						__func__, pSeqData);
 					kfree(pSeqData);
 				} else
 					LOGGER_ERR(
-						"%s free pSeqData = 0x%p FAIL!\n",
+						"%s free pSeqData = 0x%x FAIL!\n",
 						__func__, pSeqData);
 			}
 			pSeqData = NULL;
@@ -642,7 +631,7 @@ static void seq_stop(struct seq_file *s, void *v)
  */
 static void seq_stopl(struct seq_file *s, void *v)
 {
-	LOGGER_INFO("%s v = 0x%p\n", __func__, v);
+	LOGGER_INFO("%s v = 0x%x\n", __func__, v);
 }
 
 /**
@@ -654,21 +643,21 @@ static int seq_show(struct seq_file *s, void *v)
 #ifdef SW_LOGGER_DEBUG
 	unsigned int i;
 #else
-	static unsigned int prevIsBinary = 0;
+	static unsigned int prevIsBinary;
 #endif
 
-	LOGGER_INFO("%s in", __func__);
+	LOGGER_INFO("%s +\n", __func__);
 
 #ifdef SW_LOGGER_DEBUG
 	if ((sw_log_buf[pSData->i] == 0xA5) &&
 		(sw_log_buf[pSData->i+1] == 0xA5)) {
-		seq_printf(s, "dbglog[%d,%d,%d] = ",
+		seq_puts(s, "dbglog[%d,%d,%d] = ",
 			pSData->w_ptr, pSData->r_ptr, pSData->i);
 		for (i = 0; i < LOG_LINE_MAX_LENS; i++)
-			seq_printf(s, "%02X", sw_log_buf + pSData->i + i);
-		seq_printf(s, "\n");
+			seq_puts(s, "%02X", sw_log_buf + pSData->i + i);
+		seq_puts(s, "\n");
 	} else
-		seq_printf(s, "dbglog[%d,%d,%d] = %s",
+		seq_puts(s, "dbglog[%d,%d,%d] = %s",
 			pSData->w_ptr, pSData->r_ptr, pSData->i,
 			(sw_log_buf + pSData->i));
 #else
@@ -678,10 +667,9 @@ static int seq_show(struct seq_file *s, void *v)
 		seq_write(s, sw_log_buf + pSData->i, LOG_LINE_MAX_LENS);
 	} else {
 		if (prevIsBinary)
-			seq_printf(s, "\n");
+			seq_puts(s, "\n");
 		prevIsBinary = 0;
-		seq_printf(s, "%s",
-			sw_log_buf + pSData->i);
+		seq_puts(s, sw_log_buf + pSData->i);
 	}
 #endif
 
@@ -694,7 +682,7 @@ static int seq_showl(struct seq_file *s, void *v)
 #ifdef SW_LOGGER_DEBUG
 	unsigned int i;
 #else
-	static unsigned int prevIsBinary = 0;
+	static unsigned int prevIsBinary;
 #endif
 
 	LOGGER_INFO("%s in: %s", __func__,
@@ -704,13 +692,13 @@ static int seq_showl(struct seq_file *s, void *v)
 	if (pSData->i != pSData->w_ptr) {
 		if ((sw_log_buf[pSData->i] == 0xA5) &&
 			(sw_log_buf[pSData->i+1] == 0xA5)) {
-			seq_printf(s, "dbglog[%d,%d,%d] = ",
+			seq_puts(s, "dbglog[%d,%d,%d] = ",
 				pSData->w_ptr, pSData->r_ptr, pSData->i);
 			for (i = 0; i < LOG_LINE_MAX_LENS; i++)
-				seq_printf(s, "%02X", sw_log_buf + pSData->i + i);
-			seq_printf(s, "\n");
+				seq_puts(s, "%02X", sw_log_buf + pSData->i + i);
+			seq_puts(s, "\n");
 		} else
-			seq_printf(s, "dbglog[%d,%d,%d] = %s",
+			seq_puts(s, "dbglog[%d,%d,%d] = %s",
 				pSData->w_ptr, pSData->r_ptr, pSData->i,
 				(sw_log_buf + pSData->i));
 	}
@@ -722,10 +710,9 @@ static int seq_showl(struct seq_file *s, void *v)
 			seq_write(s, sw_log_buf + pSData->i, LOG_LINE_MAX_LENS);
 		} else {
 			if (prevIsBinary)
-				seq_printf(s, "\n");
+				seq_puts(s, "\n");
 			prevIsBinary = 0;
-			seq_printf(s, "%s",
-				sw_log_buf + pSData->i);
+			seq_puts(s, sw_log_buf + pSData->i);
 		}
 	}
 #endif
@@ -925,7 +912,7 @@ static int sw_logger_create_procfs(struct device *dev)
 	}
 
 	/* create device table info */
-	log_devinfo = proc_create("log", 0444,
+	log_devinfo = proc_create("log", 0440,
 		log_root, &apusys_debug_fops);
 	ret = IS_ERR_OR_NULL(log_devinfo);
 	if (ret) {
@@ -934,7 +921,7 @@ static int sw_logger_create_procfs(struct device *dev)
 		goto out;
 	}
 
-	log_seqlog = proc_create("seq_log", 0444,
+	log_seqlog = proc_create("seq_log", 0440,
 		log_root, &sw_loggerSeqLog_ops);
 	ret = IS_ERR_OR_NULL(log_seqlog);
 	if (ret) {
@@ -943,7 +930,7 @@ static int sw_logger_create_procfs(struct device *dev)
 		goto out;
 	}
 
-	log_seqlogL = proc_create("seq_logl", 0444,
+	log_seqlogL = proc_create("seq_logl", 0440,
 		log_root, &sw_loggerSeqLogL_ops);
 	ret = IS_ERR_OR_NULL(log_seqlogL);
 	if (ret) {
@@ -952,7 +939,7 @@ static int sw_logger_create_procfs(struct device *dev)
 		goto out;
 	}
 
-	log_devattr = proc_create("attr", 0444,
+	log_devattr = proc_create("attr", 0440,
 		log_root, &sw_logger_attr_fops);
 
 	ret = IS_ERR_OR_NULL(log_devattr);
@@ -976,8 +963,9 @@ static int sw_logger_probe(struct platform_device *pdev)
 	struct device *dev = &pdev->dev;
 	int ret = 0;
 
+	dev_info(sw_logger_dev, "%s +", __func__);
+
 	sw_logger_dev = dev;
-	dev_info(sw_logger_dev, "%s in", __func__);
 
 	init_waitqueue_head(&apusys_swlog_wait);
 
@@ -1062,6 +1050,8 @@ static struct platform_driver sw_logger_driver = {
 int sw_logger_init(struct apusys_core_info *info)
 {
 	int ret = 0;
+
+	dev_info(sw_logger_dev, "%s +", __func__);
 
 	allow_signal(SIGKILL);
 

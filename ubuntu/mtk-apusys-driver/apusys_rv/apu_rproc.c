@@ -20,34 +20,36 @@
 #include <linux/sched/clock.h>
 #include <linux/of_device.h>
 #include <linux/pm_runtime.h>
-#include <linux/version.h>
+
+#if IS_ENABLED(CONFIG_MTK_AEE_FEATURE)
+#include <mt-plat/aee.h>
+#endif
 
 #include "apu.h"
 #include "apu_debug.h"
 #include "apu_excep.h"
 #include "apu_config.h"
 #include "apusys_core.h"
-#include "apusys_rv.h"
+#include "apu_regdump.h"
+#include "apu_loadimage.h"
+
 
 struct mtk_apu *g_apu_struct;
 uint32_t g_apu_log;
+#define APU_SEC_FW_IOVA_MT8195 (0x00UL)
 
-#if defined(APUSYS_AIOT) && (LINUX_VERSION_CODE < KERNEL_VERSION(5,15,0))
-static void *apu_da_to_va(struct rproc *rproc, u64 da, size_t len)
-#else
 static void *apu_da_to_va(struct rproc *rproc, u64 da, size_t len, bool *is_iomem)
-#endif
 {
 	void *ptr = NULL;
 	struct mtk_apu *apu = (struct mtk_apu *)rproc->priv;
 
-	if (da >= DRAM_OFFSET && da < DRAM_OFFSET + CODE_BUF_SIZE) {
+	if (da < DRAM_OFFSET + CODE_BUF_SIZE) {
 		ptr = apu->code_buf + (da - DRAM_OFFSET);
-		dev_info(apu->dev, "%s: (DRAM): da = 0x%llx, len = 0x%x\n",
+		dev_info(apu->dev, "%s: (DRAM): da = 0x%llx, len = 0x%lx\n",
 			__func__, da, len);
 	} else if (da >= TCM_OFFSET && da < TCM_OFFSET + TCM_SIZE) {
 		ptr = apu->md32_tcm + (da - TCM_OFFSET);
-		dev_info(apu->dev, "%s: (TCM): da = 0x%llx, len = 0x%x\n",
+		dev_info(apu->dev, "%s: (TCM): da = 0x%llx, len = 0x%lx\n",
 			__func__, da, len);
 	}
 
@@ -83,8 +85,14 @@ static int __apu_run(struct rproc *rproc)
 
 	if (ret == 0) {
 		dev_info(dev, "APU initialization timeout!!\n");
-		ret = -ETIME;
-		apusys_rv_aee_warn("APUSYS_RV", "APUSYS_RV_BOOT_TIMEOUT");
+		/*
+		 * don't return error here ret = -ETIME;
+		 * and use APUSYS_RV_TIMEOUT instead of
+		 * APUSYS_RV_BOOT_TIMEOUT to dump more info *
+		 */
+		apu_regdump();
+		apu->bypass_pwr_off_chk = true;
+		apusys_rv_aee_warn("APUSYS_RV", "APUSYS_RV_TIMEOUT");
 		goto stop;
 	}
 	if (ret == -ERESTARTSYS)
@@ -123,19 +131,6 @@ static int apu_attach(struct rproc *rproc)
 	return __apu_run(rproc);
 }
 
-#if defined(APUSYS_AIOT)
-static void wait_for_firmware_loaded(struct rproc *rproc, struct mtk_apu *apu) {
-	int retry = 50;
-	dev_info(apu->dev, "%s  waiting for firmware loaded\n", __func__);
-	while(rproc->state != RPROC_RUNNING && retry >0) {
-		msleep(10);
-		retry--;
-	}
-	pm_runtime_put_sync(apu->power_dev);
-	dev_info(apu->dev, "%s  firmware loaded done \n", __func__);
-}
-#endif
-
 static int apu_stop(struct rproc *rproc)
 {
 	struct mtk_apu *apu = (struct mtk_apu *)rproc->priv;
@@ -168,8 +163,13 @@ static void apu_dram_boot_remove(struct mtk_apu *apu)
 		return;
 
 	if (apu->platdata->flags & F_PRELOAD_FIRMWARE) {
-		if (domain != NULL)
-			iommu_unmap(domain, apu->platdata->sec_iova, apu->apusys_sec_mem_size);
+		if (domain != NULL) {
+			if (apu->platdata->flags & F_MT8195_PLAT)
+				iommu_unmap(domain, APU_SEC_FW_IOVA_MT8195,
+					apu->apusys_sec_mem_size);
+			else
+				iommu_unmap(domain, APU_SEC_FW_IOVA, apu->apusys_sec_mem_size);
+		}
 	} else if ((apu->platdata->flags & F_BYPASS_IOMMU) == 0)
 		if (domain != NULL)
 			iommu_unmap(domain, iova, CODE_BUF_SIZE);
@@ -203,15 +203,21 @@ static int apu_dram_boot_init(struct mtk_apu *apu)
 
 	if (apu->platdata->flags & F_PRELOAD_FIRMWARE &&
 		(apu->platdata->flags & F_BYPASS_IOMMU) == 0) {
-
 		apu->code_buf = (void *) apu->apu_sec_mem_base +
 			apu->apusys_sec_info->up_code_buf_ofs;
-		apu->code_da = apu->platdata->sec_iova;
-
-		/* Map reserved code buffer to APU_SEC_FW_IOVA */
-		ret = iommu_map(domain, apu->platdata->sec_iova,
-				apu->apusys_sec_mem_start,
-				apu->apusys_sec_mem_size, IOMMU_READ|IOMMU_WRITE);
+		if (apu->platdata->flags & F_MT8195_PLAT) {
+			apu->code_da = APU_SEC_FW_IOVA_MT8195;
+			dev_info(dev, "%s: iommu_map\n", __func__);
+			ret = iommu_map(domain, APU_SEC_FW_IOVA_MT8195,
+					apu->apusys_sec_mem_start,
+					apu->apusys_sec_mem_size, IOMMU_READ|IOMMU_WRITE);
+		} else {
+			apu->code_da = APU_SEC_FW_IOVA;
+			/* Map reserved code buffer to APU_SEC_FW_IOVA */
+			ret = iommu_map(domain, APU_SEC_FW_IOVA,
+					apu->apusys_sec_mem_start,
+					apu->apusys_sec_mem_size, IOMMU_READ|IOMMU_WRITE);
+		}
 		if (ret) {
 			dev_info(dev, "%s: iommu_map fail(%d)\n", __func__, ret);
 			return ret;
@@ -285,7 +291,7 @@ static int apu_probe(struct platform_device *pdev)
 	int ret = 0;
 	uint32_t up_code_buf_sz;
 
-	dev_info(dev, "%s: enter\n", __func__);
+	dev_info(dev, "%s +\n", __func__);
 	data = (struct mtk_apu_platdata *)of_device_get_match_data(dev);
 	if (!data) {
 		dev_info(dev, "%s: of_device_get_match_data fail\n", __func__);
@@ -311,7 +317,7 @@ static int apu_probe(struct platform_device *pdev)
 	 * before boot up.
 	 *
 	 * use below command to run uP:
-	 * echo start > /sys/class/remoteproc/remoteproc1/state
+	 * echo start > /sys/class/remoteproc/remoteproc0/state
 	 */
 	if (data->flags & F_AUTO_BOOT)
 		rproc->auto_boot = true;
@@ -333,11 +339,16 @@ static int apu_probe(struct platform_device *pdev)
 	platform_set_drvdata(pdev, apu);
 
 	if (apu->platdata->flags & F_KERNALLOAD_IMAGE) {
+		ret = hw_ops->power_init(apu);
+		if (ret)
+			goto out_free_rproc;
+
 		ret = platform_load_apusys_rv(apu, pdev);
-			if (ret) {
-				pr_info("%s: platform_load_apusys_rv fail %d\n", __func__, ret);
-				goto out_free_rproc;
-			}
+		if (ret) {
+			pr_info("%s: platform_load_apusys_rv fail %d\n",
+				__func__, ret);
+			goto out_free_rproc;
+		}
 	}
 
 	spin_lock_init(&apu->reg_lock);
@@ -350,7 +361,7 @@ static int apu_probe(struct platform_device *pdev)
 				apusys_sec_mem_node = of_find_compatible_node(NULL, NULL,
 					"mediatek,apu_apusys-rv_secure");
 				if (!apusys_sec_mem_node) {
-					pr_info("DT,mediatek,apu_apusys-rv_secure not found\n");
+					apu_drv_debug("DT,mediatek,apu_apusys-rv_secure not found\n");
 					ret = -EINVAL;
 					goto out_free_rproc;
 				}
@@ -358,32 +369,33 @@ static int apu_probe(struct platform_device *pdev)
 					&(apu->apusys_sec_mem_start));
 				of_property_read_u64_index(apusys_sec_mem_node, "reg", 1,
 					&(apu->apusys_sec_mem_size));
-				pr_debug("%s: start = 0x%llx, size = 0x%llx\n",
+				apu_drv_debug("%s: start = 0x%llx, size = 0x%llx\n",
 					apusys_sec_mem_node->full_name, apu->apusys_sec_mem_start,
 					apu->apusys_sec_mem_size);
 				apu->apu_sec_mem_base = memremap(apu->apusys_sec_mem_start,
 					apu->apusys_sec_mem_size, MEMREMAP_WC);
 			}
-			pr_debug("apu_apusys-rv_secure: start = 0x%llx, size = 0x%llx\n",
-				apu->apusys_sec_mem_start,
-				apu->apusys_sec_mem_size);
-
-			ret = of_property_read_u32(np, "up_code_buf_sz",
+			ret = of_property_read_u32(np, "up-code-buf-sz",
 						   &up_code_buf_sz);
 			if (ret) {
-				dev_info(dev, "parsing up_code_buf_sz error: %d\n", ret);
-				ret = -EINVAL;
-				goto out_free_rproc;
+				/* fall back */
+				ret = of_property_read_u32(np, "up_code_buf_sz",
+							   &up_code_buf_sz);
+				if (ret) {
+					dev_info(dev, "parsing up_code_buf_sz error: %d\n", ret);
+					ret = -EINVAL;
+					goto out_free_rproc;
+				}
 			}
 
 			apu->apusys_sec_info = (struct apusys_secure_info_t *)
 				(apu->apu_sec_mem_base + up_code_buf_sz);
 
-			dev_dbg(dev, "up_fw_ofs = 0x%x, up_fw_sz = 0x%x\n",
+			apu_drv_debug("up_fw_ofs = 0x%x, up_fw_sz = 0x%x\n",
 				apu->apusys_sec_info->up_fw_ofs,
 				apu->apusys_sec_info->up_fw_sz);
 
-			dev_dbg(dev, "up_xfile_ofs = 0x%x, up_xfile_sz = 0x%x\n",
+			apu_drv_debug("up_xfile_ofs = 0x%x, up_xfile_sz = 0x%x\n",
 				apu->apusys_sec_info->up_xfile_ofs,
 				apu->apusys_sec_info->up_xfile_sz);
 		}
@@ -400,14 +412,14 @@ static int apu_probe(struct platform_device *pdev)
 				&(apu->apusys_aee_coredump_mem_start));
 			of_property_read_u64_index(apusys_aee_coredump_mem_node, "reg", 1,
 				&(apu->apusys_aee_coredump_mem_size));
-
+			apu_drv_debug("%s: start = 0x%llx, size = 0x%llx\n",
+				apusys_aee_coredump_mem_node->full_name,
+				apu->apusys_aee_coredump_mem_start,
+				apu->apusys_aee_coredump_mem_size);
 			apu->apu_aee_coredump_mem_base =
 				ioremap_cache(apu->apusys_aee_coredump_mem_start,
 				apu->apusys_aee_coredump_mem_size);
 		}
-		dev_dbg(dev, "apu_apusys-rv_aee-coredump: start = 0x%llx, size = 0x%llx\n",
-			apu->apusys_aee_coredump_mem_start,
-			apu->apusys_aee_coredump_mem_size);
 
 		apu->apusys_aee_coredump_info = (struct apusys_aee_coredump_info_t *)
 			apu->apu_aee_coredump_mem_base;
@@ -424,7 +436,8 @@ static int apu_probe(struct platform_device *pdev)
 	 */
 	pm_runtime_get_sync(&pdev->dev);
 
-	if (data->flags & F_AUTO_BOOT) {
+	if ((data->flags & F_AUTO_BOOT)
+		&& !(data->flags & F_KERNALLOAD_IMAGE)) {
 		ret = hw_ops->power_init(apu);
 		if (ret) {
 			pm_runtime_put_sync(&pdev->dev);
@@ -434,8 +447,6 @@ static int apu_probe(struct platform_device *pdev)
 
 	if (!hw_ops->apu_memmap_init) {
 		pm_runtime_put_sync(&pdev->dev);
-		if (data->flags & F_AUTO_BOOT)
-			pm_runtime_put_sync(apu->power_dev);
 		WARN_ON(1);
 		goto out_free_rproc;
 	}
@@ -478,9 +489,9 @@ static int apu_probe(struct platform_device *pdev)
 	if (ret)
 		goto remove_apu_timesync;
 
-	ret = apu_sysfs_init(pdev);
+	ret = apu_procfs_init(pdev);
 	if (ret)
-		goto remove_apu_sysfs;
+		goto remove_apu_procfs;
 
 	ret = apu_excep_init(pdev, apu);
 	if (ret < 0)
@@ -495,6 +506,10 @@ static int apu_probe(struct platform_device *pdev)
 		goto remove_apu_excep;
 	}
 
+	/* to avoid running state being changed through rproc sysfs */
+	if ((data->flags & F_PRELOAD_FIRMWARE) && (data->flags & F_AUTO_BOOT))
+		rproc->state = RPROC_DETACHED;
+
 	if (hw_ops->init) {
 		ret = hw_ops->init(apu);
 		if (ret)
@@ -502,24 +517,18 @@ static int apu_probe(struct platform_device *pdev)
 	}
 
 	pm_runtime_put_sync(&pdev->dev);
-	#if defined(APUSYS_AIOT)
-		if (data->flags & F_AUTO_BOOT)
-			wait_for_firmware_loaded(rproc,apu);
-	#else
-		if (data->flags & F_AUTO_BOOT)
-			pm_runtime_put_sync(apu->power_dev);
-	#endif
 
 	return 0;
 
 del_rproc:
 	rproc_del(rproc);
 
+
 remove_apu_excep:
 	apu_excep_remove(pdev, apu);
 
-remove_apu_sysfs:
-	apu_sysfs_remove(pdev);
+remove_apu_procfs:
+	apu_procfs_remove(pdev);
 
 remove_apu_timesync:
 	apu_timesync_remove(apu);
@@ -547,8 +556,6 @@ remove_apu_mem:
 
 remove_apu_memmap:
 	pm_runtime_put_sync(&pdev->dev);
-	if (data->flags & F_AUTO_BOOT)
-		pm_runtime_put_sync(apu->power_dev);
 	if (!hw_ops->apu_memmap_remove) {
 		WARN_ON(1);
 		return -EINVAL;
@@ -574,7 +581,7 @@ static int apu_remove(struct platform_device *pdev)
 	apu_deepidle_exit(apu);
 
 	apu_excep_remove(pdev, apu);
-	apu_sysfs_remove(pdev);
+	apu_procfs_remove(pdev);
 	apu_timesync_remove(apu);
 	apu_debug_remove(apu);
 	apu_ipi_remove(apu);
@@ -592,13 +599,6 @@ static int apu_remove(struct platform_device *pdev)
 
 	return 0;
 }
-
-#ifndef MT8188_APUSYS_RV_PLAT_DATA
-const struct mtk_apu_platdata mt8188_platdata;
-#endif
-#ifndef MT8195_APUSYS_RV_PLAT_DATA
-const struct mtk_apu_platdata mt8195_platdata;
-#endif
 
 static const struct of_device_id mtk_apu_of_match[] = {
 	{ .compatible = "mediatek,mt8188-apusys_rv", .data = &mt8188_platdata},

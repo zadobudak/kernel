@@ -9,15 +9,18 @@
 
 extern int g_apupw_drv_ver;
 
-/* for init/exit apusys power 2.0 */
+/* for init/exit apusys power 2.5 */
 int apu_power_init(void);
 void apu_power_exit(void);
-
+int apupw_dbg_init(struct apusys_core_info *info);
+void apupw_dbg_exit(void);
 
 /* for init/exit apusys power 3.0 */
 int apu_top_3_init(void);
 void apu_top_3_exit(void);
 int aputop_dbg_init(struct apusys_core_info *info);
 void aputop_dbg_exit(void);
+int apu_top_3_on(void);
+void apu_top_3_off(void);
 
-#endif /* __APU_TOP_ENTRY_H__ */
+#endif

@@ -171,7 +171,7 @@ static int _reviser_copy_pgt(struct pgt_tcm *dst, struct pgt_tcm *src, unsigned 
 	}
 
 	size = BITS_TO_LONGS(nbits);
-	LOG_DBG_RVR_TBL("size %lx\n", size);
+	LOG_DBG_RVR_TBL("size %x\n", size);
 
 	//dst->pgt[0] = src->pgt[0];
 	if (size)
@@ -1078,7 +1078,7 @@ int reviser_table_set_remap(void *drvinfo, unsigned long ctx)
 
 	if (g_ctx_pgt[ctx].vlm.sys_num + g_rmp_valid > g_rmp_nbits) {
 
-		LOG_ERR("sys_num (%u) g_rmp_valid(%lu) is large than Max [%lu]\n",
+		LOG_ERR("sys_num (%lu) g_rmp_valid(%lu) is large than Max [%lu]\n",
 				g_ctx_pgt[ctx].vlm.sys_num,
 				g_rmp_valid, g_rmp_nbits);
 		goto free_mutex;
@@ -1144,7 +1144,7 @@ int reviser_table_clear_remap(void *drvinfo, unsigned long ctx)
 	mutex_lock(&rdv->lock.mutex_ctx_pgt);
 
 	if (g_rmp_valid < g_ctx_pgt[ctx].vlm.sys_num) {
-		LOG_ERR("Clear fail(%lu)[%lu][%u]\n",
+		LOG_ERR("Clear fail(%u)[%lu][%u]\n",
 				g_rmp_valid, ctx,
 				g_ctx_pgt[ctx].vlm.sys_num);
 		goto free_mutex;
@@ -1182,6 +1182,7 @@ void reviser_table_print_vlm(void *drvinfo, uint32_t ctx, void *s_file)
 	uint32_t i;
 	struct seq_file *s = (struct seq_file *)s_file;
 	char strtype[8];
+	int ret;
 
 	DEBUG_TAG;
 
@@ -1206,13 +1207,25 @@ void reviser_table_print_vlm(void *drvinfo, uint32_t ctx, void *s_file)
 	for (i = 0; i < rdv->plat.vlm_bank_max; i++) {
 		switch (g_ctx_pgt[ctx].bank[i].type) {
 		case REVISER_MEM_TYPE_TCM:
-			snprintf(strtype, sizeof(strtype), "TCM");
+			ret = snprintf(strtype, sizeof(strtype), "TCM");
+			if (ret < 0) {
+				LOG_ERR("snprintf fail\n");
+				return;
+			}
 			break;
 		case REVISER_MEM_TYPE_DRAM:
-			snprintf(strtype, sizeof(strtype), "DRAM");
+			ret = snprintf(strtype, sizeof(strtype), "DRAM");
+			if (ret < 0) {
+				LOG_ERR("snprintf fail\n");
+				return;
+			}
 			break;
 		default:
-			snprintf(strtype, sizeof(strtype), "NONE");
+			ret = snprintf(strtype, sizeof(strtype), "NONE");
+			if (ret < 0) {
+				LOG_ERR("snprintf fail\n");
+				return;
+			}
 			break;
 		}
 
@@ -1318,4 +1331,3 @@ int reviser_table_get_pool_index(uint32_t type, uint32_t *index)
 
 	return ret;
 }
-

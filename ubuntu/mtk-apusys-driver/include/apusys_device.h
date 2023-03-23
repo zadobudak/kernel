@@ -8,6 +8,7 @@
 
 #include <linux/dma-buf.h>
 
+
 /* device type */
 enum {
 	APUSYS_DEVICE_NONE,
@@ -19,6 +20,7 @@ enum {
 	APUSYS_DEVICE_EDMA_LITE,
 	APUSYS_DEVICE_MVPU,
 	APUSYS_DEVICE_UP,
+	APUSYS_DEVICE_APS,
 	APUSYS_DEVICE_LAST,
 	APUSYS_DEVICE_RT = 32,
 	APUSYS_DEVICE_SAMPLE_RT,
@@ -27,6 +29,7 @@ enum {
 	APUSYS_DEVICE_EDMA_LITE_RT,
 	APUSYS_DEVICE_MVPU_RT,
 	APUSYS_DEVICE_UP_RT,
+	APUSYS_DEVICE_APS_RT,
 
 	APUSYS_DEVICE_MAX = 64, //total support 64 different devices
 };
@@ -61,11 +64,6 @@ enum {
 	APUSYS_PREEMPT_MAX,
 };
 
-enum {
-	APUSYS_FIRMWARE_UNLOAD,
-	APUSYS_FIRMWARE_LOAD,
-};
-
 /* handle definition for send_cmd */
 struct apusys_power_hnd {
 	uint32_t opp;
@@ -74,59 +72,21 @@ struct apusys_power_hnd {
 	uint32_t timeout;
 };
 
-struct apusys_mdla_data {
-	uint64_t pmu_kva;
-	uint64_t cmd_entry;
-};
-
-/* cmd handle */
-struct apusys_cmd_hnd {
-	/* cmd info */
-	uint64_t kva;
-	uint32_t iova;
-	uint32_t size;
-
-	struct apusys_kmem *cmdbuf;
-
-	uint64_t cmd_id;
-	uint32_t subcmd_idx;
-	uint8_t priority;
-
-	uint32_t ip_time;
-	int boost_val;
-	int cluster_size;
-
-	/* mdw priv*/
-	uint64_t m_kva;
-
-	/* multicore info */
-	uint32_t multicore_total; // how many cores to exec this subcmd
-	uint32_t multicore_idx; // which part of subcmd
-
-	/* mdla specific */
-	uint64_t pmu_kva;
-	uint64_t cmd_entry;
-	uint32_t cmd_size;
-
-	/* For preemption */
-	int (*context_callback)(int a, int b, uint8_t c);
-	int ctx_id;
-};
-
 struct apusys_cmdbuf {
 	void *kva;
-	unsigned int size;
+	uint32_t size;
 };
 
 struct apusys_cmd_valid_handle {
 	void *session;
+	void *cmd;
 	uint32_t num_cmdbufs;
 	struct apusys_cmdbuf *cmdbufs;
 };
 
 struct apusys_cmd_handle {
 	struct apusys_cmdbuf *cmdbufs;
-	unsigned int num_cmdbufs;
+	uint32_t num_cmdbufs;
 
 	uint64_t kid;
 	uint32_t subcmd_idx;
@@ -140,29 +100,10 @@ struct apusys_cmd_handle {
 	uint32_t vlm_ctx;
 };
 
-
-struct apusys_firmware_hnd {
-	char name[32];
-	uint32_t magic; // for user checking byself
-
-	uint64_t kva;
-	uint32_t iova;
-	uint32_t size;
-
-	int idx;
-
-	int op;
-};
-
 struct apusys_usercmd_hnd {
 	uint64_t kva;
 	uint32_t iova;
 	uint32_t size;
-};
-
-struct apusys_preempt_hnd {
-	struct apusys_cmd_hnd *new_cmd;
-	struct apusys_cmd_hnd *old_cmd; //TODO
 };
 
 /* device definition */
@@ -179,7 +120,6 @@ struct apusys_device {
 
 	int (*send_cmd)(int type, void *hnd, struct apusys_device *dev);
 };
-
 
 /*
  * export function for hardware driver
@@ -221,16 +161,16 @@ struct apusys_device {
 int apusys_register_device(struct apusys_device *dev);
 int apusys_unregister_device(struct apusys_device *dev);
 
-int apusys_mem_flush_kva(void *kva, uint32_t size);
-int apusys_mem_invalidate_kva(void *kva, uint32_t size);
-
-int apusys_mem_flush(struct apusys_kmem *mem);
-int apusys_mem_invalidate(struct apusys_kmem *mem);
-
-int apusys_mem_get_by_iova(void *session, uint64_t iova);
+/* only used in cmd validation */
+int apusys_mem_validate_by_cmd(void *session, void *cmd, uint64_t iova, uint32_t size);
+/* query kva from session */
 void *apusys_mem_query_kva_by_sess(void *session, uint64_t iova);
+int apusys_mem_get_by_iova(void *session, uint64_t iova);
 
 uint64_t apusys_mem_query_kva(uint64_t iova);
 uint64_t apusys_mem_query_iova(uint64_t kva);
+
+int apusys_mem_flush_kva(void *kva, uint32_t size);
+int apusys_mem_invalidate_kva(void *kva, uint32_t size);
 
 #endif

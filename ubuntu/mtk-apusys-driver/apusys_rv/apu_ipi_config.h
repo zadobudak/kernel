@@ -80,12 +80,12 @@ static const struct {
 	[APU_IPI_EDMA_TX] = { // 11
 		.name = "apu-edma-rpmsg",
 		.direction = IPI_HOST_INITIATE,
-		.ack = IPI_WITHOUT_ACK,
+		.ack = IPI_WITH_ACK,
 	},
 	[APU_IPI_MNOC_TX] = { // 12
 		.name = "apu-mnoc-rpmsg",
 		.direction = IPI_HOST_INITIATE,
-		.ack = IPI_WITHOUT_ACK,
+		.ack = IPI_WITH_ACK,
 	},
 	[APU_IPI_MVPU_TX] = { // 13
 		.name = "apu-mvpu-tx",
@@ -99,6 +99,31 @@ static const struct {
 	},
 	[APU_IPI_LOG_LEVEL] = { // 15
 		.name = "apu-log-level",
+		.direction = IPI_HOST_INITIATE,
+		.ack = IPI_WITH_ACK,
+	},
+	[APU_IPI_APS_TX] = { // 16
+		.name = "apu-aps-tx",
+		.direction = IPI_HOST_INITIATE,
+		.ack = IPI_WITH_ACK,
+	},
+	[APU_IPI_APS_RX] = { // 17
+		.name = "apu-aps-rx",
+		.direction = IPI_APU_INITIATE,
+		.ack = IPI_WITH_ACK,
+	},
+	[APU_IPI_SAPU_LOCK] = { // 18
+		.name = "apu-lock-rv-rpmsg",
+		.direction = IPI_HOST_INITIATE,
+		.ack = IPI_WITH_ACK,
+	},
+	[APU_IPI_SCP_MIDDLEWARE] = { // 19
+		.name = "apu-scp-mdw-rpmsg",
+		.direction = IPI_HOST_INITIATE,
+		.ack = IPI_WITH_ACK,
+	},
+	[APU_IPI_SCP_NP_RECOVER] = { // 20
+		.name = "apu-scp-np-recover-rpmsg",
 		.direction = IPI_HOST_INITIATE,
 		.ack = IPI_WITH_ACK,
 	},

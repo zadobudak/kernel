@@ -3,16 +3,14 @@
  * Copyright (c) 2020 MediaTek Inc.
  */
 
-#include <linux/of_device.h>
 #include <linux/of_irq.h>
 #include <linux/interrupt.h>
 #include <linux/workqueue.h>
 #include <linux/iommu.h>
 #include <linux/delay.h>
-#ifdef APU_AEE_ENABLE
+
 #if IS_ENABLED(CONFIG_MTK_AEE_FEATURE)
-#include <aee.h>
-#endif
+#include <mt-plat/aee.h>
 #endif
 
 #include "apu.h"
@@ -187,6 +185,7 @@ enum apusys_assert_module {
 	assert_apusys_devapc,
 	assert_apusys_mnoc,
 	assert_apusys_qos,
+	assert_apusys_aps,
 
 	assert_module_max,
 };
@@ -202,6 +201,7 @@ static const char * const apusys_assert_module_name[assert_module_max] = {
 	"APUSYS_DEVAPC",
 	"APUSYS_MNOC",
 	"APUSYS_QOS",
+	"APUSYS_APS",
 };
 
 struct apu_coredump_work_struct {
@@ -278,31 +278,21 @@ static uint32_t dbg_read_csr(struct mtk_apu *apu, uint32_t csr_id)
 static uint32_t apusys_rv_smc_call(struct device *dev, uint32_t smc_id,
 	uint32_t a2)
 {
-#if APUSYS_SECURE
 	struct arm_smccc_res res;
-	struct mtk_apu_platdata *data =  NULL;
 
-	data = (struct mtk_apu_platdata *)of_device_get_match_data(dev);
-	if (data && data->flags & F_APUSYS_SECURE) {
-		dev_info(dev, "%s: smc call %d\n",
-				__func__, smc_id);
+	dev_info(dev, "%s: smc call %d\n",
+			__func__, smc_id);
 
-		arm_smccc_smc(MTK_SIP_APUSYS_CONTROL, smc_id,
-					a2, 0, 0, 0, 0, 0, &res);
-		if (smc_id == MTK_APUSYS_KERNEL_OP_APUSYS_RV_DBG_APB_ATTACH)
-			dev_info(dev, "%s: smc call return(0x%x)\n",
-				__func__, res.a0);
-		else if (((int) res.a0) < 0)
-			dev_info(dev, "%s: smc call %d return error(%d)\n",
-				__func__, smc_id, res.a0);
+	arm_smccc_smc(MTK_SIP_APUSYS_CONTROL, smc_id,
+				a2, 0, 0, 0, 0, 0, &res);
+	if (smc_id == MTK_APUSYS_KERNEL_OP_APUSYS_RV_DBG_APB_ATTACH)
+		dev_info(dev, "%s: smc call return(0x%x)\n",
+			__func__, res.a0);
+	else if (((int) res.a0) < 0)
+		dev_info(dev, "%s: smc call %d return error(%d)\n",
+			__func__, smc_id, res.a0);
 
-		return res.a0;
-	} else {
-		return 0;
-	}
-#else
-	return 0;
-#endif
+	return res.a0;
 }
 
 static void apu_coredump_work_func(struct work_struct *p_work)
@@ -346,9 +336,11 @@ static void apu_coredump_work_func(struct work_struct *p_work)
 		}
 
 		apu_regdump();
-		apusys_rv_aee_warn(apusys_assert_module_name[apu->conf_buf->ramdump_module],
-			"APUSYS_RV_EXCEPTION");
-		dev_info(dev, "%s: done\n", __func__);
+		/* since exception is triggered, so bypass power off timeout check */
+		apu->bypass_pwr_off_chk = true;
+		apusys_rv_exception_aee_warn(
+			apusys_assert_module_name[apu->conf_buf->ramdump_module]);
+		dev_info(dev, "%s +\n", __func__);
 		return;
 	}
 
@@ -490,8 +482,10 @@ static void apu_coredump_work_func(struct work_struct *p_work)
 	}
 
 	apu_regdump();
+	/* since exception is triggered, so bypass power off timeout check */
+	apu->bypass_pwr_off_chk = true;
 	apusys_rv_aee_warn("APUSYS_RV", "APUSYS_RV_TIMEOUT");
-	dev_info(dev, "%s: done\n", __func__);
+	dev_info(dev, "%s +\n", __func__);
 }
 
 static irqreturn_t apu_wdt_isr(int irq, void *private_data)
@@ -535,7 +529,7 @@ static irqreturn_t apu_wdt_isr(int irq, void *private_data)
 	dev_info(dev, "%s: disable wdt_irq(%d)\n", __func__,
 		apu->wdt_irq_number);
 
-	dev_info(dev, "%s\n", __func__);
+	dev_info(dev, "%s +\n", __func__);
 
 	schedule_work(&(apu_coredump_work.work));
 

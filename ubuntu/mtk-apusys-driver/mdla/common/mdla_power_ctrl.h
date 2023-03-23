@@ -19,7 +19,6 @@ struct mdla_pwr_ops {
 	void (*set_opp_by_boost)(u32 core_id, int boost_val);
 	void (*switch_off_on)(u32 core_id);
 	void (*hw_reset)(u32 core_id, const char *str);
-	void (*sw_reset)(u32 core_id);
 	void (*lock)(u32 core_id);
 	void (*unlock)(u32 core_id);
 	void (*wake_lock)(u32 core_id);
@@ -32,7 +31,6 @@ int mdla_pwr_get_random_boost_val(void);
 bool mdla_pwr_apusys_disabled(void);
 
 void mdla_pwr_reset_setup(void (*hw_reset)(u32 core_id, const char *str));
-void mdla_pwr_sw_reset_setup(void (*sw_reset)(u32 core_id));
 int mdla_pwr_device_register(struct platform_device *pdev,
 			int (*on)(u32 core_id, bool force),
 			int (*off)(u32 core_id, int suspend, bool force));
