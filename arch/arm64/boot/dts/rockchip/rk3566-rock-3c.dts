@@ -18,6 +18,13 @@
 	model = "Radxa ROCK3 Model C";
 	compatible = "radxa,rock-3c", "rockchip,rk3566";
 
+	fan0: pwm-fan {
+		compatible = "pwm-fan";
+		#cooling-cells = <2>;
+		cooling-levels = <0 64 128 192 255>;
+		pwms = <&pwm15 0 40000 0>;
+	};
+
 	fiq_debugger: fiq-debugger {
 		compatible = "rockchip,fiq-debugger";
 		rockchip,serial-id = <2>;
@@ -51,8 +58,8 @@
 		compatible = "simple-audio-card";
 		simple-audio-card,format = "i2s";
 		simple-audio-card,mclk-fs = <128>;
-		simple-audio-card,name = "rockchip,hdmi";
-		status = "disabled";
+		simple-audio-card,name = "rockchip-hdmi0";
+		status = "okay";
 
 		simple-audio-card,cpu {
 			sound-dai = <&i2s0_8ch>;
@@ -80,25 +87,11 @@
 		};
 	};
 
-	reserved-memory {
-		#address-cells = <2>;
-		#size-cells = <2>;
-		ranges;
-
-		rknpu_reserved: rknpu {
-			compatible = "shared-dma-pool";
-			inactive;
-			reusable;
-			size = <0x0 0x08000000>;
-			alignment = <0x0 0x1000>;
-		};
-	};
-
 	rk809_sound: rk809-sound {
 		status = "okay";
 		compatible = "simple-audio-card";
 		simple-audio-card,format = "i2s";
-		simple-audio-card,name = "rockchip,rk809-codec";
+		simple-audio-card,name = "rockchip-rk809";
 		simple-audio-card,mclk-fs = <256>;
 
 		simple-audio-card,cpu {
@@ -227,8 +220,33 @@
 	cpu-supply = <&vdd_cpu>;
 };
 
+// Fan PWM
 &pwm15 {
+	pinctrl-names = "active";
+	pinctrl-0 = <&pwm15m0_pins>;
 	status = "okay";
+};
+
+&threshold {
+	temperature = <60000>;
+};
+
+&soc_thermal {
+	sustainable-power = <5000>; /* milliwatts */
+	cooling-maps {
+		map3 {
+			trip = <&target>;
+			cooling-device =
+				<&fan0 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>;
+			contribution = <8192>;
+		};
+		map4 {
+			trip = <&threshold>;
+			cooling-device =
+				<&fan0 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>;
+			contribution = <8192>;
+		};
+	};
 };
 
 &dfi {
@@ -758,13 +776,7 @@
 };
 
 &rknpu {
-	memory-region = <&rknpu_reserved>;
 	rknpu-supply = <&vdd_npu>;
-	status = "okay";
-};
-
-&rknpu_mmu {
-	status = "disabled";
 };
 
 &saradc {
