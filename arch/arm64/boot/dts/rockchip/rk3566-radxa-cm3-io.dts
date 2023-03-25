@@ -17,6 +17,35 @@
 	model = "Radxa CM3 IO";
 	compatible = "radxa,radxa-cm3-io", "rockchip,rk3566";
 
+	dc_12v: dc-12v-regulator {
+		status = "okay";
+		compatible = "regulator-fixed";
+		regulator-name = "dc_12v";
+		regulator-always-on;
+		regulator-boot-on;
+		regulator-min-microvolt = <12000000>;
+		regulator-max-microvolt = <12000000>;
+	};
+
+	vcc3v3_pcie: vcc3v3-pcie-regulator {
+		status = "okay";
+		compatible = "regulator-fixed";
+		regulator-name = "vcc3v3_pcie";
+		regulator-min-microvolt = <3300000>;
+		regulator-max-microvolt = <3300000>;
+		vin-supply = <&dc_12v>;
+	};
+
+	pcie_en: pcie-en-regulator {
+		status = "okay";
+		compatible = "regulator-fixed";
+		regulator-name = "pcie_en";
+		enable-active-low;
+		gpio = <&gpio3 RK_PC6 GPIO_ACTIVE_LOW>;
+		regulator-boot-on;
+		regulator-always-on;
+	};
+
 	hdmi_sound: hdmi-sound {
 		compatible = "simple-audio-card";
 		simple-audio-card,format = "i2s";
@@ -176,6 +205,13 @@
 
 &combphy2_psq {
 	status = "okay";
+};
+
+&pcie2x1 {
+	status = "okay";
+	reset-gpios = <&gpio1 RK_PB2 GPIO_ACTIVE_HIGH>;
+	vpcie3v3-supply = <&vcc3v3_pcie>;
+	pinctrl-0 = <&pcie20m2_pins>;
 };
 
 &pinctrl {
