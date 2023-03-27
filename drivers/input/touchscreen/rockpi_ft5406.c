@@ -238,7 +238,8 @@ static int rockpi_ft5406_probe(struct i2c_client *client,
 	i2c_set_clientdata(client, ts_data);
 
 	if (!rockpi_mcu_is_connected()) {
-		return -EPROBE_DEFER;
+		ret = -EPROBE_DEFER;
+		goto input_allocate_failed;
 	}
 
 	input_dev = input_allocate_device();
