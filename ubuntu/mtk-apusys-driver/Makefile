@@ -14,7 +14,7 @@
 
 SRC := $(shell pwd)
 #MTK_PLATFORM = mt8195
-top := $(src)
+top := $(srctree)/$(src)
 
 export top
 #export MTK_PLATFORM
@@ -54,23 +54,23 @@ APUSYS_VERSION_REVISER = 2.0
 obj-m += apusys.o
 
 # common include path
-EXTRA_CFLAGS  += -I$(src)/include/
-EXTRA_CFLAGS  += -I$(src)/drivers/misc/mediatek/geniezone/public/
+EXTRA_CFLAGS  += -I$(srctree)/$(src)/include/
+EXTRA_CFLAGS  += -I$(srctree)/$(src)/drivers/misc/mediatek/geniezone/public/
 
 # core makefile
 apusys-objs += core/apusys_core.o
 
 # middleware makefile
-EXTRA_CFLAGS  += -I$(src)/drivers/staging/android/ion
-EXTRA_CFLAGS  += -I$(src)/drivers/misc/mediatek/include/
-EXTRA_CFLAGS  += -I$(src)/drivers/misc/mediatek/include/mt-plat/
-EXTRA_CFLAGS  += -I$(src)/drivers/misc/mediatek/slbc/
-EXTRA_CFLAGS  += -I$(src)/debug/
-EXTRA_CFLAGS  += -I$(src)/midware/$(APUSYS_VERSION_MIDWARE)/
-EXTRA_CFLAGS  += -I$(src)/midware/$(APUSYS_VERSION_MIDWARE)/ap/
-EXTRA_CFLAGS  += -I$(src)/midware/$(APUSYS_VERSION_MIDWARE)/rv/
-EXTRA_CFLAGS  += -I$(src)/midware/$(APUSYS_VERSION_MIDWARE)/ap/dummy/
-EXTRA_CFLAGS  += -I$(src)/$(UTIL_DIR)/
+EXTRA_CFLAGS  += -I$(srctree)/$(src)/drivers/staging/android/ion
+EXTRA_CFLAGS  += -I$(srctree)/$(src)/drivers/misc/mediatek/include/
+EXTRA_CFLAGS  += -I$(srctree)/$(src)/drivers/misc/mediatek/include/mt-plat/
+EXTRA_CFLAGS  += -I$(srctree)/$(src)/drivers/misc/mediatek/slbc/
+EXTRA_CFLAGS  += -I$(srctree)/$(src)/debug/
+EXTRA_CFLAGS  += -I$(srctree)/$(src)/midware/$(APUSYS_VERSION_MIDWARE)/
+EXTRA_CFLAGS  += -I$(srctree)/$(src)/midware/$(APUSYS_VERSION_MIDWARE)/ap/
+EXTRA_CFLAGS  += -I$(srctree)/$(src)/midware/$(APUSYS_VERSION_MIDWARE)/rv/
+EXTRA_CFLAGS  += -I$(srctree)/$(src)/midware/$(APUSYS_VERSION_MIDWARE)/ap/dummy/
+EXTRA_CFLAGS  += -I$(srctree)/$(src)/$(UTIL_DIR)/
 
 apusys-objs += midware/$(APUSYS_VERSION_MIDWARE)/mdw_mem_drv.o
 apusys-objs += midware/$(APUSYS_VERSION_MIDWARE)/mdw_mem_rsc.o
@@ -111,7 +111,7 @@ apusys-objs += edma/edma_rv.o
 
 
 # reviser driver makefile
-REVISER=$(src)
+REVISER=$(srctree)/$(src)
 REVISER_PLAT=reviser/$(APUSYS_VERSION_REVISER)/platform
 REVISER_COMN=reviser/$(APUSYS_VERSION_REVISER)/common
 
@@ -142,13 +142,13 @@ apusys-objs += $(REVISER_PLAT)/v_rv/reviser_plat_vrv.o
 
 
 # mnoc makefile
-EXTRA_CFLAGS  += -I$(src)/mnoc/$(APUSYS_VERSION_MNOC)/interface/
+EXTRA_CFLAGS  += -I$(srctree)/$(src)/mnoc/$(APUSYS_VERSION_MNOC)/interface/
 apusys-objs += mnoc/$(APUSYS_VERSION_MNOC)/common/mnoc_rv.o
 
 # debug makefile
-EXTRA_CFLAGS  += -I$(src)/debug/$(APUSYS_VERSION_DEBUG)/common/
-EXTRA_CFLAGS  += -I$(src)/debug/$(APUSYS_VERSION_DEBUG)/interface/
-EXTRA_CFLAGS  += -I$(src)/debug/$(APUSYS_VERSION_DEBUG)/platform/
+EXTRA_CFLAGS  += -I$(srctree)/$(src)/debug/$(APUSYS_VERSION_DEBUG)/common/
+EXTRA_CFLAGS  += -I$(srctree)/$(src)/debug/$(APUSYS_VERSION_DEBUG)/interface/
+EXTRA_CFLAGS  += -I$(srctree)/$(src)/debug/$(APUSYS_VERSION_DEBUG)/platform/
 
 ifeq ($(CONFIG_MTK_APUSYS_DEBUG),y)
 apusys-objs += debug/apu_tags.o
@@ -160,23 +160,24 @@ apusys-objs += debug/$(APUSYS_VERSION_DEBUG)/platform/debug_plat_device.o
 apusys-objs += debug/$(APUSYS_VERSION_DEBUG)/platform/debug_platform.o
 endif
 
-EXTRA_CFLAGS  += -I$(src)/debug/
-EXTRA_CFLAGS  += -I$(src)/include/
-EXTRA_CFLAGS  += -I$(src)/midware/$(APUSYS_VERSION_MIDWARE)/
+EXTRA_CFLAGS  += -I$(srctree)/$(src)/debug/
+EXTRA_CFLAGS  += -I$(srctree)/$(src)/include/
+EXTRA_CFLAGS  += -I$(srctree)/$(src)/midware/$(APUSYS_VERSION_MIDWARE)/
 
 apusys-objs += power/2.5/common/apu-tag.o
-EXTRA_CFLAGS  += -I$(src)/power/2.5/inc/
-EXTRA_CFLAGS  += -I$(src)/power/3.0/inc/
-EXTRA_CFLAGS  += -I$(src)/3.0/inc/platform/
+EXTRA_CFLAGS  += -I$(srctree)/$(src)/power/2.5/inc/
+EXTRA_CFLAGS  += -I$(srctree)/$(src)/power/3.0/inc/
+EXTRA_CFLAGS  += -I$(srctree)/$(src)/3.0/inc/platform/
+obj-m += apu_top/
 obj-m += power/
 
 # mdla
-EXTRA_CFLAGS  += -I$(src)/mdla/
-apusys-objs += $(shell cd $(src) && find mdla -name "*.c" | sed 's/\.c/\.o/g')
+EXTRA_CFLAGS  += -I$(srctree)/$(src)/mdla/
+apusys-objs += $(shell cd $(srctree)/$(src) && find mdla -name "*.c" | sed 's/\.c/\.o/g')
 
 # vpu
 VPU = vpu/$(APUSYS_VERSION_VPU)
-EXTRA_CFLAGS += -I$(src)/$(VPU)
+EXTRA_CFLAGS += -I$(srctree)/$(src)/$(VPU)
 ifeq ($(CONFIG_MTK_APUSYS_VPU_DEBUG),y)
 apusys-objs += $(VPU)/vpu_tag.o
 apusys-objs += $(VPU)/vpu_met.o
@@ -199,7 +200,7 @@ apusys-objs += devapc/dapc.o
 apusys-objs += devapc/dapc_cfg.o
 
 # apusys rv
-EXTRA_CFLAGS  += -I$(src)/apusys_rv/
+EXTRA_CFLAGS  += -I$(srctree)/$(src)/apusys_rv/
 apusys-objs += apusys_rv/apu_config.o
 apusys-objs += apusys_rv/apu_coredump.o
 apusys-objs += apusys_rv/apu_excep.o
@@ -213,35 +214,35 @@ apusys-objs += apusys_rv/apu_deepidle.o
 apusys-objs += apusys_rv/apu_regdump.o
 apusys-objs += apusys_rv/apu_debug.o
 apusys-objs += apusys_rv/apu_loadimage.o
-ifneq ($(wildcard $(src)/apusys_rv/2.0/mt8188_plat.c),)
+ifneq ($(wildcard $(srctree)/$(src)/apusys_rv/2.0/mt8188_plat.c),)
 subdir-EXTRA_CFLAGS  += -DMT8188_APUSYS_RV_PLAT_DATA
 apusys-objs += apusys_rv/2.0/mt8188_plat.o
 endif
-ifneq ($(wildcard $(src)/apusys_rv/2.0/mt8195_plat.c),)
+ifneq ($(wildcard $(srctree)/$(src)/apusys_rv/2.0/mt8195_plat.c),)
 subdir-EXTRA_CFLAGS  += -DMT8195_APUSYS_RV_PLAT_DATA
 apusys-objs += apusys_rv/2.0/mt8195_plat.o
 endif
 # ipi
-EXTRA_CFLAGS  += -I$(src)/ipi/
-EXTRA_CFLAGS  += -I$(src)/drivers/rpmsg/
+EXTRA_CFLAGS  += -I$(srctree)/$(src)/ipi/
+EXTRA_CFLAGS  += -I$(srctree)/$(src)/drivers/rpmsg/
 apusys-objs += ipi/mtk_apu_rpmsg.o
 
 # sw logger
-EXTRA_CFLAGS  += -I$(src)/sw_logger/
+EXTRA_CFLAGS  += -I$(srctree)/$(src)/sw_logger/
 apusys-objs += sw_logger/sw_logger.o
 
 # aps
-EXTRA_CFLAGS  += -I$(src)/aps/
+EXTRA_CFLAGS  += -I$(srctree)/$(src)/aps/
 apusys-objs += aps/aps_driver.o
 apusys-objs += aps/aps_ipi.o
 apusys-objs += aps/aps_sysfs.o
 
 # hw logger
-EXTRA_CFLAGS  += -I$(src)/hw_logger/
+EXTRA_CFLAGS  += -I$(srctree)/$(src)/hw_logger/
 apusys-objs += hw_logger/hw_logger.o
 
 # aov
-#EXTRA_CFLAGS  += -I$(src)/drivers/misc/mediatek/scp/include
+#EXTRA_CFLAGS  += -I$(srctree)/$(src)/drivers/misc/mediatek/scp/include
 #apusys-objs += aov/aov_init.o
 #apusys-objs += aov/aov_rpmsg.o
 #apusys-objs += aov/aov_recovery.o
@@ -250,7 +251,7 @@ apusys-objs += hw_logger/hw_logger.o
 #obj-$(CONFIG_MTK_APUSYS_SUPPORT) += sapu/
 
 # hw_sema
-EXTRA_CFLAGS  += -I$(src)/power/3.0/inc/
+EXTRA_CFLAGS  += -I$(srctree)/$(src)/power/3.0/inc/
 
 
 all:
