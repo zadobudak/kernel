@@ -2727,6 +2727,7 @@ static int dw_hdmi_connector_get_modes(struct drm_connector *connector)
 	struct drm_display_mode *mode;
 	struct drm_display_info *info = &connector->display_info;
 	int i, ret = 0;
+	struct drm_display_mode *preferred_mode = NULL;
 
 	memset(metedata, 0, sizeof(*metedata));
 	if (!hdmi->ddc)
@@ -2768,6 +2769,34 @@ static int dw_hdmi_connector_get_modes(struct drm_connector *connector)
 		info->color_formats = 0;
 
 		dev_info(hdmi->dev, "failed to get edid\n");
+	}
+
+	/*
+	 * ROCK 3C and Radxa CM3S IO HDMI port with resolutions up to 1080P@60fps.
+	 */
+	if ((of_machine_is_compatible("radxa,rock-3c")) ||
+	    (of_machine_is_compatible("radxa,radxa-cm3-sodimm-io"))) {
+		list_for_each_entry(mode, &connector->probed_modes, head) {
+			if (mode->hdisplay == 1920 && mode->vdisplay == 1080) {
+				if (!preferred_mode){
+					preferred_mode = mode;
+				} else {
+					if (!strcmp(mode->name, preferred_mode->name)) {
+						if (mode->vrefresh > preferred_mode->vrefresh && mode->vrefresh <= 60) {
+							preferred_mode = mode;
+						}
+					} else {
+						if (!strcmp(mode->name, "1920x1080")) {
+							preferred_mode = mode;
+						}
+					}
+				}
+			}
+		}
+
+		if (preferred_mode) {
+			preferred_mode->type |= DRM_MODE_TYPE_PREFERRED;
+		}
 	}
 
 	return ret;
