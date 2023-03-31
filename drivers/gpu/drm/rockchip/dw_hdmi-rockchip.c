@@ -510,7 +510,7 @@ dw_hdmi_rockchip_mode_valid(struct drm_connector *connector,
 	 */
 	if ((of_machine_is_compatible("radxa,rock-3c")) ||
 	    (of_machine_is_compatible("radxa,radxa-cm3-sodimm-io"))) {
-		if ((mode->hdisplay > 1920) || (mode->vdisplay > 1080)) {
+		if ((mode->hdisplay * mode->vdisplay > 1920 * 1080)) {
 			return MODE_BAD;
 		}
 	}
