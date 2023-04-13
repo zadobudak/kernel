@@ -3,9 +3,9 @@
 
 / {
 	fragment@0 {
-		target = <&dsi0>;
+		target = <&dp_tx>;
 		__overlay__ {
-			status = "disabled";
+			status = "okay";
 		};
 	};
 
@@ -17,23 +17,31 @@
 	};
 
 	fragment@2 {
-		target = <&dp_tx>;
+		target = <&disp_dpi1>;
 		__overlay__ {
 			status = "okay";
 		};
 	};
 
 	fragment@3 {
-		target = <&sound>;
+		target = <&hdmi0>;
 		__overlay__ {
-			dai-link-1 { /* HDMI */
-				status = "okay";
-			};
-
-			dai-link-2 { /* DPTX */
-				status = "okay";
-			};
+			status = "okay";
 		};
 	};
-};
 
+	fragment@4 {
+		target = <&ovl1>;
+		__overlay__ {
+			mediatek,enable-dualpipe;
+		};
+	};
+
+	fragment@5 {
+		target = <&dsi0>;
+		__overlay__ {
+			status = "disabled";
+		};
+	};
+
+};

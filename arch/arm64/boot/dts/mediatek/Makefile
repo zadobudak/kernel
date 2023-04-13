@@ -56,3 +56,6 @@ dtb-$(CONFIG_ARCH_MEDIATEK) += apusys.dtbo
 dtb-$(CONFIG_ARCH_MEDIATEK) += display-dsiedp.dtbo
 dtb-$(CONFIG_ARCH_MEDIATEK) += display-edp.dtbo
 dtb-$(CONFIG_ARCH_MEDIATEK) += display-hdmidp.dtbo
+dtb-$(CONFIG_ARCH_MEDIATEK) += camera-imx214-csi0.dtbo
+dtb-$(CONFIG_ARCH_MEDIATEK) += display-dsilvds.dtbo
+dtb-$(CONFIG_ARCH_MEDIATEK) += display-edp2lvds.dtbo

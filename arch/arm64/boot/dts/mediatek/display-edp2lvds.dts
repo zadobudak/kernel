@@ -2,7 +2,6 @@
 /plugin/;
 
 #include <dt-bindings/pinctrl/mt8195-pinfunc.h>
-#include <dt-bindings/gpio/gpio.h>
 
 / {
 	fragment@0 {
@@ -51,11 +50,12 @@
 		target-path = "/";
 		__overlay__ {
 			edp_panel: panel {
-				compatible = "innolux,hk173vb-01b";
+				compatible = "koe,tx18d204vm0baa";
 				power-supply = <&edp_panel_fixed_3v3>;
 				backlight = <&backlight_lcd0>;
-				width-mm = <279>;
-				height-mm = <174>;
+				label = "KOE TX18D204VM0BAA";
+				width-mm = <155>;
+				height-mm = <87>;
 				status = "okay";
 
 				port {
@@ -82,8 +82,6 @@
 		target = <&backlight_lcd0>;
 		__overlay__ {
 			default-on;
-			power-supply = <&edp_panel_fixed_12v>;
-			enable-gpios = <&pio 95 GPIO_ACTIVE_HIGH>;
 		};
 	};
 
