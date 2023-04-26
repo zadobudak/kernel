@@ -303,6 +303,7 @@
 };
 
 &hdmi {
+	pinctrl-0 = <&hdmitx_scl &hdmitx_sda>;
 	status = "okay";
 };
 
