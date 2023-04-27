@@ -11,6 +11,13 @@
 	model = "Radxa ROCK 3 Model B";
 	compatible = "radxa,rock-3b", "rockchip,rk3568";
 
+	fan0: pwm-fan {
+		compatible = "pwm-fan";
+		#cooling-cells = <2>;
+		cooling-levels = <0 64 128 192 255>;
+		pwms = <&pwm8 0 10000 0>;
+	};
+
 	fiq_debugger: fiq-debugger {
 		compatible = "rockchip,fiq-debugger";
 		rockchip,serial-id = <2>;
@@ -225,7 +232,7 @@
 
 		user-led {
 			gpios = <&gpio0 RK_PB7 GPIO_ACTIVE_HIGH>;
-			linux,default-trigger = "timer";
+			linux,default-trigger = "heartbeat";
 			default-state = "on";
 			pinctrl-0 = <&user_led>;
 		};
@@ -303,6 +310,7 @@
 };
 
 &hdmi {
+	pinctrl-0 = <&hdmitx_scl &hdmitx_sda>;
 	status = "okay";
 };
 
@@ -658,6 +666,28 @@
 //FAN
 &pwm8 {
 	status = "okay";
+};
+
+&threshold {
+	temperature = <60000>;
+};
+
+&soc_thermal {
+	sustainable-power = <5000>; /* milliwatts */
+	cooling-maps {
+		map3 {
+			trip = <&target>;
+			cooling-device =
+				<&fan0 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>;
+			contribution = <8192>;
+		};
+		map4 {
+			trip = <&threshold>;
+			cooling-device =
+				<&fan0 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>;
+			contribution = <8192>;
+		};
+	};
 };
 
 &i2s0_8ch {
