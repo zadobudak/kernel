@@ -24,6 +24,10 @@ source "ubuntu/mtk-vcodec-driver/Kconfig"
 ##
 ##
 ##
+source "ubuntu/mtk-mali-gpu-driver/Mconfig"
+##
+##
+##
 source "ubuntu/ubuntu-host/Kconfig"
 ##
 ##

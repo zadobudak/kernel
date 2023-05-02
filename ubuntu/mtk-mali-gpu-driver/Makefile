@@ -30,3 +30,6 @@ modules_install:
 clean:
 	@$(MAKE) -C drivers/gpu/arm/midgard clean
 	@$(MAKE) -C drivers/base/arm clean
+
+obj-y += drivers/gpu/arm/midgard/
+obj-y += drivers/base/arm/

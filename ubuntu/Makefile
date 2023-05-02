@@ -23,6 +23,10 @@ obj-y += mtk-vcodec-driver/
 ##
 ##
 ##
+obj-y += mtk-mali-gpu-driver/
+##
+##
+##
 obj-y += mtk-vcu-driver/
 ##
 ##

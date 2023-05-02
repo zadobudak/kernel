@@ -20,8 +20,8 @@
 
 menu "Kernel menu"
 
-source "kernel/drivers/base/arm/Mconfig"
-source "kernel/drivers/gpu/arm/midgard/Mconfig"
-source "kernel/drivers/hwtracing/coresight/mali/Mconfig"
+source "ubuntu/mtk-mali-gpu-driver/drivers/base/arm/Mconfig"
+source "ubuntu/mtk-mali-gpu-driver/drivers/gpu/arm/midgard/Mconfig"
+source "ubuntu/mtk-mali-gpu-driver/drivers/hwtracing/coresight/mali/Mconfig"
 
 endmenu
