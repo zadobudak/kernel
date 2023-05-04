@@ -70,8 +70,6 @@
 	fragment@3 {
 		target = <&edp_panel_fixed_3v3>;
 		__overlay__ {
-			regulator-always-on;
-
 			regulator-state-mem {
 				regulator-on-in-suspend;
 			};
