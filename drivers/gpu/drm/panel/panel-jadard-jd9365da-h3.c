@@ -795,8 +795,8 @@ static const struct jadard_panel_desc radxa_display_8hd_ad002_desc = {
 		.vsync_end	= 1280 + 20 + 4,
 		.vtotal		= 1280 + 20 + 4 + 20,
 
-		.width_mm	= 127,
-		.height_mm	= 199,
+		.width_mm	= 108,
+		.height_mm	= 172,
 		.type		= DRM_MODE_TYPE_DRIVER | DRM_MODE_TYPE_PREFERRED,
 	},
 	.lanes = 4,
