@@ -13,17 +13,26 @@
 		target = <&dp_intf1>;
 		__overlay__ {
 			status = "okay";
+			mediatek,indicated-display-path = <1>;
 		};
 	};
 
 	fragment@2 {
+		target = <&dpi1>;
+		__overlay__ {
+			status = "okay";
+			mediatek,indicated-display-path = <0>;
+		};
+	};
+
+	fragment@3 {
 		target = <&dp_tx>;
 		__overlay__ {
 			status = "okay";
 		};
 	};
 
-	fragment@3 {
+	fragment@4 {
 		target = <&sound>;
 		__overlay__ {
 			dai-link-1 { /* HDMI */
