@@ -152,7 +152,7 @@
 
 			sensor0@3c {
 				compatible = "mediatek,imgsensor";
-				sensor-names = "ap1302_mipi_yuv";
+				sensor-names = "ar0430ap1302_mipi_yuv";
 				reg = <0x3c>;
 				status = "okay";
 
