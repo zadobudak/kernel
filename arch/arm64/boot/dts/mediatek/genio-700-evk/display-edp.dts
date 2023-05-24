@@ -118,4 +118,11 @@
 			status = "disabled";
 		};
 	};
+
+	fragment@8 {
+		target = <&mipi_tx0>;
+		__overlay__ {
+			status = "disabled";
+		};
+	};
 };
