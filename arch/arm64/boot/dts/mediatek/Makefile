@@ -47,6 +47,7 @@ dtb-$(CONFIG_ARCH_MEDIATEK) += mt8365-evk.dtb
 dtb-$(CONFIG_ARCH_MEDIATEK) += mt8365-pumpkin.dtb
 dtb-$(CONFIG_ARCH_MEDIATEK) += mt8365-sb35.dtb
 dtb-$(CONFIG_ARCH_MEDIATEK) += mt8516-pumpkin.dtb
+dtb-$(CONFIG_ARCH_MEDIATEK) += genio-510-evk.dtb
 dtb-$(CONFIG_ARCH_MEDIATEK) += panel-boe-ne135fbm.dtbo
 dtb-$(CONFIG_ARCH_MEDIATEK) += display-dp.dtbo
 dtb-$(CONFIG_ARCH_MEDIATEK) += vcodec-vcu-mt8395.dtbo
