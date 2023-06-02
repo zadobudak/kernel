@@ -69,6 +69,10 @@
 				dma-ranges = <0x0 0x20000000 0x0 0x40000000 0x0 0xe0000000>;
 				#cooling-cells = <2>;
 				memory-region = <&vpu_reserve_memory>;
+
+				firmware-name = "mediatek/mt8395/cam_vpu1.img",
+					"mediatek/mt8395/cam_vpu2.img",
+					"mediatek/mt8395/cam_vpu3.img";
 			};
 
 			apu1: syscon@19031000 {
@@ -265,6 +269,7 @@
 						"md32_debug_apb";
 
 				mediatek,apusys_power = <&apu_top_3>;
+				firmware-name = "mediatek/mt8395/apusys.sig.img";
 
 				apu_iommu0 = <&iommu_apu0>;
 				apu_iommu1 = <&iommu_apu1>;
