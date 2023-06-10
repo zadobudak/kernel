@@ -17,41 +17,27 @@
 	};
 
 	fragment@2 {
-		target = <&dsi0>;
-		__overlay__ {
-			status = "disabled";
-		};
-	};
-
-	fragment@3 {
-		target = <&mipi_tx0>;
-		__overlay__ {
-			status = "disabled";
-		};
-	};
-
-	fragment@4 {
 		target = <&dpi1>;
 		__overlay__ {
 			status = "disabled";
 		};
 	};
 
-	fragment@5 {
+	fragment@3 {
 		target = <&hdmi0>;
 		__overlay__ {
 			status = "disabled";
 		};
 	};
 
-	fragment@6 {
+	fragment@4 {
 		target = <&hdmi_phy>;
 		__overlay__ {
 			status = "disabled";
 		};
 	};
 
-	fragment@7 {
+	fragment@5 {
 		target = <&sound>;
 		__overlay__ {
 			dai-link-1 { /* HDMI */
