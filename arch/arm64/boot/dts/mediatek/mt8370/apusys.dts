@@ -64,6 +64,8 @@
 						"md32_debug_apb";
 
 				mediatek,apusys_power = <&apu_top_3>;
+				firmware-name = "mediatek/mt8370/apusys.sig.img";
+
 				apu_iommu0 = <&apu_iommu0>;
 				apu_iommu1 = <&apu_iommu1>;
 
@@ -225,6 +227,10 @@
 				dma-ranges = <0x0 0x70000000 0x0 0x40000000 0x0 0x12600000>;
 				iommus = <&apu_iommu0 M4U_PORT_L0_APU_VLM>;
 				//#cooling-cells = <2>;
+
+				firmware-name = "mediatek/mt8370/cam_vpu1.img",
+					"mediatek/mt8370/cam_vpu2.img",
+					"mediatek/mt8370/cam_vpu3.img";
 			};
 
 			mdla: mdla {
@@ -263,7 +269,7 @@
 				dma-ranges = <0x1 0x0 0x0 0x40000000 0x3 0x0>;
 				iommus = <&apu_iommu0 M4U_PORT_L0_APU_DATA>;
 			};
-			
+
 			opp_table_apu_conn: opp-table-apu-conn {
 				compatible = "operating-points-v2";
 
@@ -334,12 +340,12 @@
 				compatible = "operating-points-v2";
 
 				opp-0 {
-					opp-hz = /bits/ 64 <900000000>;
-					opp-microvolt = <775000>;
+					opp-hz = /bits/ 64 <700000000>;
+					opp-microvolt = <700000>;
 				};
 				opp-1 {
-					opp-hz = /bits/ 64 <840000000>;
-					opp-microvolt = <750000>;
+					opp-hz = /bits/ 64 <700000000>;
+					opp-microvolt = <700000>;
 				};
 				opp-2 {
 					opp-hz = /bits/ 64 <700000000>;
