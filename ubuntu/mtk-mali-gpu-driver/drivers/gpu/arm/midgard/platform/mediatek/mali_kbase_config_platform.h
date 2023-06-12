@@ -11,10 +11,45 @@
  * See http://www.gnu.org/licenses/gpl-2.0.html for more details.
  */
 
+/**************************************************
+ * Shader Present Setting
+ **************************************************/
+#define T0C0  (BIT(0))
+#define T1C0  (BIT(1))
+#define T2C0  (BIT(2))
+#define T3C0  (BIT(3))
+#define T0C1  (BIT(4))
+#define T1C1  (BIT(5))
+#define T2C1  (BIT(6))
+#define T3C1  (BIT(7))
+#define T0C2  (BIT(8))
+#define T1C2  (BIT(9))
+#define T2C2  (BIT(10))
+#define T3C2  (BIT(11))
+#define T0C3  (BIT(12))
+#define T1C3  (BIT(13))
+#define T2C3  (BIT(14))
+#define T3C3  (BIT(15))
+#define T4C0  (BIT(16))
+#define T5C0  (BIT(17))
+#define T6C0  (BIT(18))
+#define T7C0  (BIT(19))
+#define T4C1  (BIT(20))
+#define T5C1  (BIT(21))
+#define T6C1  (BIT(22))
+#define T7C1  (BIT(23))
+
+
 struct mfg_timestamp_register_info {
 	unsigned int reg;
 	unsigned int mask;
 	unsigned int value;
+};
+
+struct mtk_platform_context {
+	unsigned int shader_present;
+	int num_cores;
+	void *mfg_base;
 };
 
 /**

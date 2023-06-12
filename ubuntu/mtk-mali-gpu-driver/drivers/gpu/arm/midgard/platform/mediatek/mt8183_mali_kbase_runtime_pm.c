@@ -83,7 +83,8 @@ static const struct of_device_id mtk_mfgcfg_comp_dt_ids[] = {
 static int pm_callback_power_on(struct kbase_device *kbdev)
 {
 	int error;
-	struct mfg_base *mfg = kbdev->platform_context;
+	struct mtk_platform_context *context = kbdev->platform_context;
+	struct mfg_base *mfg = context->mfg_base;
 
 	if (mfg->is_powered) {
 		dev_dbg(kbdev->dev, "mali_device is already powered\n");
@@ -145,7 +146,8 @@ static int pm_callback_power_on(struct kbase_device *kbdev)
 
 static void pm_callback_power_off(struct kbase_device *kbdev)
 {
-	struct mfg_base *mfg = kbdev->platform_context;
+	struct mtk_platform_context *context = kbdev->platform_context;
+	struct mfg_base *mfg = context->mfg_base;
 	int error;
 
 	if (!mfg->is_powered) {
@@ -194,7 +196,8 @@ static void kbase_device_runtime_disable(struct kbase_device *kbdev)
 
 static int pm_callback_runtime_on(struct kbase_device *kbdev)
 {
-	struct mfg_base *mfg = kbdev->platform_context;
+	struct mtk_platform_context *context = kbdev->platform_context;
+	struct mfg_base *mfg = context->mfg_base;
 	int error, i;
 
 	if (mfg->reg_is_powered) {
@@ -242,7 +245,8 @@ static int pm_callback_runtime_on(struct kbase_device *kbdev)
 
 static void pm_callback_runtime_off(struct kbase_device *kbdev)
 {
-	struct mfg_base *mfg = kbdev->platform_context;
+	struct mtk_platform_context *context = kbdev->platform_context;
+	struct mfg_base *mfg = context->mfg_base;
 	int error, i;
 
 	if (!mfg->reg_is_powered) {
@@ -415,17 +419,23 @@ int mali_mfgsys_init(struct kbase_device *kbdev, struct mfg_base *mfg)
 static int platform_init(struct kbase_device *kbdev)
 {
 	int err;
+	struct mtk_platform_context *context;
 	struct mfg_base *mfg;
 
 	mfg = kzalloc(sizeof(*mfg), GFP_KERNEL);
 	if (!mfg)
 		return -ENOMEM;
 
+	context = devm_kzalloc(kbdev->dev, sizeof(*context), GFP_KERNEL);
+	if (!context)
+		return -ENOMEM;
+
 	err = mali_mfgsys_init(kbdev, mfg);
 	if (err)
 		goto platform_init_err;
 
-	kbdev->platform_context = mfg;
+	context->mfg_base = mfg;
+	kbdev->platform_context = context;
 	pm_runtime_set_autosuspend_delay(kbdev->dev, 50);
 	pm_runtime_use_autosuspend(kbdev->dev);
 	pm_runtime_enable(kbdev->dev);
@@ -458,7 +468,8 @@ platform_init_err:
 
 static void platform_term(struct kbase_device *kbdev)
 {
-	struct mfg_base *mfg = kbdev->platform_context;
+	struct mtk_platform_context *context = kbdev->platform_context;
+	struct mfg_base *mfg = context->mfg_base;
 
 	kfree(mfg);
 	kbdev->platform_context = NULL;

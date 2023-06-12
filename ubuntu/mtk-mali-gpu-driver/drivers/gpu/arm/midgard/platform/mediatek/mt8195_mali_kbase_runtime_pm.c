@@ -87,7 +87,8 @@ static const char * const gpu_clocks[] = {
 
 static void pm_domain_term(struct kbase_device *kbdev)
 {
-	struct mfg_base *mfg = kbdev->platform_context;
+	struct mtk_platform_context *context = kbdev->platform_context;
+	struct mfg_base *mfg = context->mfg_base;
 	int i;
 
 	for (i = 0; i < ARRAY_SIZE(mfg->pm_domain_devs); i++) {
@@ -101,7 +102,8 @@ static int pm_domain_init(struct kbase_device *kbdev)
 	int err;
 	int i, num_domains, num_domain_names;
 	const char *pd_names[GPU_CORE_NUM];
-	struct mfg_base *mfg = kbdev->platform_context;
+	struct mtk_platform_context *context = kbdev->platform_context;
+	struct mfg_base *mfg = context->mfg_base;
 
 	num_domains = of_count_phandle_with_args(kbdev->dev->of_node,
 						 "power-domains",
@@ -174,7 +176,8 @@ err:
 
 static void check_bus_idle(struct kbase_device *kbdev)
 {
-	struct mfg_base *mfg = kbdev->platform_context;
+	struct mtk_platform_context *context = kbdev->platform_context;
+	struct mfg_base *mfg = context->mfg_base;
 	u32 val;
 
 	/* MFG_QCHANNEL_CON (0x13fb_f0b4) bit [1:0] = 0x1 */
@@ -192,7 +195,8 @@ static void check_bus_idle(struct kbase_device *kbdev)
 
 static void enable_timestamp_register(struct kbase_device *kbdev)
 {
-	struct mfg_base *mfg = kbdev->platform_context;
+	struct mtk_platform_context *context = kbdev->platform_context;
+	struct mfg_base *mfg = context->mfg_base;
 
 	/* MFG_TIMESTAMP (0x13fb_f130):
 	 * bit[0]: TOP_TSVALUEB_EN. Set 1 to enable SOC timer; Set 0 to enable MFG timer
@@ -217,7 +221,8 @@ static void *get_mfg_base(const char *node_name)
 static int pm_callback_power_on(struct kbase_device *kbdev)
 {
 	int error, err, r_idx, p_idx;
-	struct mfg_base *mfg = kbdev->platform_context;
+	struct mtk_platform_context *context = kbdev->platform_context;
+	struct mfg_base *mfg = context->mfg_base;
 
 	if (mfg->is_powered) {
 		dev_dbg(kbdev->dev, "mali_device is already powered\n");
@@ -289,7 +294,8 @@ reg_err:
 
 static void pm_callback_power_off(struct kbase_device *kbdev)
 {
-	struct mfg_base *mfg = kbdev->platform_context;
+	struct mtk_platform_context *context = kbdev->platform_context;
+	struct mfg_base *mfg = context->mfg_base;
 	int error, i;
 
 	if (!mfg->is_powered) {
@@ -444,7 +450,8 @@ static void voltage_range_check(struct kbase_device *kbdev,
 static int set_frequency(struct kbase_device *kbdev, unsigned long freq)
 {
 	int err;
-	struct mfg_base *mfg = kbdev->platform_context;
+	struct mtk_platform_context *context = kbdev->platform_context;
+	struct mfg_base *mfg = context->mfg_base;
 
 	if (kbdev->current_freqs[0] != freq) {
 		err = clk_set_parent(mfg->clks[mux].clk, mfg->clks[sub].clk);
@@ -476,13 +483,19 @@ static int set_frequency(struct kbase_device *kbdev, unsigned long freq)
 static int platform_init(struct kbase_device *kbdev)
 {
 	int err, i;
+	struct mtk_platform_context *context;
 	struct mfg_base *mfg;
 
 	mfg = devm_kzalloc(kbdev->dev, sizeof(*mfg), GFP_KERNEL);
 	if (!mfg)
 		return -ENOMEM;
 
-	kbdev->platform_context = mfg;
+	context = devm_kzalloc(kbdev->dev, sizeof(*context), GFP_KERNEL);
+	if (!context)
+		return -ENOMEM;
+
+	context->mfg_base = mfg;
+	kbdev->platform_context = context;
 
 	err = mali_mfgsys_init(kbdev, mfg);
 	if (err)

@@ -34,7 +34,6 @@
 #include <linux/of_platform.h>
 #include <linux/moduleparam.h>
 
-
 static void kbase_gpuprops_construct_coherent_groups(
 	struct base_gpu_props * const props)
 {
@@ -117,6 +116,9 @@ int kbase_gpuprops_get_curr_config_props(struct kbase_device *kbdev,
 	struct curr_config_props * const curr_config)
 {
 	struct kbase_current_config_regdump curr_config_regdump;
+	struct mtk_platform_context *context =
+		(struct mtk_platform_context *) kbdev->platform_context;
+	u64 force_shader_present = context->shader_present;
 	int err;
 
 	if (WARN_ON(!kbdev) || WARN_ON(!curr_config))
@@ -142,6 +144,25 @@ int kbase_gpuprops_get_curr_config_props(struct kbase_device *kbdev,
 	curr_config->shader_present =
 		((u64) curr_config_regdump.shader_present_hi << 32) +
 		curr_config_regdump.shader_present_lo;
+
+	/*
+	 * Different platforms may use the same GPU but run on different numbers of cores
+	 *
+	 * In mediatek platform code, we will check efuse segment id field to determine how
+	 * many cores are enabled on current platform.
+	 * Then we will setup correct numbers of power domains in mediatek platform code and
+	 * setup(overwrite) correct cores number in the following
+	 * code.
+	 */
+	if (force_shader_present != 0 &&
+		(force_shader_present != curr_config->shader_present) &&
+		(force_shader_present & curr_config->shader_present)) {
+		dev_info(kbdev->dev, "Force curr_config shader_present from 0x%llX to 0x%llX",
+			curr_config->shader_present,
+			force_shader_present & curr_config->shader_present);
+
+		curr_config->shader_present &= force_shader_present;
+	}
 
 	curr_config->num_cores = hweight64(curr_config->shader_present);
 
@@ -182,6 +203,9 @@ static int kbase_gpuprops_get_props(struct base_gpu_props * const gpu_props,
 	struct kbase_device *kbdev)
 {
 	struct kbase_gpuprops_regdump regdump;
+	struct mtk_platform_context *context =
+		(struct mtk_platform_context *) kbdev->platform_context;
+	u64 force_shader_present = context->shader_present;
 	int i;
 	int err;
 
@@ -205,6 +229,26 @@ static int kbase_gpuprops_get_props(struct base_gpu_props * const gpu_props,
 	gpu_props->raw_props.shader_present =
 		((u64) regdump.shader_present_hi << 32) +
 		regdump.shader_present_lo;
+
+	/*
+	 * Different platforms may use the same GPU but run on different numbers of cores
+	 *
+	 * In mediatek platform code, we will check efuse segment id field to determine how
+	 * many cores are enabled on current platform.
+	 * Then we will setup correct numbers of power domains in mediatek platform code and
+	 * setup(overwrite) correct cores number in the following
+	 * code.
+	 */
+	if (force_shader_present != 0 &&
+		(force_shader_present != gpu_props->raw_props.shader_present) &&
+		(force_shader_present & gpu_props->raw_props.shader_present)) {
+		dev_info(kbdev->dev, "Force shader_present from 0x%llX to 0x%llX",
+		gpu_props->raw_props.shader_present,
+		force_shader_present & gpu_props->raw_props.shader_present);
+
+		gpu_props->raw_props.shader_present &= force_shader_present;
+	}
+
 	gpu_props->raw_props.tiler_present =
 		((u64) regdump.tiler_present_hi << 32) +
 		regdump.tiler_present_lo;

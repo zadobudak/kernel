@@ -19,6 +19,7 @@
 #include <mali_kbase.h>
 #include "mali_kbase_config_platform.h"
 #include <mali_kbase_defs.h>
+#include <linux/arm-smccc.h>
 
 #define MAX_PM_DOMAINS 3
 
@@ -66,6 +67,26 @@
  */
 #define AUTO_SUSPEND_DELAY (50)
 
+/**
+ * Segment id of mt8370
+ */
+#define SEGMENT_ID_MT8370 (0x00008370)
+
+/**************************************************
+ * Shader Core Setting
+ **************************************************/
+#define MFG2_SHADER_STACK0             (T0C0)
+#define MFG3_SHADER_STACK2             (T2C0)
+#define MFG4_SHADER_STACK4             (T4C0)
+
+#define GPU_SHADER_PRESENT_1 \
+	(MFG2_SHADER_STACK0)
+#define GPU_SHADER_PRESENT_2 \
+	(MFG2_SHADER_STACK0 | MFG3_SHADER_STACK2)
+#define GPU_SHADER_PRESENT_3 \
+	(MFG2_SHADER_STACK0 | MFG3_SHADER_STACK2 | MFG4_SHADER_STACK4)
+
+
 struct mfg_base {
 	struct clk_bulk_data *clks;
 	int num_clks;
@@ -87,12 +108,30 @@ static const char * const gpu_clocks[] = {
 
 static void pm_domain_term(struct kbase_device *kbdev)
 {
-	struct mfg_base *mfg = kbdev->platform_context;
+	struct mtk_platform_context *context = kbdev->platform_context;
+	struct mfg_base *mfg = context->mfg_base;
 	int i;
 
-	for (i = 0; i < ARRAY_SIZE(mfg->pm_domain_devs); i++) {
+	for (i = 0; i < mfg->num_pm_domains; i++) {
 		if (mfg->pm_domain_devs[i])
 			dev_pm_domain_detach(mfg->pm_domain_devs[i], true);
+	}
+}
+
+static void get_active_cores_from_efuse(struct kbase_device *kbdev,
+	struct mtk_platform_context *context)
+{
+	struct arm_smccc_res res;
+
+	arm_smccc_smc(0xC2000529, 0, 0, 0, 0, 0, 0, 0, &res);
+	if (res.a1 == SEGMENT_ID_MT8370) {
+		context->shader_present = GPU_SHADER_PRESENT_2;
+		context->num_cores = 2;
+		dev_info(kbdev->dev, "Platform: mt8370, MC%d\n", context->num_cores);
+	} else {
+		context->shader_present = GPU_SHADER_PRESENT_3;
+		context->num_cores = 3;
+		dev_info(kbdev->dev, "Platform: mt8390, MC%d\n", context->num_cores);
 	}
 }
 
@@ -101,7 +140,8 @@ static int pm_domain_init(struct kbase_device *kbdev)
 	int err;
 	int i, num_domains, num_domain_names;
 	const char *pd_names[GPU_CORE_NUM];
-	struct mfg_base *mfg = kbdev->platform_context;
+	struct mtk_platform_context *context = kbdev->platform_context;
+	struct mfg_base *mfg = context->mfg_base;
 
 	num_domains = of_count_phandle_with_args(kbdev->dev->of_node,
 						 "power-domains",
@@ -134,6 +174,26 @@ static int pm_domain_init(struct kbase_device *kbdev)
 	if (WARN(num_domains > ARRAY_SIZE(mfg->pm_domain_devs),
 			"Too many supplies in compatible structure.\n"))
 		return -EINVAL;
+
+	/*
+	 * Different platforms may use the same GPU but run on different numbers
+	 * of cores, such as G700 and G510.
+	 * Although they use Mali G57 GPU, but there are 3 cores on G700 and there
+	 * are only 2 cores on G510.
+	 *
+	 * Check active cores from efuse segment id field and setup correct numbers
+	 * of power domains and cores in GPU.
+	 */
+
+	get_active_cores_from_efuse(kbdev, context);
+	if (num_domains < context->num_cores) {
+		dev_err(kbdev->dev,
+			"Device tree power domains are smaller than active core present: PD %d, cores: %d\n",
+			num_domains, context->num_cores);
+		return -EINVAL;
+	}
+	mfg->num_pm_domains = num_domains = num_domain_names = context->num_cores;
+	dev_info(kbdev->dev, "Setup for %d cores/pm domains", context->num_cores);
 
 	err = of_property_read_string_array(kbdev->dev->of_node,
 					    "power-domain-names",
@@ -174,7 +234,8 @@ err:
 
 static void check_bus_idle(struct kbase_device *kbdev)
 {
-	struct mfg_base *mfg = kbdev->platform_context;
+	struct mtk_platform_context *context = kbdev->platform_context;
+	struct mfg_base *mfg = context->mfg_base;
 	u32 val;
 
 	/* MFG_QCHANNEL_CON (0x13fb_f0b4) bit [1:0] = 0x1 */
@@ -192,7 +253,8 @@ static void check_bus_idle(struct kbase_device *kbdev)
 
 static void enable_timestamp_register(struct kbase_device *kbdev)
 {
-	struct mfg_base *mfg = kbdev->platform_context;
+	struct mtk_platform_context *context = kbdev->platform_context;
+	struct mfg_base *mfg = context->mfg_base;
 
 	/* MFG_TIMESTAMP (0x13fb_f130):
 	 * bit[0]: TOP_TSVALUEB_EN. Set 1 to enable SOC timer; Set 0 to enable MFG timer
@@ -217,7 +279,8 @@ static void *get_mfg_base(const char *node_name)
 static int pm_callback_power_on(struct kbase_device *kbdev)
 {
 	int error, err, r_idx, p_idx;
-	struct mfg_base *mfg = kbdev->platform_context;
+	struct mtk_platform_context *context = kbdev->platform_context;
+	struct mfg_base *mfg = context->mfg_base;
 
 	if (mfg->is_powered) {
 		dev_dbg(kbdev->dev, "mali_device is already powered\n");
@@ -255,7 +318,6 @@ static int pm_callback_power_on(struct kbase_device *kbdev)
 	mfg->is_powered = true;
 
 	enable_timestamp_register(kbdev);
-
 	return 1;
 
 clk_err:
@@ -289,7 +351,8 @@ reg_err:
 
 static void pm_callback_power_off(struct kbase_device *kbdev)
 {
-	struct mfg_base *mfg = kbdev->platform_context;
+	struct mtk_platform_context *context = kbdev->platform_context;
+	struct mfg_base *mfg = context->mfg_base;
 	int error, i;
 
 	if (!mfg->is_powered) {
@@ -441,7 +504,8 @@ static void voltage_range_check(struct kbase_device *kbdev,
 static int set_frequency(struct kbase_device *kbdev, unsigned long freq)
 {
 	int err;
-	struct mfg_base *mfg = kbdev->platform_context;
+	struct mtk_platform_context *context = kbdev->platform_context;
+	struct mfg_base *mfg = context->mfg_base;
 
 	if (kbdev->current_freqs[0] != freq) {
 		err = clk_set_parent(mfg->clks[mux].clk, mfg->clks[sub].clk);
@@ -473,13 +537,19 @@ static int set_frequency(struct kbase_device *kbdev, unsigned long freq)
 static int platform_init(struct kbase_device *kbdev)
 {
 	int err, i;
+	struct mtk_platform_context *context;
 	struct mfg_base *mfg;
 
 	mfg = devm_kzalloc(kbdev->dev, sizeof(*mfg), GFP_KERNEL);
 	if (!mfg)
 		return -ENOMEM;
 
-	kbdev->platform_context = mfg;
+	context = devm_kzalloc(kbdev->dev, sizeof(*context), GFP_KERNEL);
+	if (!context)
+		return -ENOMEM;
+
+	context->mfg_base = mfg;
+	kbdev->platform_context = context;
 
 	err = mali_mfgsys_init(kbdev, mfg);
 	if (err)
