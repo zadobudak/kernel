@@ -1,5 +1,8 @@
 # SPDX-License-Identifier: GPL-2.0
 DTC_FLAGS += -@
+subdir-y += genio-350-evk
+subdir-y += genio-700-evk
+subdir-y += genio-1200-evk
 dtb-$(CONFIG_ARCH_MEDIATEK) += mt2712-evb.dtb
 dtb-$(CONFIG_ARCH_MEDIATEK) += mt6755-evb.dtb
 dtb-$(CONFIG_ARCH_MEDIATEK) += mt6779-evb.dtb
@@ -45,17 +48,3 @@ dtb-$(CONFIG_ARCH_MEDIATEK) += mt8516-pumpkin.dtb
 dtb-$(CONFIG_ARCH_MEDIATEK) += panel-boe-ne135fbm.dtbo
 dtb-$(CONFIG_ARCH_MEDIATEK) += display-dp.dtbo
 dtb-$(CONFIG_ARCH_MEDIATEK) += vcodec-vcu-mt8395.dtbo
-dtb-$(CONFIG_ARCH_MEDIATEK) += camera-ap1302-ar0430-dual.dtbo
-dtb-$(CONFIG_ARCH_MEDIATEK) += camera-ap1302-ar0430-single-csi0.dtbo
-dtb-$(CONFIG_ARCH_MEDIATEK) += camera-ap1302-ar0430-single-csi1.dtbo
-dtb-$(CONFIG_ARCH_MEDIATEK) += gpu-mali.dtbo
-dtb-$(CONFIG_ARCH_MEDIATEK) += net-ethernet.dtbo
-dtb-$(CONFIG_ARCH_MEDIATEK) += panel-startek-kd070fhfid015.dtbo
-dtb-$(CONFIG_ARCH_MEDIATEK) += video.dtbo
-dtb-$(CONFIG_ARCH_MEDIATEK) += apusys.dtbo
-dtb-$(CONFIG_ARCH_MEDIATEK) += display-dsiedp.dtbo
-dtb-$(CONFIG_ARCH_MEDIATEK) += display-edp.dtbo
-dtb-$(CONFIG_ARCH_MEDIATEK) += display-hdmidp.dtbo
-dtb-$(CONFIG_ARCH_MEDIATEK) += camera-imx214-csi0.dtbo
-dtb-$(CONFIG_ARCH_MEDIATEK) += display-dsilvds.dtbo
-dtb-$(CONFIG_ARCH_MEDIATEK) += display-edp2lvds.dtbo
