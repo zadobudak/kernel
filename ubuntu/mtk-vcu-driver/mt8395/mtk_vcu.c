@@ -1898,9 +1898,10 @@ static int mtk_vcu_release(struct inode *inode, struct file *file)
 		if (vcu->curr_ctx[VCU_VDEC])
 			vcu->cbf.vdec_realease_lock(vcu->curr_ctx[VCU_VDEC]);
 #endif
-	} else
-		vcu_get_task(NULL, 2);
-
+	} else {
+		if (vcu->vcuid == VCU_ID_VDEC)
+			vcu_get_task(NULL, 2);
+	}
 	mtk_vcu_mem_release(vcu_queue, vcu->clt_venc[0]);
 
 	mutex_unlock(&vcu->vcu_dev_mutex);
