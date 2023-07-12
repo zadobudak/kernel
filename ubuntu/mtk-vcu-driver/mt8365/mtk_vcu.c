@@ -600,7 +600,7 @@ static int vcu_ipi_get(struct mtk_vcu *vcu, unsigned long arg)
 {
 	int i = 0, ret;
 	unsigned char *user_data_addr = NULL;
-	struct share_obj share_buff_data;
+	struct share_obj share_buff_data = {0};
 
 	user_data_addr = (unsigned char *)arg;
 	ret = (long)copy_from_user(&share_buff_data, user_data_addr,
@@ -957,7 +957,7 @@ static long mtk_vcu_unlocked_ioctl(struct file *file, unsigned int cmd, unsigned
 	struct device *dev;
 	struct map_obj mem_map_obj;
 	struct compat_map_obj mem_map_obj_compat;
-	struct share_obj share_buff_data;
+	struct share_obj share_buff_data = {0};
 	struct mem_obj mem_buff_data;
 	struct mtk_vcu_queue *vcu_queue = (struct mtk_vcu_queue *)file->private_data;
 
