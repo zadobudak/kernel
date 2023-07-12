@@ -1241,7 +1241,11 @@ static int vcu_gce_cmd_flush(struct mtk_vcu *vcu,
 	pkt_ptr = cmdq_pkt_create(cl, SZ_16K);
 	if (IS_ERR_OR_NULL(pkt_ptr)) {
 		pr_info("[VCU] cmdq_pkt_create fail\n");
-		pkt_ptr = NULL;
+		if(pkt_ptr != NULL) {
+			cmdq_pkt_destroy(pkt_ptr);
+			pkt_ptr = NULL;
+		}
+		return -EINVAL;
 	}
 	buff.pkt_ptr = pkt_ptr;
 
