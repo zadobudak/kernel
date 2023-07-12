@@ -139,11 +139,6 @@ int enable_vcu_dbg_log;
 /* Default vcu_mtkdev[0] handle vdec, vcu_mtkdev[1] handle mdp */
 static struct mtk_vcu *vcu_mtkdev[MTK_VCU_NR_MAX];
 
-static struct task_struct *vcud_task;
-
-/* for protecting vpud file struct */
-struct mutex vpud_task_mutex;
-
 static __attribute__((used)) unsigned int time_ms_s, time_ms_e;
 #define time_check_start() { \
 		time_ms_s = jiffies_to_msecs(jiffies); \
@@ -407,6 +402,10 @@ struct mtk_vcu {
 	int enable_vcu_dbg_log;
 	/* process gce callback */
 	struct workqueue_struct *gce_callback_thread_wq[GCE_THNUM_MAX];
+
+	struct task_struct *vcud_task;
+	/* for protecting vpud file struct */
+	struct mutex vpud_task_mutex;
 };
 
 struct node_iova_t {
@@ -626,8 +625,10 @@ int vcu_ipi_send(struct platform_device *pdev,
 	if (vcu->abort || ret == 0) {
 		dev_info(&pdev->dev, "vcu ipi %d ack time out !%d", id, ret);
 		if (!vcu->abort) {
-			send_sig(SIGTERM, vcud_task, 0);
-			send_sig(SIGKILL, vcud_task, 0);
+			if (vcu->vcud_task) {
+				send_sig(SIGTERM, vcu->vcud_task, 0);
+				send_sig(SIGKILL, vcu->vcud_task, 0);
+			}
 		}
 		if (vcu->open_cnt > 0) {
 			dev_info(vcu->dev, "wait for vpud killed %d\n",
@@ -949,7 +950,7 @@ static int vcu_check_reg_base(struct mtk_vcu *vcu, u64 addr, u64 length)
 {
 	int i;
 
-	if (vcu->vcuid != 0 || addr >= MAP_PA_BASE_1GB)
+	if (vcu->vcuid != VCU_ID_VDEC || addr >= MAP_PA_BASE_1GB)
 		return -EINVAL;
 
 	for (i = 0; i < (int)VCU_MAP_HW_REG_NUM; i++)
@@ -1595,18 +1596,20 @@ EXPORT_SYMBOL_GPL(vcu_compare_version);
 
 void vcu_get_task(struct task_struct **task, int reset)
 {
-	vcu_dbg_log("mtk_vcu_get_task %p\n", vcud_task);
+	struct mtk_vcu *vcu = vcu_mtkdev[0];
 
-	mutex_lock(&vpud_task_mutex);
+	vcu_dbg_log("mtk_vcu_get_task %p\n", vcu->vcud_task);
+
+	mutex_lock(&vcu->vpud_task_mutex);
 
 	if (reset == 1) {
-		vcud_task = NULL;
+		vcu->vcud_task = NULL;
 	}
 
 	if (task)
-		*task = vcud_task;
+		*task = vcu->vcud_task;
 
-	mutex_unlock(&vpud_task_mutex);
+	mutex_unlock(&vcu->vpud_task_mutex);
 }
 EXPORT_SYMBOL_GPL(vcu_get_task);
 
@@ -1656,7 +1659,7 @@ static int vcu_ipi_init(struct mtk_vcu *vcu)
 	mutex_init(&vcu->vcu_mutex[VCU_RESOURCE]);
 	mutex_init(&vcu->ctx_ipi_binding[VCU_RESOURCE]);
 	mutex_init(&vcu->vcu_share);
-	mutex_init(&vpud_task_mutex);
+	mutex_init(&vcu->vpud_task_mutex);
 
 	return 0;
 }
@@ -1714,7 +1717,8 @@ static int vcu_init_ipi_handler(void *data, unsigned int len, void *priv)
 
 		atomic_set(&vcu->vdec_log_got, 1);
 		wake_up(&vcu->vdec_log_get_wq);
-		vcu_get_task(NULL, 1);
+		if (vcu->vcuid == VCU_ID_VDEC)
+			vcu_get_task(NULL, 1);
 
 		dev_info(vcu->dev, "[VCU] vpud killing\n");
 
@@ -1740,23 +1744,24 @@ static int mtk_vcu_open(struct inode *inode, struct file *file)
 	struct mtk_vcu *vcu;
 
 	if (strcmp(current->comm, "camd") == 0)
-		vcuid = 2;
+		vcuid = VCU_ID_CAM;
 	else if (strcmp(current->comm, "mdpd") == 0)
-		vcuid = 1;
+		vcuid = VCU_ID_MDP;
 	else if (strcmp(current->comm, "vpud") == 0) {
-		mutex_lock(&vpud_task_mutex);
-		if (vcud_task &&
-			(current->tgid != vcud_task->tgid ||
-			current->group_leader != vcud_task->group_leader)) {
-			mutex_unlock(&vpud_task_mutex);
+		vcuid = VCU_ID_VDEC;
+		vcu = vcu_mtkdev[vcuid];
+		mutex_lock(&vcu->vpud_task_mutex);
+		if (vcu->vcud_task &&
+			(current->tgid != vcu->vcud_task->tgid ||
+			current->group_leader != vcu->vcud_task->group_leader)) {
+			mutex_unlock(&vcu->vpud_task_mutex);
 			return -EACCES;
 		}
-		vcud_task = current->group_leader;
-		mutex_unlock(&vpud_task_mutex);
-		vcuid = 0;
+		vcu->vcud_task = current->group_leader;
+		mutex_unlock(&vcu->vpud_task_mutex);
 	} else if (strcmp(current->comm, "vdec_srv") == 0 ||
 		strcmp(current->comm, "venc_srv") == 0) {
-		vcuid = 0;
+		vcuid = VCU_ID_VDEC;
 	} else {
 		pr_info("[VCU] thread name: %s\n", current->comm);
 	}
@@ -1810,7 +1815,8 @@ static int mtk_vcu_release(struct inode *inode, struct file *file)
 	if (vcu->open_cnt == 0) {
 		/* reset vpud due to abnormal situations. */
 		vcu->abort = true;
-		vcu_get_task(NULL, 1);
+		if (vcu->vcud_task && vcu->vcuid == VCU_ID_VDEC)
+			vcu_get_task(NULL, 1);
 		up(&vcu->vpud_killed);  /* vdec worker */
 		up(&vcu->vpud_killed);  /* venc worker */
 
@@ -2622,11 +2628,11 @@ static int mtk_vcu_probe(struct platform_device *pdev)
 		vcu->iommu_padding = 0;
 #endif
 
-	if (vcuid == 2)
+	if (vcuid == VCU_ID_CAM)
 		vcu_mtkdev[vcuid]->path = CAM_PATH;
-	else if (vcuid == 1)
+	else if (vcuid == VCU_ID_MDP)
 		vcu_mtkdev[vcuid]->path = MDP_PATH;
-	else if (vcuid == 0) {
+	else if (vcuid == VCU_ID_VDEC) {
 		vcu_mtkdev[vcuid]->vdec_log_info = devm_kzalloc(dev,
 			sizeof(struct log_test_nofuse), GFP_KERNEL);
 		pr_info("[VCU] vdec_log_info %p %d vcuid %d vcu_ptr %p, iommu_padding:%d\n",
@@ -2648,7 +2654,7 @@ static int mtk_vcu_probe(struct platform_device *pdev)
 	vcu->dev = &pdev->dev;
 	platform_set_drvdata(pdev, vcu_mtkdev[vcuid]);
 
-	if (vcuid == 0) {
+	if (vcuid == VCU_ID_VDEC) {
 		for (i = 0; i < (int)VCU_MAP_HW_REG_NUM; i++) {
 			res = platform_get_resource(pdev, IORESOURCE_MEM, i);
 			if (res == NULL)
@@ -2874,7 +2880,7 @@ vcu_mutex_destroy:
 	mutex_destroy(&vcu->vcu_mutex[VCU_RESOURCE]);
 	mutex_destroy(&vcu->ctx_ipi_binding[VCU_RESOURCE]);
 	mutex_destroy(&vcu->vcu_share);
-	mutex_destroy(&vpud_task_mutex);
+	mutex_destroy(&vcu->vpud_task_mutex);
 err_ipi_init:
 	devm_kfree(dev, vcu);
 
