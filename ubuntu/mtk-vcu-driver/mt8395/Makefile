@@ -1,7 +1,10 @@
 SRC := $(shell pwd)
 
-# declare vcu config
-MTK_PLATFORM = mt8395
+# extra options
+MTK_PLATFORM = $(TARGET_PLATFORM)
+KBUILD_EXTRA_SYMBOLS_PATH = $(EXTRA_SYMBOLS_PATH)
+
+# declare kernel config
 CONFIG_VIDEO_MEDIATEK_VCU_MT8395=y
 CONFIG_MTK_IOMMU=y
 CONFIG_ARM64=y
@@ -9,9 +12,9 @@ CONFIG_COMPAT=y
 
 top := $(src)
 export top
-$(info mtk-vcu-mt8395/ src is $(src))
-$(info mtk-vcu-mt8395/ MTK_PLATFORM is $(MTK_PLATFORM))
-$(info mtk-vcu-mt8395/ current extra symbols $(KBUILD_EXTRA_SYMBOLS))
+$(info mtk-vcu-driver/ src is $(src))
+$(info mtk-vcu-driver/ MTK_PLATFORM is $(MTK_PLATFORM))
+$(info mtk-vcu-driver/ current extra symbols $(KBUILD_EXTRA_SYMBOLS_PATH))
 export MTK_PLATFORM
 
 EXTRA_CFLAGS += -DCONFIG_VIDEO_MEDIATEK_VCU_MT8395
@@ -32,7 +35,7 @@ mtk-vcu-objs += mtk_vcu.o
 mtk-vcu-objs += mtk_vcodec_mem.o
 
 all:
-	$(MAKE) -C $(KERNEL_SRC) M=$(SRC) modules KBUILD_EXTRA_SYMBOLS=`pwd`/mtk-vcodec-mt8395/Module.symvers
+	$(MAKE) -C $(KERNEL_SRC) M=$(SRC) modules KBUILD_EXTRA_SYMBOLS=$(KBUILD_EXTRA_SYMBOLS_PATH)
 
 modules_install:
 	$(MAKE) -C $(KERNEL_SRC) M=$(SRC) modules_install
