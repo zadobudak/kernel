@@ -435,7 +435,7 @@ static int vidioc_try_fmt(struct mtk_vcodec_ctx *ctx, struct v4l2_format *f, str
 					max_width, 4,
 					&pix_fmt_mp->height,
 					MTK_VENC_MIN_H,
-					max_height, 4, 6);
+					max_height, 5, 6);
 
 		if (pix_fmt_mp->width < org_w &&
 			(pix_fmt_mp->width + 16) <= max_width)
@@ -449,35 +449,29 @@ static int vidioc_try_fmt(struct mtk_vcodec_ctx *ctx, struct v4l2_format *f, str
 		if (pix_fmt_mp->num_planes == 1U) {
 			pix_fmt_mp->plane_fmt[0].sizeimage =
 				(pix_fmt_mp->width * pix_fmt_mp->height) +
-				(pix_fmt_mp->width * pix_fmt_mp->height) / 2 +
-				((ALIGN(pix_fmt_mp->width, 16) * 2) * 16);
+				(pix_fmt_mp->width * pix_fmt_mp->height) / 2;
 			pix_fmt_mp->plane_fmt[0].bytesperline =
 				pix_fmt_mp->width;
 		} else if (pix_fmt_mp->num_planes == 2U) {
 			pix_fmt_mp->plane_fmt[0].sizeimage =
-				pix_fmt_mp->width * pix_fmt_mp->height +
-				((ALIGN(pix_fmt_mp->width, 16) * 2) * 16);
+				pix_fmt_mp->width * pix_fmt_mp->height;
 			pix_fmt_mp->plane_fmt[0].bytesperline =
 				pix_fmt_mp->width;
 			pix_fmt_mp->plane_fmt[1].sizeimage =
-				(pix_fmt_mp->width * pix_fmt_mp->height) / 2 +
-				(ALIGN(pix_fmt_mp->width, 16) * 16);
+				(pix_fmt_mp->width * pix_fmt_mp->height) / 2;
 			pix_fmt_mp->plane_fmt[1].bytesperline =
 				pix_fmt_mp->width;
 		} else if (pix_fmt_mp->num_planes == 3U) {
 			pix_fmt_mp->plane_fmt[0].sizeimage =
-				pix_fmt_mp->width * pix_fmt_mp->height +
-				((ALIGN(pix_fmt_mp->width, 16) * 2) * 16);
+				pix_fmt_mp->width * pix_fmt_mp->height;
 			pix_fmt_mp->plane_fmt[0].bytesperline =
 				pix_fmt_mp->width;
 			pix_fmt_mp->plane_fmt[1].sizeimage =
-				(pix_fmt_mp->width * pix_fmt_mp->height) / 4 +
-				((ALIGN(pix_fmt_mp->width, 16) / 2) * 16);
+				(pix_fmt_mp->width * pix_fmt_mp->height) / 4;
 			pix_fmt_mp->plane_fmt[1].bytesperline =
 				pix_fmt_mp->width / 2;
 			pix_fmt_mp->plane_fmt[2].sizeimage =
-				(pix_fmt_mp->width * pix_fmt_mp->height) / 4 +
-				((ALIGN(pix_fmt_mp->width, 16) / 2) * 16);
+				(pix_fmt_mp->width * pix_fmt_mp->height) / 4;
 			pix_fmt_mp->plane_fmt[2].bytesperline =
 				pix_fmt_mp->width / 2;
 		} else
@@ -1666,7 +1660,7 @@ void mtk_vcodec_enc_set_default_params(struct mtk_vcodec_ctx *ctx)
 				MTK_VENC_MAX_W, 4,
 				&q_data->coded_height,
 				MTK_VENC_MIN_H,
-				MTK_VENC_MAX_H, 4, 6);
+				MTK_VENC_MAX_H, 5, 6);
 
 	if (q_data->coded_width < DFT_CFG_WIDTH &&
 		(q_data->coded_width + 16) <= MTK_VENC_MAX_W)
@@ -1678,30 +1672,24 @@ void mtk_vcodec_enc_set_default_params(struct mtk_vcodec_ctx *ctx)
 	if (ctx->out_fmt_default->num_planes == 1) {
 		q_data->sizeimage[0] =
 			(q_data->coded_width * q_data->coded_height) +
-			(q_data->coded_width * q_data->coded_height) / 2 +
-			((ALIGN(q_data->coded_width, 16) * 2) * 16);
+			(q_data->coded_width * q_data->coded_height) / 2;
 		q_data->bytesperline[0] = q_data->coded_width;
 	} else if (ctx->out_fmt_default->num_planes == 2) {
 		q_data->sizeimage[0] =
-			q_data->coded_width * q_data->coded_height+
-			((ALIGN(q_data->coded_width, 16) * 2) * 16);
+			q_data->coded_width * q_data->coded_height;
 		q_data->bytesperline[0] = q_data->coded_width;
 		q_data->sizeimage[1] =
-			(q_data->coded_width * q_data->coded_height) / 2 +
-			(ALIGN(q_data->coded_width, 16) * 16);
+			(q_data->coded_width * q_data->coded_height) / 2;
 		q_data->bytesperline[1] = q_data->coded_width;
 	} else if (ctx->out_fmt_default->num_planes == 3) {
 		q_data->sizeimage[0] =
-			q_data->coded_width * q_data->coded_height+
-			((ALIGN(q_data->coded_width, 16) * 2) * 16);
+			q_data->coded_width * q_data->coded_height;
 		q_data->bytesperline[0] = q_data->coded_width;
 		q_data->sizeimage[1] =
-			(q_data->coded_width * q_data->coded_height) / 4 +
-			(ALIGN(q_data->coded_width, 16) * 16);
+			(q_data->coded_width * q_data->coded_height) / 4;
 		q_data->bytesperline[1] = q_data->coded_width / 2;
 		q_data->sizeimage[2] =
-			(q_data->coded_width * q_data->coded_height) / 4 +
-			(ALIGN(q_data->coded_width, 16) * 16);
+			(q_data->coded_width * q_data->coded_height) / 4;
 		q_data->bytesperline[2] = q_data->coded_width / 2;
 	}
 
