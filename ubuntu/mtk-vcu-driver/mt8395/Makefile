@@ -10,6 +10,8 @@ CONFIG_MTK_IOMMU=y
 CONFIG_ARM64=y
 CONFIG_COMPAT=y
 
+MTK_IOT_PLATFORM=mt8395
+
 top := $(src)
 export top
 $(info mtk-vcu-driver/ src is $(src))
@@ -23,16 +25,16 @@ EXTRA_CFLAGS += -DCONFIG_ARM64
 EXTRA_CFLAGS += -DCONFIG_COMPAT
 
 # target object
-obj-m := mtk-vcu.o
+obj-m := mtk-vcu-$(MTK_IOT_PLATFORM).o
 
 # include
 EXTRA_CFLAGS += -I$(src)/
 # mtk_vcu_controls.h
 EXTRA_CFLAGS += -I$(srctree)/$(src)/external_include/uapi/
 
-# mtk-vcu.ko
-mtk-vcu-objs += mtk_vcu.o
-mtk-vcu-objs += mtk_vcodec_mem.o
+# mtk-vcu-$(MTK_IOT_PLATFORM).ko
+mtk-vcu-$(MTK_IOT_PLATFORM)-objs += mtk_vcu.o
+mtk-vcu-$(MTK_IOT_PLATFORM)-objs += mtk_vcodec_mem.o
 
 all:
 	$(MAKE) -C $(KERNEL_SRC) M=$(SRC) modules KBUILD_EXTRA_SYMBOLS=$(KBUILD_EXTRA_SYMBOLS_PATH)
