@@ -683,7 +683,7 @@ void *vcu_mapping_dm_addr(struct mtk_vpu_plat *vpu,
 	uintptr_t d_off = d_vma - VCU_DMEM0_VMA(vcu);
 	uintptr_t d_va;
 
-	if (dtcm_dmem_addr == 0UL || d_off > VCU_DMEM0_LEN(vcu)) {
+	if (dtcm_dmem_addr == 0UL || d_off >= VCU_DMEM0_LEN(vcu)) {
 		dev_err(vcu->dev, "[VCU] %s: Invalid vma 0x%lx len %lx\n",
 			__func__, dtcm_dmem_addr, VCU_DMEM0_LEN(vcu));
 		return NULL;
