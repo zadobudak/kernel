@@ -103,6 +103,13 @@ enum vcu_codec_ipi_type {
 	VCU_CODEC_MAX
 };
 
+enum vcu_id {
+	VCU_ID_VDEC = 0,
+	VCU_ID_MDP,
+	VCU_ID_CAM,
+	VCU_ID_MAX
+};
+
 struct vcu_v4l2_callback_func {
 	void (*enc_prepare)(void *ctx_prepare,
 		unsigned int core_id, unsigned long *flags);
