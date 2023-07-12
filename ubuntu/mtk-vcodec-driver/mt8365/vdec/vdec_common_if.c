@@ -183,8 +183,11 @@ static int vdec_init(struct mtk_vcodec_ctx *ctx, unsigned long *h_vdec)
 	struct vdec_inst *inst = NULL;
 	int err;
 
+	if (!ctx)
+		return -EINVAL;
+
 	inst = kzalloc(sizeof(*inst), GFP_KERNEL);
-	if (!inst || !ctx)
+	if (!inst)
 		return -ENOMEM;
 
 	inst->ctx = ctx;
