@@ -661,7 +661,7 @@ static int vcu_ipi_get(struct mtk_vcu *vcu, unsigned long arg)
 	unsigned int i = 0, p = 0;
 	int ret;
 	unsigned char *user_data_addr = NULL;
-	struct share_obj share_buff_data;
+	struct share_obj share_buff_data = {0};
 	struct share_obj *tmp;
 	struct cam_ap_ipi_cmd *cmd;
 	struct dma_buf *dbuf;
@@ -2764,7 +2764,7 @@ static int mtk_vcu_probe(struct platform_device *pdev)
 				dev_err(dev, "can't parse gce-events property");
 				return -ENODEV;
 			}
-			dev_info(dev, "%s %d gce event id: %d, name: %s gce_codec_eid:%d", 
+			dev_info(dev, "%s %d gce event id: %d, name: %s gce_codec_eid:%d",
 				__func__, __LINE__, gce_event_id, gce_event_name, vcu->gce_codec_eid[gce_event_id]);
 		} else {
 			dev_info(dev, "cannot find gce event id by name: %s, need check dts settings",
