@@ -1085,7 +1085,6 @@ static void vcu_gce_flush_callback(struct cmdq_cb_data data)
 		pr_info("[VCU] flush_callback data->sta:%d\n", data.sta);
 		if(buff->cmdq_buff.secure == 0)
 			vcu_gce_timeout_callback(data);
-		return;
 	}
 	i = (buff->cmdq_buff.codec_type == VCU_VDEC) ? VCU_VDEC : VCU_VENC;
 	core_id = buff->cmdq_buff.core_id;
