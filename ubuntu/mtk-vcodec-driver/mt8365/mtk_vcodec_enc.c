@@ -1706,6 +1706,10 @@ void mtk_vcodec_enc_set_default_params(struct mtk_vcodec_ctx *ctx)
 	ctx->enc_params.framerate_num = MTK_DEFAULT_FRAMERATE_NUM;
 	ctx->enc_params.framerate_denom = MTK_DEFAULT_FRAMERATE_DENOM;
 
+	/* encode default params, must sync with ctrl defaults */
+	ctx->enc_params.profile = V4L2_MPEG_VIDEO_H264_PROFILE_HIGH;
+	ctx->enc_params.level = V4L2_MPEG_VIDEO_H264_LEVEL_4_0;
+	ctx->enc_params.tier = V4L2_MPEG_VIDEO_HEVC_TIER_MAIN;
 }
 
 int mtk_vcodec_enc_ctrls_setup(struct mtk_vcodec_ctx *ctx)
