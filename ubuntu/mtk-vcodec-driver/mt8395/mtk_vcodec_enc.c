@@ -27,6 +27,9 @@
 #define MTK_VENC_MAX_H  1088U
 #define DFT_CFG_WIDTH   MTK_VENC_MIN_W
 #define DFT_CFG_HEIGHT  MTK_VENC_MIN_H
+#define  MTK_VENC_MIN_OUTPUT_BUFFER_COUNT 3
+#define  MTK_VENC_MIN_CAPTURE_BUFFER_COUNT 3
+
 
 static void mtk_venc_worker(struct work_struct *work);
 static struct mtk_video_fmt
@@ -138,14 +141,16 @@ static void get_supported_framesizes(struct mtk_vcodec_ctx *ctx)
 		for (i = 0; i < MTK_MAX_ENC_CODECS_SUPPORT; i++) {
 			if (mtk_venc_framesizes[i].fourcc != 0) {
 				mtk_v4l2_debug(1,
-				"venc_fs[%d] fourcc %d s %d %d %d %d %d %d\n",
+				"venc_fs[%d] fourcc %d s %d %d %d %d %d %d Profile/Level %d %d\n",
 				i, mtk_venc_framesizes[i].fourcc,
 				mtk_venc_framesizes[i].stepwise.min_width,
 				mtk_venc_framesizes[i].stepwise.max_width,
 				mtk_venc_framesizes[i].stepwise.step_width,
 				mtk_venc_framesizes[i].stepwise.min_height,
 				mtk_venc_framesizes[i].stepwise.max_height,
-				mtk_venc_framesizes[i].stepwise.step_height);
+				mtk_venc_framesizes[i].stepwise.step_height,
+				mtk_venc_framesizes[i].profile,
+				mtk_venc_framesizes[i].level);
 			}
 		}
 	}
@@ -643,8 +648,20 @@ static int vidioc_venc_g_ctrl(struct v4l2_ctrl *ctrl)
 			GET_PARAM_RESOLUTION_CHANGE,
 			reschange);
 		break;
+	case V4L2_CID_MIN_BUFFERS_FOR_CAPTURE:
+		ctrl->val = ctx->enc_params.num_b_frame + MTK_VENC_MIN_CAPTURE_BUFFER_COUNT;
+		mtk_v4l2_debug(2,
+			"V4L2_CID_MIN_BUFFERS_FOR_CAPTURE val = %d",
+			ctrl->val);
+		break;
+	case V4L2_CID_MIN_BUFFERS_FOR_OUTPUT:
+		ctrl->val = ctx->enc_params.num_b_frame + MTK_VENC_MIN_OUTPUT_BUFFER_COUNT;
+		mtk_v4l2_debug(2,
+			"V4L2_CID_MIN_BUFFERS_FOR_OUTPUT val = %d",
+			ctrl->val);
+		break;
 	default:
-		mtk_v4l2_debug(4, "ctrl-id=%d not support!", ctrl->id);
+		mtk_v4l2_debug(2, "ctrl-id=%d not support!", ctrl->id);
 		ret = -EINVAL;
 		break;
 	}
@@ -3589,6 +3606,30 @@ int mtk_vcodec_enc_ctrls_setup(struct mtk_vcodec_ctx *ctx)
 	cfg.def = 0;
 	cfg.ops = ops;
 	cfg.dims[0] = sizeof(struct venc_resolution_change)/sizeof(u32);
+	mtk_vcodec_enc_custom_ctrls_check(handler, &cfg, NULL);
+
+	memset(&cfg, 0, sizeof(cfg));
+	cfg.id = V4L2_CID_MIN_BUFFERS_FOR_CAPTURE;
+	cfg.type = V4L2_CTRL_TYPE_INTEGER;
+	cfg.flags = V4L2_CTRL_FLAG_VOLATILE;
+	cfg.name = "Video encode Min Capture buffer count";
+	cfg.min = 2;
+	cfg.max = 12;
+	cfg.step = 1;
+	cfg.def = 3;
+	cfg.ops = ops;
+	mtk_vcodec_enc_custom_ctrls_check(handler, &cfg, NULL);
+
+	memset(&cfg, 0, sizeof(cfg));
+	cfg.id = V4L2_CID_MIN_BUFFERS_FOR_OUTPUT;
+	cfg.type = V4L2_CTRL_TYPE_INTEGER;
+	cfg.flags = V4L2_CTRL_FLAG_VOLATILE;
+	cfg.name = "Video encode Min Output buffer count";
+	cfg.min = 2;
+	cfg.max = 12;
+	cfg.step = 1;
+	cfg.def = 3;
+	cfg.ops = ops;
 	mtk_vcodec_enc_custom_ctrls_check(handler, &cfg, NULL);
 
 	if (handler->error) {

@@ -18,8 +18,6 @@
 #include "mtk_vcodec_intr.h"
 #include "mtk_vcu.h"
 
-
-
 static unsigned int venc_h265_get_profile(struct venc_inst *inst,
 	unsigned int profile)
 {
