@@ -129,7 +129,7 @@ static int vdec_init(struct mtk_vcodec_ctx *ctx, unsigned long *h_vdec)
 
 	// assgin handle for ctx->drv_handle before adding to list
 	*h_vdec = (unsigned long)inst;
-	mtk_vcodec_add_ctx_list(ctx);
+	mtk_vcodec_add_ctx_list_v1(ctx);
 
 	err = vcu_dec_init(&inst->vcu);
 	if (err != 0) {
@@ -144,7 +144,7 @@ static int vdec_init(struct mtk_vcodec_ctx *ctx, unsigned long *h_vdec)
 	return 0;
 
 error_free_inst:
-	mtk_vcodec_del_ctx_list(ctx);
+	mtk_vcodec_del_ctx_list_v1(ctx);
 	*h_vdec = NULL;
 	kfree(inst);
 

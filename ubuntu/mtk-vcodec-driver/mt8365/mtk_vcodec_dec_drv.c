@@ -39,9 +39,9 @@
 #define VDEC_IRQ_CLR	0x10
 #define VDEC_IRQ_CFG_REG	0xa4
 
-module_param(mtk_v4l2_dbg_level, int, 0644);
-module_param(mtk_vcodec_dbg, bool, 0644);
-module_param(mtk_vcodec_perf, bool, 0644);
+module_param(mtk_v4l2_dbg_level_v1, int, 0644);
+module_param(mtk_vcodec_dbg_v1, bool, 0644);
+module_param(mtk_vcodec_perf_v1, bool, 0644);
 
 /* Wake up context wait_queue */
 static void wake_up_ctx(struct mtk_vcodec_ctx *ctx)
@@ -59,7 +59,7 @@ static irqreturn_t mtk_vcodec_dec_irq_handler(int irq, void *priv)
 	void __iomem *vdec_misc_addr = dev->reg_base[VDEC_MISC] +
 					VDEC_IRQ_CFG_REG;
 
-	ctx = mtk_vcodec_get_curr_ctx(dev);
+	ctx = mtk_vcodec_get_curr_ctx_v1_ext(dev);
 
 	/* check if HW active or not */
 	cg_status = readl(dev->reg_base[0]);
@@ -193,7 +193,7 @@ static int fops_vcodec_release(struct file *file)
 	v4l2_fh_exit(&ctx->fh);
 	v4l2_ctrl_handler_free(&ctx->ctrl_hdl);
 
-	mtk_vcodec_del_ctx_list(ctx);
+	mtk_vcodec_del_ctx_list_v1(ctx);
 	kfree(ctx);
 	mutex_unlock(&dev->dev_mutex);
 	return 0;

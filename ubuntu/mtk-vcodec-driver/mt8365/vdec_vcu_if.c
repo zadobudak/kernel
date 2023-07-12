@@ -108,7 +108,7 @@ int vcu_dec_ipi_handler(void *data, unsigned int len, void *priv)
 			break;
 		case VCU_IPIMSG_DEC_WAITISR:
 			/* wait decoder done interrupt */
-			mtk_vcodec_wait_for_done_ctx(vcu->ctx,
+			mtk_vcodec_wait_for_done_ctx_v1(vcu->ctx,
 						     MTK_INST_IRQ_RECEIVED,
 						     WAIT_INTR_TIMEOUT_MS);
 			ret = 1;

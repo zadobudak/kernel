@@ -34,8 +34,8 @@
 #include "mtk_vcodec_util.h"
 #include "mtk_vpu.h"
 
-module_param(mtk_v4l2_dbg_level, int, S_IRUGO | S_IWUSR);
-module_param(mtk_vcodec_dbg, bool, S_IRUGO | S_IWUSR);
+module_param(mtk_v4l2_dbg_level_v1, int, S_IRUGO | S_IWUSR);
+module_param(mtk_vcodec_dbg_v1, bool, S_IRUGO | S_IWUSR);
 
 /* Wake up context wait_queue */
 static void wake_up_ctx(struct mtk_vcodec_ctx *ctx, unsigned int reason)
@@ -189,7 +189,7 @@ static int fops_vcodec_release(struct file *file)
 	v4l2_ctrl_handler_free(&ctx->ctrl_hdl);
 	v4l2_m2m_ctx_release(ctx->m2m_ctx);
 
-	mtk_vcodec_del_ctx_list(ctx);
+	mtk_vcodec_del_ctx_list_v1(ctx);
 	kfree(ctx);
 	mutex_unlock(&dev->dev_mutex);
 	return 0;
@@ -271,7 +271,7 @@ static int mtk_vcodec_probe(struct platform_device *pdev)
 	struct mtk_vcodec_pm *pm;
 	int i, j, ret;
 
-	mtk_vcodec_dbg = true;
+	mtk_vcodec_dbg_v1 = true;
 
 	dev = devm_kzalloc(&pdev->dev, sizeof(*dev), GFP_KERNEL);
 	if (!dev)

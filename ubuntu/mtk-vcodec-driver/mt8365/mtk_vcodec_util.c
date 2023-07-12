@@ -20,20 +20,20 @@
 #include "mtk_vpu.h"
 
 /* For encoder, this will enable logs in venc/*/
-bool mtk_vcodec_dbg;
-EXPORT_SYMBOL(mtk_vcodec_dbg);
+bool mtk_vcodec_dbg_v1;
+EXPORT_SYMBOL(mtk_vcodec_dbg_v1);
 
 /* For vcodec performance measure */
-bool mtk_vcodec_perf;
-EXPORT_SYMBOL(mtk_vcodec_perf);
+bool mtk_vcodec_perf_v1;
+EXPORT_SYMBOL(mtk_vcodec_perf_v1);
 
 /* The log level of v4l2 encoder or decoder driver.
  * That is, files under mtk-vcodec/.
  */
-int mtk_v4l2_dbg_level;
-EXPORT_SYMBOL(mtk_v4l2_dbg_level);
+int mtk_v4l2_dbg_level_v1;
+EXPORT_SYMBOL(mtk_v4l2_dbg_level_v1);
 
-void __iomem *mtk_vcodec_get_reg_addr(struct mtk_vcodec_ctx *data,
+void __iomem *mtk_vcodec_get_reg_addr_v1(struct mtk_vcodec_ctx *data,
 					unsigned int reg_idx)
 {
 	struct mtk_vcodec_ctx *ctx = (struct mtk_vcodec_ctx *)data;
@@ -44,7 +44,7 @@ void __iomem *mtk_vcodec_get_reg_addr(struct mtk_vcodec_ctx *data,
 	}
 	return ctx->dev->reg_base[reg_idx];
 }
-EXPORT_SYMBOL(mtk_vcodec_get_reg_addr);
+EXPORT_SYMBOL(mtk_vcodec_get_reg_addr_v1);
 
 int mtk_vcodec_mem_alloc(struct mtk_vcodec_ctx *data,
 			struct mtk_vcodec_mem *mem)
@@ -70,7 +70,7 @@ int mtk_vcodec_mem_alloc(struct mtk_vcodec_ctx *data,
 
 	return 0;
 }
-EXPORT_SYMBOL(mtk_vcodec_mem_alloc);
+//EXPORT_SYMBOL(mtk_vcodec_mem_alloc);
 
 void mtk_vcodec_mem_free(struct mtk_vcodec_ctx *data,
 			struct mtk_vcodec_mem *mem)
@@ -95,9 +95,9 @@ void mtk_vcodec_mem_free(struct mtk_vcodec_ctx *data,
 	mem->dma_addr = 0;
 	mem->size = 0;
 }
-EXPORT_SYMBOL(mtk_vcodec_mem_free);
+//EXPORT_SYMBOL(mtk_vcodec_mem_free);
 
-void mtk_vcodec_set_curr_ctx(struct mtk_vcodec_dev *dev,
+void mtk_vcodec_set_curr_ctx_v1(struct mtk_vcodec_dev *dev,
 	struct mtk_vcodec_ctx *ctx)
 {
 	unsigned long flags;
@@ -106,9 +106,9 @@ void mtk_vcodec_set_curr_ctx(struct mtk_vcodec_dev *dev,
 	dev->curr_ctx = ctx;
 	spin_unlock_irqrestore(&dev->irqlock, flags);
 }
-EXPORT_SYMBOL(mtk_vcodec_set_curr_ctx);
+EXPORT_SYMBOL(mtk_vcodec_set_curr_ctx_v1);
 
-struct mtk_vcodec_ctx *mtk_vcodec_get_curr_ctx(struct mtk_vcodec_dev *dev)
+struct mtk_vcodec_ctx *mtk_vcodec_get_curr_ctx_v1_ext(struct mtk_vcodec_dev *dev)
 {
 	unsigned long flags;
 	struct mtk_vcodec_ctx *ctx;
@@ -118,23 +118,23 @@ struct mtk_vcodec_ctx *mtk_vcodec_get_curr_ctx(struct mtk_vcodec_dev *dev)
 	spin_unlock_irqrestore(&dev->irqlock, flags);
 	return ctx;
 }
-EXPORT_SYMBOL(mtk_vcodec_get_curr_ctx);
+EXPORT_SYMBOL(mtk_vcodec_get_curr_ctx_v1_ext);
 
-void mtk_vcodec_add_ctx_list(struct mtk_vcodec_ctx *ctx)
+void mtk_vcodec_add_ctx_list_v1(struct mtk_vcodec_ctx *ctx)
 {
 	mutex_lock(&ctx->dev->ctx_mutex);
 	list_add(&ctx->list, &ctx->dev->ctx_list);
 	mutex_unlock(&ctx->dev->ctx_mutex);
 }
-EXPORT_SYMBOL_GPL(mtk_vcodec_add_ctx_list);
+EXPORT_SYMBOL_GPL(mtk_vcodec_add_ctx_list_v1);
 
-void mtk_vcodec_del_ctx_list(struct mtk_vcodec_ctx *ctx)
+void mtk_vcodec_del_ctx_list_v1(struct mtk_vcodec_ctx *ctx)
 {
 	mutex_lock(&ctx->dev->ctx_mutex);
 	list_del_init(&ctx->list);
 	mutex_unlock(&ctx->dev->ctx_mutex);
 }
-EXPORT_SYMBOL_GPL(mtk_vcodec_del_ctx_list);
+EXPORT_SYMBOL_GPL(mtk_vcodec_del_ctx_list_v1);
 
 
 MODULE_LICENSE("GPL v2");

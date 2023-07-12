@@ -254,13 +254,13 @@ static int venc_init(struct mtk_vcodec_ctx *ctx, unsigned long *handle)
 		}
 	}
 
-	inst->hw_base = mtk_vcodec_get_reg_addr(inst->ctx, VENC_SYS);
+	inst->hw_base = mtk_vcodec_get_reg_addr_v1(inst->ctx, VENC_SYS);
 
 	mtk_vcodec_debug_enter(inst);
 
 	// assgin handle for ctx->drv_handle before adding to list
 	(*handle) = (unsigned long)inst;
-	mtk_vcodec_add_ctx_list(ctx);
+	mtk_vcodec_add_ctx_list_v1(ctx);
 
 	ret = vcu_enc_init(&inst->vcu_inst);
 
@@ -269,7 +269,7 @@ static int venc_init(struct mtk_vcodec_ctx *ctx, unsigned long *handle)
 	mtk_vcodec_debug_leave(inst);
 
 	if (ret) {
-		mtk_vcodec_del_ctx_list(ctx);
+		mtk_vcodec_del_ctx_list_v1(ctx);
 		(*handle) = NULL;
 		kfree(inst);
 	}

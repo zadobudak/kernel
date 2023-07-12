@@ -30,9 +30,9 @@ struct mtk_vcodec_mem {
 struct mtk_vcodec_ctx;
 struct mtk_vcodec_dev;
 
-extern int mtk_v4l2_dbg_level;
-extern bool mtk_vcodec_dbg;
-extern bool mtk_vcodec_perf;
+extern int mtk_v4l2_dbg_level_v1;
+extern bool mtk_vcodec_dbg_v1;
+extern bool mtk_vcodec_perf_v1;
 
 //#undef DEBUG
 #define DEBUG
@@ -41,7 +41,7 @@ extern bool mtk_vcodec_perf;
 
 #define mtk_v4l2_debug(level, fmt, args...)				 \
 	do {								 \
-		if ((mtk_v4l2_dbg_level & level) == level)			 \
+		if ((mtk_v4l2_dbg_level_v1 & level) == level)			 \
 			pr_info("[MTK_V4L2] level=%d %s(),%d: " fmt "\n",\
 				level, __func__, __LINE__, ##args);	 \
 	} while (0)
@@ -59,7 +59,7 @@ extern bool mtk_vcodec_perf;
 
 #define mtk_vcodec_debug(h, fmt, args...)				\
 	do {								\
-		if (mtk_vcodec_dbg)					\
+		if (mtk_vcodec_dbg_v1)					\
 			pr_info("[MTK_VCODEC][%d]: %s() " fmt "\n",	\
 				((struct mtk_vcodec_ctx *)h->ctx)->id, \
 				__func__, ##args);			\
@@ -67,7 +67,7 @@ extern bool mtk_vcodec_perf;
 
 #define mtk_vcodec_perf_log(fmt, args...)				\
 	do {								\
-		if (mtk_vcodec_perf)				\
+		if (mtk_vcodec_perf_v1)				\
 			pr_info("[MTK_PERF] " fmt "\n", ##args);	\
 	} while (0)
 
@@ -94,16 +94,16 @@ extern bool mtk_vcodec_perf;
 
 #endif
 
-void __iomem *mtk_vcodec_get_reg_addr(struct mtk_vcodec_ctx *data,
+void __iomem *mtk_vcodec_get_reg_addr_v1(struct mtk_vcodec_ctx *data,
 				unsigned int reg_idx);
 int mtk_vcodec_mem_alloc(struct mtk_vcodec_ctx *data,
 				struct mtk_vcodec_mem *mem);
 void mtk_vcodec_mem_free(struct mtk_vcodec_ctx *data,
 				struct mtk_vcodec_mem *mem);
-void mtk_vcodec_set_curr_ctx(struct mtk_vcodec_dev *dev,
+void mtk_vcodec_set_curr_ctx_v1(struct mtk_vcodec_dev *dev,
 	struct mtk_vcodec_ctx *ctx);
-struct mtk_vcodec_ctx *mtk_vcodec_get_curr_ctx(struct mtk_vcodec_dev *dev);
-void mtk_vcodec_add_ctx_list(struct mtk_vcodec_ctx *ctx);
-void mtk_vcodec_del_ctx_list(struct mtk_vcodec_ctx *ctx);
+struct mtk_vcodec_ctx *mtk_vcodec_get_curr_ctx_v1_ext(struct mtk_vcodec_dev *dev);
+void mtk_vcodec_add_ctx_list_v1(struct mtk_vcodec_ctx *ctx);
+void mtk_vcodec_del_ctx_list_v1(struct mtk_vcodec_ctx *ctx);
 
 #endif /* _MTK_VCODEC_UTIL_H_ */

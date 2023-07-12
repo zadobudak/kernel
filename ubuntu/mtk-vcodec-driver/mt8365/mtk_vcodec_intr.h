@@ -20,7 +20,7 @@
 struct mtk_vcodec_ctx;
 
 /* timeout is ms */
-int mtk_vcodec_wait_for_done_ctx(struct mtk_vcodec_ctx *data, int command,
+int mtk_vcodec_wait_for_done_ctx_v1(struct mtk_vcodec_ctx *data, int command,
 				unsigned int timeout_ms);
 
 #endif /* _MTK_VCODEC_INTR_H_ */

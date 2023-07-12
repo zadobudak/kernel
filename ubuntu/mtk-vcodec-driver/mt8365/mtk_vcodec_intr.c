@@ -19,7 +19,7 @@
 #include "mtk_vcodec_intr.h"
 #include "mtk_vcodec_util.h"
 
-int mtk_vcodec_wait_for_done_ctx(struct mtk_vcodec_ctx  *ctx, int command,
+int mtk_vcodec_wait_for_done_ctx_v1(struct mtk_vcodec_ctx  *ctx, int command,
 				 unsigned int timeout_ms)
 {
 	wait_queue_head_t *waitqueue;
@@ -50,7 +50,7 @@ int mtk_vcodec_wait_for_done_ctx(struct mtk_vcodec_ctx  *ctx, int command,
 
 	return status;
 }
-EXPORT_SYMBOL(mtk_vcodec_wait_for_done_ctx);
+EXPORT_SYMBOL(mtk_vcodec_wait_for_done_ctx_v1);
 
 
 MODULE_LICENSE("GPL v2");
