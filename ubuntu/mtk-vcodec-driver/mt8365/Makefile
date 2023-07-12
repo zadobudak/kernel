@@ -53,6 +53,8 @@ modules_install:
 	$(MAKE) -C $(KERNEL_SRC) M=$(SRC) modules_install
 
 clean:
-	rm -rf *.o *~ .depend .*.cmd *.ko *.mod.c
+	rm -rf *.o *~ .depend .*.cmd *.ko *.mod.c *.mod
+	rm -rf vdec/*.o vdec/.*.cmd
+	rm -rf venc/*.o venc/.*.cmd
 	rm -rf Module.markers Module.symvers modules.order
 	rm -rf .tmp_versions Modules.symvers
