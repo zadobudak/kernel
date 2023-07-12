@@ -42,6 +42,7 @@
 #include "mailbox/cmdq-sec.h"
 #endif
 #include <linux/mtk_vcu_controls.h>
+#include <linux/mtk_vcu_camif.h>
 #include "mtk_vcu.h"
 //#include "vcp_helper.h"
 #include <linux/soc/mediatek/mtk-cmdq.h>
@@ -656,10 +657,13 @@ EXPORT_SYMBOL_GPL(vcu_ipi_send);
 
 static int vcu_ipi_get(struct mtk_vcu *vcu, unsigned long arg)
 {
-	unsigned int i = 0;
+	unsigned int i = 0, p = 0;
 	int ret;
 	unsigned char *user_data_addr = NULL;
 	struct share_obj share_buff_data;
+	struct share_obj *tmp;
+	struct cam_ap_ipi_cmd *cmd;
+	struct dma_buf *dbuf;
 
 	user_data_addr = (unsigned char *)arg;
 	ret = (long)copy_from_user(&share_buff_data, user_data_addr,
@@ -685,6 +689,22 @@ static int vcu_ipi_get(struct mtk_vcu *vcu, unsigned long arg)
 			vcu->vcuid, i, ret, __func__);
 		return ret;
 	}
+
+	// If it's cam buffer init, install fd
+	tmp = &vcu->user_obj[i];
+	if (tmp->id > IPI_CAMERA && tmp->id < IPI_CAMERA_MAX) {
+		cmd = (struct cam_ap_ipi_cmd *)tmp->share_buf;
+		if (cmd->msg_id == AP_IPIMSG_CAM_INIT_BUFFER) {
+			for (p = 0; p < cmd->info.num_planes; ++p) {
+				dbuf = (struct dma_buf *)cmd->info.dbuf.ptr[p];
+				cmd->info.dbuf.fd[p] = dma_buf_fd(dbuf, O_CLOEXEC | O_RDWR);
+				if (cmd->info.dbuf.fd[p] < 0)
+					pr_err("[CAM-VCU] %s(%d) Invalid dma_buf!\n",
+						__func__, __LINE__);
+			}
+		}
+	}
+
 	ret = copy_to_user(user_data_addr, &vcu->user_obj[i],
 			   (unsigned long)sizeof(struct share_obj));
 	if (ret != 0) {
