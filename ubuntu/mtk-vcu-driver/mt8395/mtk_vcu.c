@@ -1014,8 +1014,7 @@ static void vcu_set_gce_cmd(struct cmdq_pkt *pkt,
 		if (data < GCE_EVENT_MAX)
 			cmdq_pkt_wfe(pkt, vcu->gce_codec_eid[data], true);
 		else
-			pr_info("[VCU] %s got wrong eid %llu gce_codec_eid:%d\n",
-				__func__, data, vcu->gce_codec_eid[data]);
+			pr_info("[VCU] %s got wrong eid %llu\n", __func__, data);
 	break;
 	case CMD_MEM_MV:
 		if ((vcu_check_reg_base(vcu, addr, 4) == 0 ||
