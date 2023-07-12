@@ -1677,9 +1677,10 @@ static int mtk_vcu_release(struct inode *inode, struct file *file)
 		spin_lock_irqsave(&vcu_ptr->vpud_sig_lock, flags);
 		vcu_ptr->vpud_is_going_down = 0;
 		spin_unlock_irqrestore(&vcu_ptr->vpud_sig_lock, flags);
-
+#if ENABLE_GCE
 		if (vcu_ptr->curr_ctx[VCU_VDEC])
 			vcu_ptr->cbf.vdec_realease_lock(vcu_ptr->curr_ctx[VCU_VDEC]);
+#endif
 	}
 
 	return 0;
