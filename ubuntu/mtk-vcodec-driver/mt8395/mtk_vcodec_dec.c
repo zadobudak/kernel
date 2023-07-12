@@ -2259,6 +2259,140 @@ static int vidioc_vdec_s_selection(struct file *file, void *priv,
 	return 0;
 }
 
+static int vidioc_vdec_g_fmt(struct file *file, void *priv,
+							 struct v4l2_format *f)
+{
+	struct mtk_vcodec_ctx *ctx = fh_to_ctx(priv);
+	struct v4l2_pix_format_mplane *pix_mp = &f->fmt.pix_mp;
+	struct vb2_queue *vq;
+	struct mtk_q_data *q_data;
+	u32     fourcc;
+	unsigned int i = 0;
+
+	vq = v4l2_m2m_get_vq(ctx->m2m_ctx, f->type);
+	if (!vq) {
+		mtk_v4l2_err("no vb2 queue for type=%d", f->type);
+		return -EINVAL;
+	}
+
+	q_data = mtk_vdec_get_q_data(ctx, f->type);
+
+	pix_mp->field = V4L2_FIELD_NONE;
+	pix_mp->colorspace = ctx->colorspace;
+	pix_mp->ycbcr_enc = ctx->ycbcr_enc;
+	pix_mp->quantization = ctx->quantization;
+	pix_mp->xfer_func = ctx->xfer_func;
+
+	if ((f->type == V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE) &&
+		(ctx->state >= MTK_STATE_HEADER)) {
+		/* Until STREAMOFF is called on the CAPTURE queue
+		 * (acknowledging the event), the driver operates as if
+		 * the resolution hasn't changed yet.
+		 * So we just return picinfo yet, and update picinfo in
+		 * stop_streaming hook function
+		 */
+		for (i = 0; i < q_data->fmt->num_planes; i++) {
+			q_data->sizeimage[i] = ctx->picinfo.fb_sz[i];
+			q_data->bytesperline[i] =
+				ctx->last_decoded_picinfo.buf_w;
+		}
+		q_data->coded_width = ctx->picinfo.buf_w;
+		q_data->coded_height = ctx->picinfo.buf_h;
+		fourcc = ctx->picinfo.fourcc;
+		q_data->fmt = mtk_find_fmt_by_pixel(fourcc);
+
+		/*
+		 * Width and height are set to the dimensions
+		 * of the movie, the buffer is bigger and
+		 * further processing stages should crop to this
+		 * rectangle.
+		 */
+		fourcc = ctx->q_data[MTK_Q_DATA_SRC].fmt->fourcc;
+		if (fourcc == V4L2_PIX_FMT_RV30 ||
+			fourcc == V4L2_PIX_FMT_RV40) {
+			pix_mp->width = 1920;
+			pix_mp->height = 1088;
+		} else {
+			pix_mp->width = q_data->coded_width;
+			pix_mp->height = q_data->coded_height;
+		}
+		/*
+		 * Set pixelformat to the format in which mt vcodec
+		 * outputs the decoded frame
+		 */
+		pix_mp->num_planes = q_data->fmt->num_planes;
+		pix_mp->pixelformat = q_data->fmt->fourcc;
+
+		if (fourcc == V4L2_PIX_FMT_RV30 ||
+			fourcc == V4L2_PIX_FMT_RV40) {
+			for (i = 0; i < pix_mp->num_planes; i++) {
+				pix_mp->plane_fmt[i].bytesperline = 1920;
+				pix_mp->plane_fmt[i].sizeimage =
+					q_data->sizeimage[i];
+			}
+		} else {
+			for (i = 0; i < pix_mp->num_planes; i++) {
+				pix_mp->plane_fmt[i].bytesperline =
+					q_data->bytesperline[i];
+				pix_mp->plane_fmt[i].sizeimage =
+					q_data->sizeimage[i];
+			}
+		}
+
+		mtk_v4l2_debug(1, "fourcc:(%d %d),bytesperline:%d,sizeimage:%d,%d,%d\n",
+			ctx->q_data[MTK_Q_DATA_SRC].fmt->fourcc,
+			q_data->fmt->fourcc,
+			pix_mp->plane_fmt[0].bytesperline,
+			pix_mp->plane_fmt[0].sizeimage,
+			pix_mp->plane_fmt[1].bytesperline,
+			pix_mp->plane_fmt[1].sizeimage);
+
+	} else if (f->type == V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE) {
+		/*
+		 * This is run on OUTPUT
+		 * The buffer contains compressed image
+		 * so width and height have no meaning.
+		 * Assign value here to pass v4l2-compliance test
+		 */
+		pix_mp->width = q_data->visible_width;
+		pix_mp->height = q_data->visible_height;
+		pix_mp->plane_fmt[0].bytesperline = q_data->bytesperline[0];
+		pix_mp->plane_fmt[0].sizeimage = q_data->sizeimage[0];
+		pix_mp->pixelformat = q_data->fmt->fourcc;
+		pix_mp->num_planes = q_data->fmt->num_planes;
+	} else {
+		pix_mp->num_planes = q_data->fmt->num_planes;
+		pix_mp->pixelformat = q_data->fmt->fourcc;
+		fourcc = ctx->q_data[MTK_Q_DATA_SRC].fmt->fourcc;
+
+		if (fourcc == V4L2_PIX_FMT_RV30 ||
+			fourcc == V4L2_PIX_FMT_RV40) {
+			for (i = 0; i < pix_mp->num_planes; i++) {
+				pix_mp->width = 1920;
+				pix_mp->height = 1088;
+				pix_mp->plane_fmt[i].bytesperline = 1920;
+				pix_mp->plane_fmt[i].sizeimage =
+					q_data->sizeimage[i];
+			}
+		} else {
+			pix_mp->width = q_data->coded_width;
+			pix_mp->height = q_data->coded_height;
+			for (i = 0; i < pix_mp->num_planes; i++) {
+				pix_mp->plane_fmt[i].bytesperline =
+					q_data->bytesperline[i];
+				pix_mp->plane_fmt[i].sizeimage =
+					q_data->sizeimage[i];
+			}
+		}
+
+		mtk_v4l2_debug(1,
+					   " [%d] type=%d state=%d Format information could not be read, not ready yet!",
+					   ctx->id, f->type, ctx->state);
+	}
+
+	return 0;
+}
+
 static int vidioc_vdec_s_fmt(struct file *file, void *priv,
 							 struct v4l2_format *f)
 {
@@ -2274,6 +2408,16 @@ static int vidioc_vdec_s_fmt(struct file *file, void *priv,
 	q_data = mtk_vdec_get_q_data(ctx, f->type);
 	if (!q_data)
 		return -EINVAL;
+
+	if ((f->type == V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE) &&
+		(ctx->state >= MTK_STATE_HEADER)) {
+		ret = vidioc_vdec_g_fmt(file, priv, f);
+		if (ret)
+			return ret;
+		vdec_if_set_param(ctx, SET_PARAM_FB_NUM_PLANES,
+			(void *) &q_data->fmt->num_planes);
+		return 0;
+	}
 
 	pix_mp = &f->fmt.pix_mp;
 	if ((f->type == V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE) &&
@@ -2421,139 +2565,6 @@ static int vidioc_vdec_enum_fmt_vid_out_mplane(struct file *file, void *priv,
 	return vidioc_enum_fmt(ctx, f, true);
 }
 
-static int vidioc_vdec_g_fmt(struct file *file, void *priv,
-							 struct v4l2_format *f)
-{
-	struct mtk_vcodec_ctx *ctx = fh_to_ctx(priv);
-	struct v4l2_pix_format_mplane *pix_mp = &f->fmt.pix_mp;
-	struct vb2_queue *vq;
-	struct mtk_q_data *q_data;
-	u32     fourcc;
-	unsigned int i = 0;
-
-	vq = v4l2_m2m_get_vq(ctx->m2m_ctx, f->type);
-	if (!vq) {
-		mtk_v4l2_err("no vb2 queue for type=%d", f->type);
-		return -EINVAL;
-	}
-
-	q_data = mtk_vdec_get_q_data(ctx, f->type);
-
-	pix_mp->field = V4L2_FIELD_NONE;
-	pix_mp->colorspace = ctx->colorspace;
-	pix_mp->ycbcr_enc = ctx->ycbcr_enc;
-	pix_mp->quantization = ctx->quantization;
-	pix_mp->xfer_func = ctx->xfer_func;
-
-	if ((f->type == V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE) &&
-		(ctx->state >= MTK_STATE_HEADER)) {
-		/* Until STREAMOFF is called on the CAPTURE queue
-		 * (acknowledging the event), the driver operates as if
-		 * the resolution hasn't changed yet.
-		 * So we just return picinfo yet, and update picinfo in
-		 * stop_streaming hook function
-		 */
-		for (i = 0; i < q_data->fmt->num_planes; i++) {
-			q_data->sizeimage[i] = ctx->picinfo.fb_sz[i];
-			q_data->bytesperline[i] =
-				ctx->last_decoded_picinfo.buf_w;
-		}
-		q_data->coded_width = ctx->picinfo.buf_w;
-		q_data->coded_height = ctx->picinfo.buf_h;
-		fourcc = ctx->picinfo.fourcc;
-		q_data->fmt = mtk_find_fmt_by_pixel(fourcc);
-
-		/*
-		 * Width and height are set to the dimensions
-		 * of the movie, the buffer is bigger and
-		 * further processing stages should crop to this
-		 * rectangle.
-		 */
-		fourcc = ctx->q_data[MTK_Q_DATA_SRC].fmt->fourcc;
-		if (fourcc == V4L2_PIX_FMT_RV30 ||
-			fourcc == V4L2_PIX_FMT_RV40) {
-			pix_mp->width = 1920;
-			pix_mp->height = 1088;
-		} else {
-			pix_mp->width = q_data->coded_width;
-			pix_mp->height = q_data->coded_height;
-		}
-		/*
-		 * Set pixelformat to the format in which mt vcodec
-		 * outputs the decoded frame
-		 */
-		pix_mp->num_planes = q_data->fmt->num_planes;
-		pix_mp->pixelformat = q_data->fmt->fourcc;
-
-		if (fourcc == V4L2_PIX_FMT_RV30 ||
-			fourcc == V4L2_PIX_FMT_RV40) {
-			for (i = 0; i < pix_mp->num_planes; i++) {
-				pix_mp->plane_fmt[i].bytesperline = 1920;
-				pix_mp->plane_fmt[i].sizeimage =
-					q_data->sizeimage[i];
-			}
-		} else {
-			for (i = 0; i < pix_mp->num_planes; i++) {
-				pix_mp->plane_fmt[i].bytesperline =
-					q_data->bytesperline[i];
-				pix_mp->plane_fmt[i].sizeimage =
-					q_data->sizeimage[i];
-			}
-		}
-
-		mtk_v4l2_debug(1, "fourcc:(%d %d),bytesperline:%d,sizeimage:%d,%d,%d\n",
-			ctx->q_data[MTK_Q_DATA_SRC].fmt->fourcc,
-			q_data->fmt->fourcc,
-			pix_mp->plane_fmt[0].bytesperline,
-			pix_mp->plane_fmt[0].sizeimage,
-			pix_mp->plane_fmt[1].bytesperline,
-			pix_mp->plane_fmt[1].sizeimage);
-
-	} else if (f->type == V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE) {
-		/*
-		 * This is run on OUTPUT
-		 * The buffer contains compressed image
-		 * so width and height have no meaning.
-		 * Assign value here to pass v4l2-compliance test
-		 */
-		pix_mp->width = q_data->visible_width;
-		pix_mp->height = q_data->visible_height;
-		pix_mp->plane_fmt[0].bytesperline = q_data->bytesperline[0];
-		pix_mp->plane_fmt[0].sizeimage = q_data->sizeimage[0];
-		pix_mp->pixelformat = q_data->fmt->fourcc;
-		pix_mp->num_planes = q_data->fmt->num_planes;
-	} else {
-		pix_mp->num_planes = q_data->fmt->num_planes;
-		pix_mp->pixelformat = q_data->fmt->fourcc;
-		fourcc = ctx->q_data[MTK_Q_DATA_SRC].fmt->fourcc;
-
-		if (fourcc == V4L2_PIX_FMT_RV30 ||
-			fourcc == V4L2_PIX_FMT_RV40) {
-			for (i = 0; i < pix_mp->num_planes; i++) {
-				pix_mp->width = 1920;
-				pix_mp->height = 1088;
-				pix_mp->plane_fmt[i].bytesperline = 1920;
-				pix_mp->plane_fmt[i].sizeimage =
-					q_data->sizeimage[i];
-			}
-		} else {
-			pix_mp->width = q_data->coded_width;
-			pix_mp->height = q_data->coded_height;
-			for (i = 0; i < pix_mp->num_planes; i++) {
-				pix_mp->plane_fmt[i].bytesperline =
-					q_data->bytesperline[i];
-				pix_mp->plane_fmt[i].sizeimage =
-					q_data->sizeimage[i];
-			}
-		}
-
-		mtk_v4l2_debug(1,
-					   " [%d] type=%d state=%d Format information could not be read, not ready yet!",
-					   ctx->id, f->type, ctx->state);
-	}
-
-	return 0;
-}
 
 static int vb2ops_vdec_queue_setup(struct vb2_queue *vq,
 	unsigned int *nbuffers,
