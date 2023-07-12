@@ -1012,7 +1012,9 @@ static int vidioc_try_fmt(struct v4l2_format *f, struct mtk_video_fmt *fmt,
 			pix_fmt_mp->pixelformat == V4L2_PIX_FMT_BGR24) {
 			pix_fmt_mp->plane_fmt[0].sizeimage =
 				imagePixels * bitsPP / 8;
-			if (pix_fmt_mp->plane_fmt[0].bytesperline == 0)
+			if ((pix_fmt_mp->plane_fmt[0].bytesperline == 0) ||
+				(pix_fmt_mp->plane_fmt[0].bytesperline !=
+					ALIGN(pix_fmt_mp->plane_fmt[0].bytesperline, 16)))
 				pix_fmt_mp->plane_fmt[0].bytesperline =
 					pix_fmt_mp->width * bitsPP / 8;
 			pix_fmt_mp->num_planes = 1U;
@@ -1041,7 +1043,9 @@ static int vidioc_try_fmt(struct v4l2_format *f, struct mtk_video_fmt *fmt,
 			pix_fmt_mp->plane_fmt[0].sizeimage =
 				(imagePixels * bitsPP / 8) +
 				(imagePixels * bitsPP / 8) / 2;
-			if (pix_fmt_mp->plane_fmt[0].bytesperline == 0)
+			if ((pix_fmt_mp->plane_fmt[0].bytesperline == 0) ||
+				(pix_fmt_mp->plane_fmt[0].bytesperline !=
+					ALIGN(pix_fmt_mp->plane_fmt[0].bytesperline, 16)))
 				pix_fmt_mp->plane_fmt[0].bytesperline =
 					pix_fmt_mp->width * bitsPP / 8;
 		} else if (pix_fmt_mp->num_planes == 2U) {
@@ -1050,12 +1054,16 @@ static int vidioc_try_fmt(struct v4l2_format *f, struct mtk_video_fmt *fmt,
 				pix_fmt_mp->plane_fmt[1].bytesperline);
 			pix_fmt_mp->plane_fmt[0].sizeimage =
 				imagePixels * bitsPP / 8;
-			if (pix_fmt_mp->plane_fmt[0].bytesperline == 0)
+			if ((pix_fmt_mp->plane_fmt[0].bytesperline == 0) ||
+				(pix_fmt_mp->plane_fmt[0].bytesperline !=
+					ALIGN(pix_fmt_mp->plane_fmt[0].bytesperline, 16)))
 				pix_fmt_mp->plane_fmt[0].bytesperline =
 					pix_fmt_mp->width * bitsPP / 8;
 			pix_fmt_mp->plane_fmt[1].sizeimage =
 				(imagePixels * bitsPP / 8) / 2;
-			if (pix_fmt_mp->plane_fmt[1].bytesperline == 0)
+			if ((pix_fmt_mp->plane_fmt[1].bytesperline == 0) ||
+				(pix_fmt_mp->plane_fmt[1].bytesperline !=
+					ALIGN(pix_fmt_mp->plane_fmt[0].bytesperline, 16)))
 				pix_fmt_mp->plane_fmt[1].bytesperline =
 					pix_fmt_mp->width * bitsPP / 8;
 		} else if (pix_fmt_mp->num_planes == 3U) {
@@ -1065,17 +1073,23 @@ static int vidioc_try_fmt(struct v4l2_format *f, struct mtk_video_fmt *fmt,
 				pix_fmt_mp->plane_fmt[2].bytesperline);
 			pix_fmt_mp->plane_fmt[0].sizeimage =
 				imagePixels * bitsPP / 8;
-			if (pix_fmt_mp->plane_fmt[0].bytesperline == 0)
+			if ((pix_fmt_mp->plane_fmt[0].bytesperline == 0) ||
+				(pix_fmt_mp->plane_fmt[0].bytesperline !=
+					ALIGN(pix_fmt_mp->plane_fmt[0].bytesperline, 16)))
 				pix_fmt_mp->plane_fmt[0].bytesperline =
 					pix_fmt_mp->width * bitsPP / 8;
 			pix_fmt_mp->plane_fmt[1].sizeimage =
 				(imagePixels * bitsPP / 8) / 4;
-			if (pix_fmt_mp->plane_fmt[1].bytesperline == 0)
+			if ((pix_fmt_mp->plane_fmt[1].bytesperline == 0) ||
+				(pix_fmt_mp->plane_fmt[1].bytesperline !=
+					ALIGN(pix_fmt_mp->plane_fmt[0].bytesperline, 16)))
 				pix_fmt_mp->plane_fmt[1].bytesperline =
 					pix_fmt_mp->width * bitsPP / 8 / 2;
 			pix_fmt_mp->plane_fmt[2].sizeimage =
 				(imagePixels * bitsPP / 8) / 4;
-			if (pix_fmt_mp->plane_fmt[2].bytesperline == 0)
+			if ((pix_fmt_mp->plane_fmt[2].bytesperline == 0) ||
+				(pix_fmt_mp->plane_fmt[2].bytesperline !=
+					ALIGN(pix_fmt_mp->plane_fmt[0].bytesperline, 16)))
 				pix_fmt_mp->plane_fmt[2].bytesperline =
 					pix_fmt_mp->width * bitsPP / 8 / 2;
 		} else
