@@ -386,7 +386,8 @@ struct mtk_vcu {
 	atomic_t gce_job_cnt[VCU_CODEC_MAX][GCE_THNUM_MAX];
 	struct vcu_v4l2_callback_func cbf;
 	unsigned long flags[VCU_CODEC_MAX];
-	int open_cnt;
+	atomic_t open_cnt;
+	struct mutex vcu_dev_mutex;
 	bool abort;
 	struct semaphore vpud_killed;
 	bool is_entering_suspend;
@@ -593,7 +594,7 @@ int vcu_ipi_send(struct platform_device *pdev,
 
 	mutex_lock(&vcu->vcu_mutex[i]);
 	if (vcu->abort) {
-		if (vcu->open_cnt > 0) {
+		if (atomic_read(&vcu->open_cnt) > 0) {
 			dev_info(vcu->dev, "wait for vpud killed %d\n",
 				vcu->vpud_killed.count);
 			ret = down_timeout(&vcu->vpud_killed, timeout);
@@ -625,13 +626,15 @@ int vcu_ipi_send(struct platform_device *pdev,
 
 	if (vcu->abort || ret == 0) {
 		dev_info(&pdev->dev, "vcu ipi %d ack time out !%d", id, ret);
+		mutex_lock(&vcu->vpud_task_mutex);
 		if (!vcu->abort) {
 			if (vcu->vcud_task) {
 				send_sig(SIGTERM, vcu->vcud_task, 0);
 				send_sig(SIGKILL, vcu->vcud_task, 0);
 			}
 		}
-		if (vcu->open_cnt > 0) {
+		mutex_unlock(&vcu->vpud_task_mutex);
+		if (atomic_read(&vcu->open_cnt) > 0) {
 			dev_info(vcu->dev, "wait for vpud killed %d\n",
 				vcu->vpud_killed.count);
 			ret = down_timeout(&vcu->vpud_killed, timeout);
@@ -1652,16 +1655,27 @@ void vcu_get_task(struct task_struct **task, int reset)
 
 	mutex_lock(&vcu->vpud_task_mutex);
 
-	if (reset == 1) {
+	if (reset == 1)
 		vcu->vcud_task = NULL;
-	}
+	else if (reset == 2 && current == vcu->vcud_task)
+		vcu->vcud_task = NULL;
 
 	if (task)
 		*task = vcu->vcud_task;
 
-	mutex_unlock(&vcu->vpud_task_mutex);
+	if (reset)
+		mutex_unlock(&vcu->vpud_task_mutex);
 }
 EXPORT_SYMBOL_GPL(vcu_get_task);
+
+/* need to put task for unlock mutex when get task reset == 0 */
+void vcu_put_task(void)
+{
+	struct mtk_vcu *vcu = vcu_mtkdev[0];
+
+	mutex_unlock(&vcu->vpud_task_mutex);
+}
+EXPORT_SYMBOL_GPL(vcu_put_task);
 
 static int vcu_ipi_handler(struct mtk_vcu *vcu, struct share_obj *rcv_obj)
 {
@@ -1823,20 +1837,26 @@ static int mtk_vcu_open(struct inode *inode, struct file *file)
 	else
 		vcu_queue = mtk_vcu_mem_init(vcu_mtkdev[vcuid]->dev_io_enc, NULL);
 
-	if (vcu_queue == NULL)
+	if (vcu_queue == NULL) {
+		pr_info("Allocate new vcu queue fail!\n");
 		return -ENOMEM;
+	}
+
 	vcu_queue->vcu = vcu_mtkdev[vcuid];
 	vcu = vcu_mtkdev[vcuid];
+	mutex_lock(&vcu->vcu_dev_mutex);
 	vcu_queue->enable_vcu_dbg_log = vcu->enable_vcu_dbg_log;
 	file->private_data = vcu_queue;
 	vcu->vpud_killed.count = 0;
-	vcu->open_cnt++;
+	atomic_inc(&vcu->open_cnt);
 	vcu->abort = false;
 	vcu->vpud_is_going_down = 0;
 
+	mutex_unlock(&vcu->vcu_dev_mutex);
+
 	pr_info("[VCU] %s name: %s pid %d tgid %d open_cnt %d current %p group_leader %p\n",
 		__func__, current->comm, current->pid, current->tgid,
-		vcu->open_cnt, current, current->group_leader);
+		atomic_read(&vcu->open_cnt), current, current->group_leader);
 
 	return 0;
 }
@@ -1858,11 +1878,11 @@ static int mtk_vcu_release(struct inode *inode, struct file *file)
 		pr_info("error vcu is null\n");
 		return -1;
 	}
+	mutex_lock(&vcu->vcu_dev_mutex);
 
 	pr_info("[VCU] %s name: %s pid %d open_cnt %d\n", __func__,
-		current->comm, current->tgid, vcu->open_cnt);
-	vcu->open_cnt--;
-	if (vcu->open_cnt == 0) {
+		current->comm, current->tgid, atomic_read(&vcu->open_cnt));
+	if (atomic_dec_and_test(&vcu->open_cnt)) {
 		/* reset vpud due to abnormal situations. */
 		vcu->abort = true;
 		if (vcu->vcud_task && vcu->vcuid == VCU_ID_VDEC)
@@ -1878,9 +1898,12 @@ static int mtk_vcu_release(struct inode *inode, struct file *file)
 		if (vcu->curr_ctx[VCU_VDEC])
 			vcu->cbf.vdec_realease_lock(vcu->curr_ctx[VCU_VDEC]);
 #endif
-	}
+	} else
+		vcu_get_task(NULL, 2);
 
 	mtk_vcu_mem_release(vcu_queue, vcu->clt_venc[0]);
+
+	mutex_unlock(&vcu->vcu_dev_mutex);
 
 	return 0;
 }
@@ -2778,6 +2801,10 @@ static int mtk_vcu_probe(struct platform_device *pdev)
 			INIT_LIST_HEAD(&vcu->gce_info[i].used_pages[index].list);
 	}
 #endif
+
+	atomic_set(&vcu->open_cnt, 0);
+	mutex_init(&vcu->vcu_dev_mutex);
+
 	/* init character device */
 	ret = alloc_chrdev_region(&vcu_mtkdev[vcuid]->vcu_devno, 0, 1,
 				  vcu_mtkdev[vcuid]->vcuname);
@@ -2919,6 +2946,7 @@ static int mtk_vcu_probe(struct platform_device *pdev)
 	vcu_func.vcu_load_firmware = vcu_load_firmware;
 	vcu_func.vcu_compare_version = vcu_compare_version;
 	vcu_func.vcu_get_task = vcu_get_task;
+	vcu_func.vcu_put_task = vcu_put_task;
 #if ENABLE_GCE
 	vcu_func.vcu_set_v4l2_callback = vcu_set_v4l2_callback;
 #endif
