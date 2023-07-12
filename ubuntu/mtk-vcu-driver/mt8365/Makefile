@@ -7,6 +7,8 @@ KBUILD_EXTRA_SYMBOLS_PATH = $(EXTRA_SYMBOLS_PATH)
 # declare kernel config
 CONFIG_VIDEO_MEDIATEK_VCU_MT8167=y
 
+MTK_IOT_PLATFORM=mt8365
+
 top := $(src)
 export top
 $(info mtk-vcu-driver/ src is $(src))
@@ -14,8 +16,8 @@ $(info mtk-vcu-driver/ MTK_PLATFORM is $(MTK_PLATFORM))
 export MTK_PLATFORM
 
 # target object
-obj-m := mtk-vcu.o
-obj-m += mtk-vpu.o
+obj-m := mtk-vcu-$(MTK_IOT_PLATFORM).o
+obj-m += mtk-vpu-$(MTK_IOT_PLATFORM).o
 
 # include
 EXTRA_CFLAGS += -I$(srctree)/$(src)/
@@ -23,10 +25,10 @@ EXTRA_CFLAGS += -I$(srctree)/$(src)/
 EXTRA_CFLAGS += -I$(srctree)/$(src)/external_include/uapi/
 
 # SPDX-License-Identifier: GPL-2.0-only
-mtk-vcu-objs += mtk_vcu.o
-mtk-vcu-objs += mtk_vcodec_mem.o
+mtk-vcu-$(MTK_IOT_PLATFORM)-objs += mtk_vcu.o
+mtk-vcu-$(MTK_IOT_PLATFORM)-objs += mtk_vcodec_mem.o
 
-mtk-vpu-objs += mtk_vpu.o
+mtk-vpu-$(MTK_IOT_PLATFORM)-objs += mtk_vpu.o
 
 
 
