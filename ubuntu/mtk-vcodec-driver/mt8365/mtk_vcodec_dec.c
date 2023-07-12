@@ -885,7 +885,7 @@ static int vidioc_try_fmt_vid_out_mplane(struct file *file, void *priv,
 	}
 
 	if (pix_fmt_mp->plane_fmt[0].sizeimage == 0) {
-		mtk_v4l2_err("sizeimage of output format must be given");
+		mtk_v4l2_warn("sizeimage of output format must be given");
 		return -EINVAL;
 	}
 
