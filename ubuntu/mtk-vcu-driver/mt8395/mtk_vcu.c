@@ -226,6 +226,8 @@ struct gce_callback_data {
 	struct mtk_vcu *vcu_ptr;
 	struct cmdq_pkt *pkt_ptr;
 	struct mtk_vcu_queue *vcu_queue;
+	int sta;
+	struct work_struct gce_callback_thread_work;
 };
 
 struct gce_ctx_info {
@@ -283,6 +285,11 @@ static const struct vcodec_gce_event vcodec_gce_event_mapping_table[] = {
 	{.id = VENC_PPS_DONE, .name = "venc_pps_done"},
 	{.id = VENC_SLC_EOF, .name = "venc_slc_eof"},
 };
+
+#if ENABLE_GCE
+static void vcu_gce_timeout_callback(struct gce_callback_data * data);
+static int vcu_gce_get_inst_id(struct mtk_vcu *vcu, u64 gce_handle, u32 core_id);
+#endif
 
 static int find_gce_event_id(const char *gce_event_name)
 {
@@ -398,6 +405,8 @@ struct mtk_vcu {
 
 	/* for vcu dbg log*/
 	int enable_vcu_dbg_log;
+	/* process gce callback */
+	struct workqueue_struct *gce_callback_thread_wq[GCE_THNUM_MAX];
 };
 
 struct node_iova_t {
@@ -774,9 +783,67 @@ static int vcu_sec_handle_get(struct mtk_vcu *vcu,
 }
 
 #if ENABLE_GCE
+static void vcu_handle_gce_flush_callback(struct work_struct *work)
+{
+	int i, j;
+	struct mtk_vcu *vcu;
+	unsigned int core_id;
+	struct gce_callback_data *buff = container_of(work, struct gce_callback_data,
+		gce_callback_thread_work);
+
+
+	if (buff->sta < 0)
+	{
+		pr_info("[VCU] flush_callback data->sta:%d\n", buff->sta);
+		if(buff->cmdq_buff.secure == 0)
+			vcu_gce_timeout_callback(buff);
+	}
+	i = (buff->cmdq_buff.codec_type == VCU_VDEC) ? VCU_VDEC : VCU_VENC;
+	core_id = buff->cmdq_buff.core_id;
+
+	vcu = buff->vcu_ptr;
+	j = vcu_gce_get_inst_id(vcu, buff->cmdq_buff.gce_handle, core_id);
+
+	if (j < 0) {
+		pr_info("[VCU] flush_callback get_inst_id fail!!%d\n", j);
+		return;
+	}
+
+	atomic_inc(&vcu->gce_info[j].flush_done[core_id]);
+	atomic_dec(&vcu->gce_info[j].flush_pending);
+
+	mutex_lock(&vcu->vcu_gce_mutex[i]);
+	if (i == VCU_VENC && vcu->cbf.enc_pmqos_gce_end != NULL)
+		vcu->cbf.enc_pmqos_gce_end(vcu->gce_info[j].v4l2_ctx, core_id,
+				vcu->gce_job_cnt[i][core_id].counter);
+	if (atomic_dec_and_test(&vcu->gce_job_cnt[i][core_id]) &&
+		vcu->gce_info[j].v4l2_ctx != NULL){
+		if (i == VCU_VENC && vcu->cbf.enc_unprepare != NULL &&
+		    buff->cmdq_buff.event_type != VENC_SLC_EOF &&
+		    buff->cmdq_buff.event_type != VENC_SLC_EOF_C1) {
+			vcu->cbf.enc_unprepare(vcu->gce_info[j].v4l2_ctx,
+				buff->cmdq_buff.core_id, &vcu->flags[i]);
+#if IS_ENABLED(CONFIG_MTK_SEC_VIDEO_PATH_SUPPORT)
+			if (buff->cmdq_buff.secure != 0)
+				cmdq_sec_mbox_switch_normal(vcu->clt_venc_sec[core_id]);
+#endif
+		}
+	}
+
+	mutex_unlock(&vcu->vcu_gce_mutex[i]);
+
+	wake_up(&vcu->gce_wq[i][core_id]);
+
+	vcu_dbg_log("[VCU] %s: buff %p type %d order %d handle %llx core_id %d\n",
+		__func__, buff, buff->cmdq_buff.codec_type,
+		buff->cmdq_buff.flush_order, buff->cmdq_buff.gce_handle, core_id);
+
+	cmdq_pkt_destroy(buff->pkt_ptr);
+}
+
 static int vcu_gce_set_inst_id(struct mtk_vcu *vcu, void *ctx, u64 gce_handle)
 {
-	int i;
+	int i, j;
 	char data;
 
 	mutex_lock(&vcu->vcu_share);
@@ -785,6 +852,8 @@ static int vcu_gce_set_inst_id(struct mtk_vcu *vcu, void *ctx, u64 gce_handle)
 			!copy_from_kernel_nofault((char *)&data, ctx, sizeof(char))) {
 			vcu->gce_info[i].v4l2_ctx = ctx;
 			vcu->gce_info[i].user_hdl = gce_handle;
+			for(j = 0; j< GCE_PENDING_CNT; j++)
+				INIT_WORK(&vcu->gce_info[i].buff[j].gce_callback_thread_work, vcu_handle_gce_flush_callback);
 			mutex_unlock(&vcu->vcu_share);
 			vcu_dbg_log("[VCU] %s ctx %p hndl %llu create id %d\n",
 				__func__, ctx, gce_handle, i);
@@ -1041,15 +1110,15 @@ static void vcu_set_gce_cmd(struct cmdq_pkt *pkt,
 	}
 }
 
-static void vcu_gce_timeout_callback(struct cmdq_cb_data data)
+static void vcu_gce_timeout_callback(struct gce_callback_data * data)
 {
-	struct gce_callback_data *buff;
+	struct gce_callback_data *buff = data;
 	struct mtk_vcu *vcu;
 	struct list_head *p, *q;
 	struct mtk_vcu_queue *vcu_queue;
 	struct vcu_pa_pages *tmp;
 
-	buff = (struct gce_callback_data *)data.data;
+
 	vcu = buff->vcu_ptr;
 	vcu_queue = buff->vcu_queue;
 	vcu_dbg_log("%s: buff %p vcu: %p, codec_typ: %d\n",
@@ -1073,59 +1142,12 @@ static void vcu_gce_timeout_callback(struct cmdq_cb_data data)
 
 static void vcu_gce_flush_callback(struct cmdq_cb_data data)
 {
-	int i, j;
-	struct gce_callback_data *buff;
-	struct mtk_vcu *vcu;
-	unsigned int core_id;
+	struct gce_callback_data *buff = (struct gce_callback_data *)data.data;
+	struct mtk_vcu *vcu = buff->vcu_ptr; 
+	unsigned int core_id = buff->cmdq_buff.core_id;
 
-	buff = (struct gce_callback_data *)data.data;
-	if (data.sta < 0)
-	{
-		pr_info("[VCU] flush_callback data->sta:%d\n", data.sta);
-		if(buff->cmdq_buff.secure == 0)
-			vcu_gce_timeout_callback(data);
-	}
-	i = (buff->cmdq_buff.codec_type == VCU_VDEC) ? VCU_VDEC : VCU_VENC;
-	core_id = buff->cmdq_buff.core_id;
-
-	vcu = buff->vcu_ptr;
-	j = vcu_gce_get_inst_id(vcu, buff->cmdq_buff.gce_handle, core_id);
-
-	if (j < 0) {
-		pr_info("[VCU] flush_callback get_inst_id fail!!%d\n", j);
-		return;
-	}
-
-	atomic_inc(&vcu->gce_info[j].flush_done[core_id]);
-	atomic_dec(&vcu->gce_info[j].flush_pending);
-
-	mutex_lock(&vcu->vcu_gce_mutex[i]);
-	if (i == VCU_VENC && vcu->cbf.enc_pmqos_gce_end != NULL)
-		vcu->cbf.enc_pmqos_gce_end(vcu->gce_info[j].v4l2_ctx, core_id,
-				vcu->gce_job_cnt[i][core_id].counter);
-	if (atomic_dec_and_test(&vcu->gce_job_cnt[i][core_id]) &&
-		vcu->gce_info[j].v4l2_ctx != NULL){
-		if (i == VCU_VENC && vcu->cbf.enc_unprepare != NULL &&
-		    buff->cmdq_buff.event_type != VENC_SLC_EOF &&
-		    buff->cmdq_buff.event_type != VENC_SLC_EOF_C1) {
-			vcu->cbf.enc_unprepare(vcu->gce_info[j].v4l2_ctx,
-				buff->cmdq_buff.core_id, &vcu->flags[i]);
-#if IS_ENABLED(CONFIG_MTK_SEC_VIDEO_PATH_SUPPORT)
-			if (buff->cmdq_buff.secure != 0)
-				cmdq_sec_mbox_switch_normal(vcu->clt_venc_sec[core_id]);
-#endif
-		}
-	}
-
-	mutex_unlock(&vcu->vcu_gce_mutex[i]);
-
-	wake_up(&vcu->gce_wq[i][core_id]);
-
-	vcu_dbg_log("[VCU] %s: buff %p type %d order %d handle %llx core_id %d\n",
-		__func__, buff, buff->cmdq_buff.codec_type,
-		buff->cmdq_buff.flush_order, buff->cmdq_buff.gce_handle, core_id);
-
-	cmdq_pkt_destroy(buff->pkt_ptr);
+	buff->sta = data.sta;
+	queue_work(vcu->gce_callback_thread_wq[core_id], &buff->gce_callback_thread_work);
 }
 
 static int vcu_gce_cmd_flush(struct mtk_vcu *vcu,
@@ -1300,7 +1322,8 @@ static int vcu_gce_cmd_flush(struct mtk_vcu *vcu,
 	}
 
 	i = buff.cmdq_buff.flush_order % GCE_PENDING_CNT;
-	memcpy(&vcu->gce_info[j].buff[i], &buff, sizeof(buff));
+	//it does not need to copy gce_callback_thread_work item
+	memcpy(&vcu->gce_info[j].buff[i], &buff, sizeof(buff) - sizeof(struct work_struct));
 
 	pr_debug("[VCU][%d] %s: buff %p type %d cnt %d order %d hndl %llx %d %d\n",
 		core_id, __func__, &vcu->gce_info[j].buff[i],
@@ -2736,9 +2759,19 @@ static int mtk_vcu_probe(struct platform_device *pdev)
 
 	for (i = 0; i < vcu->gce_th_num[VCU_VDEC]; i++)
 		vcu->clt_vdec[i] = cmdq_mbox_create(dev, i);
-	for (i = 0; i < vcu->gce_th_num[VCU_VENC]; i++)
+	for (i = 0; i < vcu->gce_th_num[VCU_VENC]; i++) {
 		vcu->clt_venc[i] =
 			cmdq_mbox_create(dev, i + vcu->gce_th_num[VCU_VDEC]);
+
+		vcu->gce_callback_thread_wq[i] =
+		alloc_ordered_workqueue(VCU_DEVNAME,
+								WQ_MEM_RECLAIM |
+								WQ_FREEZABLE);
+		if (!vcu->gce_callback_thread_wq[i]) {
+			pr_err("[VCU]Failed to create gce loop workqueue");
+			break;;
+		}
+	}
 
 #if IS_ENABLED(CONFIG_MTK_SEC_VIDEO_PATH_SUPPORT)
 	for (i = 0; i < vcu->gce_th_num[VCU_VENC]; i++)
@@ -2862,8 +2895,16 @@ MODULE_DEVICE_TABLE(of, mtk_vcu_match);
 static int mtk_vcu_remove(struct platform_device *pdev)
 {
 	struct mtk_vcu *vcu = platform_get_drvdata(pdev);
+	int i = 0;
 
 	vcu_free_d_ext_mem(vcu);
+	for (i = 0; i < vcu->gce_th_num[VCU_VENC]; i++) {
+#if ENABLE_GCE
+		flush_workqueue(vcu->gce_callback_thread_wq[i]);
+		destroy_workqueue(vcu->gce_callback_thread_wq[i]);
+#endif
+	}
+
 	if (vcu->is_open == true) {
 		vcu->is_open = false;
 	}
