@@ -1218,7 +1218,6 @@ static int vcu_gce_cmd_flush(struct mtk_vcu *vcu,
 	struct cmdq_pkt *pkt_ptr;
 	struct cmdq_client *cl;
 	struct gce_cmds *cmds;
-	unsigned int suspend_block_cnt = 0;
 	unsigned int core_id;
 	unsigned int gce_order;
 
@@ -1279,15 +1278,6 @@ static int vcu_gce_cmd_flush(struct mtk_vcu *vcu,
 
 	buff.vcu_ptr = vcu;
 	buff.vcu_queue = q;
-
-	while (vcu->is_entering_suspend == 1) {
-		suspend_block_cnt++;
-		if (suspend_block_cnt > 500) {
-			pr_info("[VCU] gce_flush blocked by suspend\n");
-			suspend_block_cnt = 0;
-		}
-		usleep_range(10000, 20000);
-	}
 
 	j = vcu_gce_get_inst_id(vcu, buff.cmdq_buff.gce_handle, core_id);
 
