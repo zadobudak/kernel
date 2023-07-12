@@ -40,88 +40,6 @@ enum venc_bs_mode {
 	VENC_BS_MODE_MAX
 };
 
-/*
- * struct venc_vcu_config - Structure for encoder configuration
- *                               AP-W/R : AP is writer/reader on this item
- *                               VCU-W/R: VCU is write/reader on this item
- * @input_fourcc: input fourcc
- * @bitrate: target bitrate (in bps)
- * @pic_w: picture width. Picture size is visible stream resolution, in pixels,
- *         to be used for display purposes; must be smaller or equal to buffer
- *         size.
- * @pic_h: picture height
- * @buf_w: buffer width. Buffer size is stream resolution in pixels aligned to
- *         hardware requirements.
- * @buf_h: buffer height
- * @gop_size: group of picture size (idr frame)
- * @intra_period: intra frame period
- * @framerate: frame rate in fps
- * @profile: as specified in standard
- * @level: as specified in standard
- * @wfd: WFD mode 1:on, 0:off
- */
-struct venc_vcu_config {
-	u32 input_fourcc;
-	u32 bitrate;
-	u32 pic_w;
-	u32 pic_h;
-	u32 buf_w;
-	u32 buf_h;
-	u32 gop_size;
-	u32 intra_period;
-	u32 framerate;
-	u32 profile;
-	u32 level;
-	u32 wfd;
-	u32 scenario;
-};
-
-
-/*
- * struct venc_vsi - Structure for VCU driver control and info share
- *                        AP-W/R : AP is writer/reader on this item
- *                        VCU-W/R: VCU is write/reader on this item
- * This structure is allocated in VCU side and shared to AP side.
- * @config: h264 encoder configuration
- * @work_bufs: working buffer information in VCU side
- * The work_bufs here is for storing the 'size' info shared to AP side.
- * The similar item in struct venc_inst is for memory allocation
- * in AP side. The AP driver will copy the 'size' from here to the one in
- * struct mtk_vcodec_mem, then invoke mtk_vcodec_mem_alloc to allocate
- * the buffer. After that, bypass the 'dma_addr' to the 'iova' field here for
- * register setting in VCU side.
- */
-struct venc_vsi {
-	struct venc_vcu_config config;
-	unsigned int sizeimage[MTK_VCODEC_MAX_PLANES];
-};
-
-/*
- * struct venc_inst - encoder AP driver instance
- * @hw_base: encoder hardware register base
- * @work_bufs: working buffer
- * @pps_buf: buffer to store the pps bitstream
- * @work_buf_allocated: working buffer allocated flag
- * @frm_cnt: encoded frame count
- * @prepend_hdr: when the v4l2 layer send VENC_SET_PARAM_PREPEND_HEADER cmd
- *  through venc_set_param interface, it will set this flag and prepend the
- *  sps/pps in venc_encode function.
- * @vcu_inst: VCU instance to exchange information between AP and VCU
- * @vsi: driver structure allocated by VCU side and shared to AP side for
- *	 control and info share
- * @ctx: context for v4l2 layer integration
- */
-struct venc_inst {
-	void __iomem *hw_base;
-	struct mtk_vcodec_mem pps_buf;
-	bool work_buf_allocated;
-	unsigned int frm_cnt;
-	unsigned int prepend_hdr;
-	struct venc_vcu_inst vcu_inst;
-	struct venc_vsi *vsi;
-	struct mtk_vcodec_ctx *ctx;
-};
-
 static unsigned int venc_h264_get_profile(struct venc_inst *inst,
 				     unsigned int profile)
 {
@@ -340,16 +258,21 @@ static int venc_init(struct mtk_vcodec_ctx *ctx, unsigned long *handle)
 
 	mtk_vcodec_debug_enter(inst);
 
+	// assgin handle for ctx->drv_handle before adding to list
+	(*handle) = (unsigned long)inst;
+	mtk_vcodec_add_ctx_list(ctx);
+
 	ret = vcu_enc_init(&inst->vcu_inst);
 
 	inst->vsi = (struct venc_vsi *)inst->vcu_inst.vsi;
 
 	mtk_vcodec_debug_leave(inst);
 
-	if (ret)
+	if (ret) {
+		mtk_vcodec_del_ctx_list(ctx);
+		(*handle) = NULL;
 		kfree(inst);
-	else
-		(*handle) = (unsigned long)inst;
+	}
 
 	return ret;
 }

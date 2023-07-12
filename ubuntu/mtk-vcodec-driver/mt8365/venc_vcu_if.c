@@ -52,11 +52,38 @@ static void handle_enc_waitisr_msg(struct venc_vcu_inst *vcu,
 static int vcu_enc_ipi_handler(void *data, unsigned int len, void *priv)
 {
 	struct venc_vcu_ipi_msg_common *msg = data;
-	struct venc_vcu_inst *vcu =
-		(struct venc_vcu_inst *)(unsigned long)msg->venc_inst;
-	struct mtk_vcodec_ctx *ctx = vcu->ctx;
+	struct venc_vcu_inst *vcu = NULL;
+	struct mtk_vcodec_dev *dev = (struct mtk_vcodec_dev *)priv;
+	struct mtk_vcodec_ctx *ctx = NULL;
+	struct mtk_vcodec_ctx *temp_ctx;
+	struct venc_inst *inst = NULL;
+	int msg_ctx_id;
+	struct list_head *p, *q;
+	int msg_valid = 0;
 	int ret = 0;
 	unsigned long flags;
+
+	msg_ctx_id = (int)msg->venc_inst;
+	/* Check IPI inst is valid */
+	mutex_lock(&dev->ctx_mutex);
+	list_for_each_safe(p, q, &dev->ctx_list) {
+		temp_ctx = list_entry(p, struct mtk_vcodec_ctx, list);
+		inst = (struct venc_inst *)temp_ctx->drv_handle;
+		if (inst != NULL && msg_ctx_id == temp_ctx->id) {
+			vcu = &inst->vcu_inst;
+			msg_valid = 1;
+			break;
+		}
+	}
+	if (!msg_valid) {
+		mtk_v4l2_err(" msg vcu not exist %d\n", msg_ctx_id);
+		mutex_unlock(&dev->ctx_mutex);
+		return -EINVAL;
+	}
+	mutex_unlock(&dev->ctx_mutex);
+
+	// assign vcu ctx
+	ctx = vcu->ctx;
 
 	mtk_vcodec_debug(vcu, "msg_id %x inst %p status %d",
 			 msg->msg_id, vcu, msg->status);
@@ -151,7 +178,7 @@ int vcu_enc_init(struct venc_vcu_inst *vcu)
 	vcu->failure = 0;
 
 	status = vpu_ipi_register(vcu->dev, vcu->id, vcu_enc_ipi_handler,
-				  NULL, NULL);
+				  NULL, vcu->ctx->dev);
 	if (status) {
 		mtk_vcodec_err(vcu, "vcu_ipi_register fail %d", status);
 		return -EINVAL;
@@ -159,7 +186,7 @@ int vcu_enc_init(struct venc_vcu_inst *vcu)
 
 	memset(&out, 0, sizeof(out));
 	out.msg_id = AP_IPIMSG_ENC_INIT;
-	out.venc_inst = (unsigned long)vcu;
+	out.venc_inst = (uint64_t)vcu->ctx->id;
 	if (vcu_enc_send_msg(vcu, &out, sizeof(out))) {
 		mtk_vcodec_err(vcu, "AP_IPIMSG_ENC_INIT fail");
 		return -EINVAL;

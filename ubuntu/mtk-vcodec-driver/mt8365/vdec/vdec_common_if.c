@@ -20,101 +20,7 @@
 #include "vdec_drv_base.h"
 #include "mtk_vcodec_dec.h"
 #include "vdec_drv_if.h"
-
-#define DEC_MAX_FB_NUM				32U
-
-/**
- * struct vdec_fb - vdec decode frame buffer information
- * @vdec_fb_va  : virtual address of struct vdec_fb
- * @y_fb_dma    : dma address of Y frame buffer
- * @c_fb_dma    : dma address of C frame buffer
- * @poc         : picture order count of frame buffer
- * @reserved    : for 8 bytes alignment
- */
-struct dec_fb {
-	uint64_t vdec_fb_va;
-	uint64_t y_fb_dma;
-	uint64_t c_fb_dma;
-	int32_t poc;
-	uint32_t reserved;
-};
-
-/**
- * struct ring_fb_list - ring frame buffer list
- * @fb_list   : frame buffer arrary
- * @read_idx  : read index
- * @write_idx : write index
- * @count     : buffer count in list
- */
-struct ring_fb_list {
-	struct dec_fb fb_list[DEC_MAX_FB_NUM];
-	unsigned int read_idx;
-	unsigned int write_idx;
-	unsigned int count;
-	unsigned int reserved;
-};
-
-/**
- * struct vdec_dec_info - decode information
- * @dpb_sz		: decoding picture buffer size
- * @vdec_changed_info  : some changed flags
- * @bs_dma		: Input bit-stream buffer dma address
- * @bs_fd               : Input bit-stream buffer dmabuf fd
- * @fb_dma		: Y frame buffer dma address
- * @fb_fd             : Y frame buffer dmabuf fd
- * @vdec_fb_va		: VDEC frame buffer struct virtual address
- * @fb_num_planes	: frame buffer plane count
- * @reserved		: reserved variable for 64bit align
- */
-struct vdec_dec_info {
-	uint32_t dpb_sz;
-	uint32_t vdec_changed_info;
-	uint64_t bs_dma;
-	uint64_t bs_fd;
-	uint64_t fb_dma[VIDEO_MAX_PLANES];
-	uint64_t fb_fd[VIDEO_MAX_PLANES];
-	uint64_t vdec_fb_va;
-	uint32_t fb_num_planes;
-	uint32_t index;
-};
-
-/**
- * struct vdec_vsi - shared memory for decode information exchange
- *                        between VCU and Host.
- *                        The memory is allocated by VCU and mapping to Host
- *                        in vcu_dec_init()
- * @ppl_buf_dma : HW working buffer ppl dma address
- * @mv_buf_dma  : HW working buffer mv dma address
- * @list_free   : free frame buffer ring list
- * @list_disp   : display frame buffer ring list
- * @dec		: decode information
- * @pic		: picture information
- * @crop        : crop information
- */
-struct vdec_vsi {
-	struct ring_fb_list list_free;
-	struct ring_fb_list list_disp;
-	struct vdec_dec_info dec;
-	struct vdec_pic_info pic;
-	struct mtk_color_desc color_desc;
-	struct v4l2_rect crop;
-	char crc_path[256];
-	char golden_path[256];
-};
-
-/**
- * struct vdec_inst - decoder instance
- * @num_nalu : how many nalus be decoded
- * @ctx      : point to mtk_vcodec_ctx
- * @vcu      : VCU instance
- * @vsi      : VCU shared information
- */
-struct vdec_inst {
-	unsigned int num_nalu;
-	struct mtk_vcodec_ctx *ctx;
-	struct vdec_vcu_inst vcu;
-	struct vdec_vsi *vsi;
-};
+#include "vdec_ipi_msg.h"
 
 static void put_fb_to_free(struct vdec_inst *inst, struct vdec_fb *fb)
 {
@@ -221,6 +127,10 @@ static int vdec_init(struct mtk_vcodec_ctx *ctx, unsigned long *h_vdec)
 	inst->vcu.ctx = ctx;
 	inst->vcu.handler = vcu_dec_ipi_handler;
 
+	// assgin handle for ctx->drv_handle before adding to list
+	*h_vdec = (unsigned long)inst;
+	mtk_vcodec_add_ctx_list(ctx);
+
 	err = vcu_dec_init(&inst->vcu);
 	if (err != 0) {
 		mtk_vcodec_err(inst, "vdec_init err=%d", err);
@@ -231,10 +141,11 @@ static int vdec_init(struct mtk_vcodec_ctx *ctx, unsigned long *h_vdec)
 
 	mtk_vcodec_debug(inst, "Decoder Instance >> %p", inst);
 
-	*h_vdec = (unsigned long)inst;
 	return 0;
 
 error_free_inst:
+	mtk_vcodec_del_ctx_list(ctx);
+	*h_vdec = NULL;
 	kfree(inst);
 
 	return err;

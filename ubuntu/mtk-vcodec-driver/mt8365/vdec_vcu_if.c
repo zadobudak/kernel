@@ -21,12 +21,12 @@
 #include "vdec_ipi_msg.h"
 #include "vdec_vcu_if.h"
 
-static void handle_init_ack_msg(struct vdec_vcu_ipi_init_ack *msg)
+static void handle_init_ack_msg(struct vdec_vcu_inst *vcu, struct vdec_vcu_ipi_init_ack *msg)
 {
-	struct vdec_vcu_inst *vcu = (struct vdec_vcu_inst *)
-					(unsigned long)msg->ap_inst_addr;
+	if (vcu == NULL)
+		return;
 
-	mtk_vcodec_debug(vcu, "+ ap_inst_addr = 0x%llx", msg->ap_inst_addr);
+	mtk_vcodec_debug(vcu, "+ ap_inst_addr = 0x%lx", msg->ap_inst_addr);
 
 	/* mapping VCU address to kernel virtual address */
 	/* the content in vsi is initialized to 0 in VCU */
@@ -58,14 +58,38 @@ int vcu_dec_ipi_handler(void *data, unsigned int len, void *priv)
 {
 	struct vdec_vcu_ipi_ack *msg = data;
 	struct vdec_vcu_inst *vcu = NULL;
+	struct mtk_vcodec_ctx *temp_ctx;
+	struct mtk_vcodec_dev *dev = (struct mtk_vcodec_dev *)priv;
+	struct vdec_inst *inst = NULL;
+	int msg_ctx_id;
+	struct list_head *p, *q;
+	int msg_valid = 0;
 	int ret = 0;
 
-	if (msg == NULL || (struct vdec_vcu_inst *)(unsigned long)msg->ap_inst_addr == NULL) {
+	if (msg == NULL || msg->ap_inst_addr == 0) {
 		ret = -1;
 		return ret;
 	}
 
-	vcu = (struct vdec_vcu_inst *)(unsigned long)msg->ap_inst_addr;
+	msg_ctx_id = (int)msg->ap_inst_addr;
+	/* Check IPI inst is valid */
+	mutex_lock(&dev->ctx_mutex);
+	list_for_each_safe(p, q, &dev->ctx_list) {
+		temp_ctx = list_entry(p, struct mtk_vcodec_ctx, list);
+		inst = (struct vdec_inst *)temp_ctx->drv_handle;
+		if (inst != NULL && msg_ctx_id == temp_ctx->id) {
+			vcu = &inst->vcu;
+			msg_valid = 1;
+			break;
+		}
+	}
+	if (!msg_valid) {
+		mtk_v4l2_err(" msg vcu not exist %d\n", msg_ctx_id);
+		mutex_unlock(&dev->ctx_mutex);
+		return -EINVAL;
+	}
+	mutex_unlock(&dev->ctx_mutex);
+
 	mtk_vcodec_debug(vcu, "+ id=%X status = %d\n", msg->msg_id, msg->status);
 
 	vcu->failure = msg->status;
@@ -73,7 +97,7 @@ int vcu_dec_ipi_handler(void *data, unsigned int len, void *priv)
 	if (msg->status == 0) {
 		switch (msg->msg_id) {
 		case VCU_IPIMSG_DEC_INIT_ACK:
-			handle_init_ack_msg(data);
+			handle_init_ack_msg(vcu, data);
 			break;
 
 		case VCU_IPIMSG_DEC_START_ACK:
@@ -168,7 +192,7 @@ int vcu_dec_init(struct vdec_vcu_inst *vcu)
 	vcu->signaled = 0;
 	vcu->failure = 0;
 
-	err = vpu_ipi_register(vcu->dev, vcu->id, vcu->handler, NULL, NULL);
+	err = vpu_ipi_register(vcu->dev, vcu->id, vcu->handler, NULL, vcu->ctx->dev);
 	if (err != 0) {
 		mtk_vcodec_err(vcu, "vcu_ipi_register fail status=%d", err);
 		return err;
@@ -176,7 +200,7 @@ int vcu_dec_init(struct vdec_vcu_inst *vcu)
 
 	memset(&msg, 0, sizeof(msg));
 	msg.msg_id = AP_IPIMSG_DEC_INIT;
-	msg.ap_inst_addr = (unsigned long)vcu;
+	msg.ap_inst_addr = (uint64_t)vcu->ctx->id;
 
 	mtk_vcodec_debug(vcu, "vdec_inst=%p", vcu);
 
