@@ -137,6 +137,7 @@ void *mtk_vcu_set_buffer(struct mtk_vcu_queue *vcu_queue,
 	struct dma_buf *dbuf = NULL;
 	int op;
 
+	mutex_lock(&vcu_queue->mmap_lock);
 	pr_debug("[%s] %d iova = %llx src_vb = %p dst_vb = %p\n",
 		__func__, vcu_queue->num_buffers, mem_buff_data->iova,
 		src_vb, dst_vb);
@@ -146,10 +147,10 @@ void *mtk_vcu_set_buffer(struct mtk_vcu_queue *vcu_queue,
 		mem_buff_data->len == 0U || num_buffers >= CODEC_MAX_BUFFER) {
 		pr_info("Set buffer fail: buffer len = %u num_buffers = %d !!\n",
 			   mem_buff_data->len, num_buffers);
+		mutex_unlock(&vcu_queue->mmap_lock);
 		return ERR_PTR(-EINVAL);
 	}
 
-	mutex_lock(&vcu_queue->mmap_lock);
 	for (buffer = 0; buffer < num_buffers; buffer++) {
 		vcu_buffer = &vcu_queue->bufs[buffer];
 		if (mem_buff_data->iova == (u64)vcu_buffer->iova) {
@@ -217,15 +218,16 @@ void *mtk_vcu_get_buffer(struct mtk_vcu_queue *vcu_queue,
 	struct mtk_vcu_mem *vcu_buffer;
 	unsigned int buffers;
 
+	mutex_lock(&vcu_queue->mmap_lock);
 	buffers = vcu_queue->num_buffers;
 	if (mem_buff_data->len > CODEC_ALLOCATE_MAX_BUFFER_SIZE ||
 		mem_buff_data->len == 0U || buffers >= CODEC_MAX_BUFFER) {
 		pr_info("Get buffer fail: buffer len = %u num_buffers = %d !!\n",
 			   mem_buff_data->len, buffers);
+		mutex_unlock(&vcu_queue->mmap_lock);
 		return ERR_PTR(-EINVAL);
 	}
 
-	mutex_lock(&vcu_queue->mmap_lock);
 	vcu_buffer = &vcu_queue->bufs[buffers];
 	vcu_buffer->vb.vb2_queue = &vcu_queue->vb_queue;
 	vcu_buffer->mem_priv = vcu_queue->mem_ops->alloc(&vcu_buffer->vb, vcu_queue->dev,
@@ -288,7 +290,7 @@ void *mtk_vcu_get_page(struct mtk_vcu_queue *vcu_queue,
 	atomic_set(&tmp->ref_cnt, 1);
 	list_add_tail(&tmp->list, &vcu_queue->pa_pages.list);
 	mutex_unlock(&vcu_queue->mmap_lock);
-	pr_debug("%s client=%p mem_priv=%p temp_pa=%p list:%p tmp:%p ref_cnt:%d\n", 
+	pr_debug("%s client=%p mem_priv=%p temp_pa=%p list:%p tmp:%p ref_cnt:%d\n",
 		__func__, client, mem_priv, temp_pa, &tmp->list, tmp, tmp->ref_cnt);
 #endif
 	return mem_priv;
