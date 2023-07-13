@@ -581,7 +581,7 @@ static dma_addr_t get_meta_buffer_dma_addr(struct mtk_vcodec_ctx *ctx, int fd)
 
 static int *create_general_buffer_info(struct mtk_vcodec_ctx *ctx, int fd)
 {
-	struct iosys_map map;
+	struct iosys_map map = IOSYS_MAP_INIT_VADDR(NULL);
 	int *va = 0;
 	int i = 0;
 	struct dma_buf *dmabuf = NULL;
