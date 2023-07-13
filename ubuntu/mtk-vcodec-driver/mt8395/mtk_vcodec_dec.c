@@ -2198,10 +2198,13 @@ static int vidioc_vdec_g_selection(struct file *file, void *priv,
 	switch (s->target) {
 	case V4L2_SEL_TGT_COMPOSE_DEFAULT:
 	case V4L2_SEL_TGT_CROP_DEFAULT:
-		s->r.left = 0;
-		s->r.top = 0;
-		s->r.width = ctx->picinfo.pic_w;
-		s->r.height = ctx->picinfo.pic_h;
+		if (vdec_if_get_param(ctx, GET_PARAM_CROP_INFO, &(s->r))) {
+			s->r.left = 0;
+			s->r.top = 0;
+			s->r.width = ctx->picinfo.pic_w;
+			s->r.height = ctx->picinfo.pic_h;
+		}
+		mtk_v4l2_debug(1, "SEL_TGT[%d], width=%d, height=%d", s->target, s->r.width, s->r.height);
 		break;
 	case V4L2_SEL_TGT_COMPOSE_BOUNDS:
 	case V4L2_SEL_TGT_CROP_BOUNDS:
@@ -2219,6 +2222,7 @@ static int vidioc_vdec_g_selection(struct file *file, void *priv,
 			s->r.width = q_data->visible_width;
 			s->r.height = q_data->visible_height;
 		}
+		mtk_v4l2_debug(1, "SEL_TGT[%d], width=%d, height=%d", s->target, s->r.width, s->r.height);
 		break;
 	default:
 		return -EINVAL;
