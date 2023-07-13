@@ -93,6 +93,11 @@ enum ipi_id {
 	IPI_MDP_2,
 	IPI_MDP_3,
 	IPI_CAMERA,
+	IPI_CAMERA_1,
+	IPI_CAMERA_2,
+	IPI_CAMERA_3,
+	IPI_CAMERA_4,
+	IPI_CAMERA_MAX,
 	IPI_MAX = 50,
 };
 
@@ -101,6 +106,13 @@ enum vcu_codec_ipi_type {
 	VCU_VENC,
 	VCU_RESOURCE,
 	VCU_CODEC_MAX
+};
+
+enum vcu_id {
+	VCU_ID_VDEC = 0,
+	VCU_ID_MDP,
+	VCU_ID_CAM,
+	VCU_ID_MAX
 };
 
 struct vcu_v4l2_callback_func {
