@@ -63,7 +63,11 @@ void mtk_venc_init_ctx_pm(struct mtk_vcodec_ctx *ctx)
 	pr_info("slbc_request %d, 0x%x, 0x%llx\n",
 	ctx->use_slbc, ctx->slbc_addr, ctx->sram_data.paddr);
 #endif
-    ctx->enc_params.use_irq = 1;//enable  irq mode
+#if ENABLE_GCE
+	ctx->enc_params.use_irq = 0;//disbale irq mode to use gce mode
+#else
+	ctx->enc_params.use_irq = 1;//enable irq mode
+#endif
 }
 
 int mtk_vcodec_init_enc_pm(struct mtk_vcodec_dev *mtkdev)

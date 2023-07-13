@@ -7,7 +7,7 @@
 #ifndef MTK_VCODEC_MEM_H
 #define MTK_VCODEC_MEM_H
 
-#define ENABLE_GCE 0
+#define ENABLE_GCE 1
 
 #include <media/videobuf2-dma-contig.h>
 #include <linux/mtk_vcu_controls.h>
