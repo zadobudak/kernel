@@ -637,16 +637,24 @@ static int vidioc_venc_g_ctrl(struct v4l2_ctrl *ctrl)
 
 	switch (ctrl->id) {
 	case V4L2_CID_MPEG_MTK_ENCODE_ROI_RC_QP:
-		venc_if_get_param(ctx,
-			GET_PARAM_ROI_RC_QP,
-			&value);
+		ret = venc_if_get_param(ctx,
+				GET_PARAM_ROI_RC_QP,
+				&value);
+		if (ret) {
+			mtk_v4l2_err("[%d] Error!! Cannot get param", ctx->id);
+			return ret;
+		}
 		ctrl->val = value;
 		break;
 	case V4L2_CID_MPEG_MTK_RESOLUTION_CHANGE:
 		reschange = (struct venc_resolution_change *)ctrl->p_new.p_u32;
-		venc_if_get_param(ctx,
-			GET_PARAM_RESOLUTION_CHANGE,
-			reschange);
+		ret = venc_if_get_param(ctx,
+				GET_PARAM_RESOLUTION_CHANGE,
+				reschange);
+		if (ret) {
+			mtk_v4l2_err("[%d] Error!! Cannot get param", ctx->id);
+			return ret;
+		}
 		break;
 	case V4L2_CID_MIN_BUFFERS_FOR_CAPTURE:
 		ctrl->val = ctx->enc_params.num_b_frame + MTK_VENC_MIN_CAPTURE_BUFFER_COUNT;
@@ -661,7 +669,7 @@ static int vidioc_venc_g_ctrl(struct v4l2_ctrl *ctrl)
 			ctrl->val);
 		break;
 	default:
-		mtk_v4l2_debug(2, "ctrl-id=%d not support!", ctrl->id);
+		mtk_v4l2_err("ctrl-id=%x not support!", ctrl->id);
 		ret = -EINVAL;
 		break;
 	}
@@ -1578,7 +1586,7 @@ static int vidioc_venc_qbuf(struct file *file, void *priv,
 	struct vb2_buffer *vb;
 	struct mtk_video_enc_buf *mtkbuf;
 	struct vb2_v4l2_buffer *vb2_v4l2;
-   
+
 
 	if (ctx->state == MTK_STATE_ABORT) {
 		mtk_v4l2_err("[%d] Call on QBUF after unrecoverable error",
@@ -3865,4 +3873,3 @@ void mtk_vcodec_enc_release(struct mtk_vcodec_ctx *ctx)
 		mtk_v4l2_err("venc_if_deinit failed=%d", ret);
 }
 MODULE_LICENSE("GPL v2");
-

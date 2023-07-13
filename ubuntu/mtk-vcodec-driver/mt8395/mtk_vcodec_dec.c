@@ -3369,10 +3369,11 @@ static int mtk_vdec_g_v_ctrl(struct v4l2_ctrl *ctrl)
 			GET_PARAM_FRAME_INTERVAL, &value) != 0) {
 			mtk_v4l2_err("[%d] Error!! Cannot get param", ctx->id);
 			ret = -EINVAL;
+		} else {
+			ctrl->p_new.p_u32 = &value;
+			mtk_v4l2_debug(2, "V4L2_CID_MPEG_MTK_FRAME_INTERVAL val = %u",
+						*(ctrl->p_new.p_u32));
 		}
-		ctrl->p_new.p_u32 = &value;
-		mtk_v4l2_debug(2, "V4L2_CID_MPEG_MTK_FRAME_INTERVAL val = %u",
-					   *(ctrl->p_new.p_u32));
 		break;
 	case V4L2_CID_MPEG_MTK_COLOR_DESC:
 		color_desc = (struct mtk_color_desc *)ctrl->p_new.p_u32;
