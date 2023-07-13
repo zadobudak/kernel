@@ -1,0 +1,12 @@
+config VIDEO_MEDIATEK_VCU_MT8395
+	tristate "Mediatek Video Compute Unit"
+	depends on VIDEO_DEV && VIDEO_V4L2
+	depends on ARCH_MEDIATEK || COMPILE_TEST
+	help
+	    This driver provides the interface to communicate with
+	    the userspace daemons. This driver for hw video
+	    codec embedded in Mediatek's MT8395 SOCs. It is able
+	    to handle video decoding/encoding in a range of formats.
+
+	    To compile this driver as a module, choose M here: the
+	    module will be called mtk-vcu.
