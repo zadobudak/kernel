@@ -216,6 +216,8 @@ static int mtk_vcodec_enc_suspend(struct device *pDev)
 {
 	int val, i;
 	struct mtk_vcodec_dev *dev = dev_get_drvdata(pDev);
+	// use v4l2_m2m_suspend to handle unfinished jobs & stop new jobs
+	v4l2_m2m_suspend(dev->m2m_dev_enc);
 
 	for (i = 0; i < MTK_VENC_HW_NUM; i++) {
 		val = down_trylock(&dev->enc_sem[i]);
@@ -232,6 +234,9 @@ static int mtk_vcodec_enc_suspend(struct device *pDev)
 
 static int mtk_vcodec_enc_resume(struct device *pDev)
 {
+	struct mtk_vcodec_dev *dev = dev_get_drvdata(pDev);
+	v4l2_m2m_resume(dev->m2m_dev_enc); //use v4l2_m2m_resumt to resume jobs
+
 	mtk_v4l2_debug(1, "done");
 	return 0;
 }
@@ -249,6 +254,8 @@ static int mtk_vcodec_enc_suspend_notifier(struct notifier_block *nb,
 	switch (action) {
 	case PM_SUSPEND_PREPARE:
 		dev->is_codec_suspending = 1;
+		v4l2_m2m_suspend(dev->m2m_dev_enc);
+		mtk_v4l2_debug(1, "suspend_notifier: v4l2_m2m_suspend done");
 		for (i = 0; i < MTK_VENC_HW_NUM; i++) {
 			val = down_trylock(&dev->enc_sem[i]);
 			while (val == 1) {
