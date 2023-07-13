@@ -1,7 +1,10 @@
 SRC := $(shell pwd)
 
-# declare vcodec config
-MTK_PLATFORM = mt8395
+# extra options
+MTK_PLATFORM = $(TARGET_PLATFORM)
+KBUILD_EXTRA_SYMBOLS_PATH = $(EXTRA_SYMBOLS_PATH)
+
+# declare kernel config
 CONFIG_VIDEO_MEDIATEK_VCODEC_MT8395=y
 CONFIG_VIDEO_MEDIATEK_VCU_MT8395=y
 CONFIG_VIDEO_MEDIATEK_VCODEC_V1=y
@@ -12,8 +15,8 @@ CONFIG_COMPAT=y
 
 top := $(src)
 export top
-$(info mtk-vcodec-mt8395/ src is $(src))
-$(info mtk-vcodec-mt8395/ MTK_PLATFORM is $(MTK_PLATFORM))
+$(info mtk-vcodec-driver/ src is $(src))
+$(info mtk-vcodec-driver/ MTK_PLATFORM is $(MTK_PLATFORM))
 export MTK_PLATFORM
 
 EXTRA_CFLAGS += -DCONFIG_VIDEO_MEDIATEK_VCODEC_MT8395
