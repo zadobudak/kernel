@@ -382,15 +382,15 @@ static int mtk_vcodec_enc_probe(struct platform_device *pdev)
 	if (ret)
 		goto err_res;
 
-	ret = of_property_read_u32(pdev->dev.of_node, "port_arg_num", &port_args_num);
+	ret = of_property_read_u32(pdev->dev.of_node, "port-arg-num", &port_args_num);
 	if (ret != 0)
 		dev_info(&pdev->dev, "Failed to get port_arg_num!");
 
-	pr_info("after get port_arg_num %d\n", port_args_num);
+	mtk_v4l2_debug(1, "after get port_arg_num %d\n", port_args_num);
 	if (!of_get_property(pdev->dev.of_node, "port-def", &port_data_len))
 		dev_info(&pdev->dev, "Failed to get port-def!");
 
-	pr_info("after get port-def port_data_len %d\n", port_data_len);
+	mtk_v4l2_debug(1, "after get port-def port_data_len %d\n", port_data_len);
 	if (port_args_num)
 		total_port_num = port_data_len / (sizeof(u32) * port_args_num);
 
@@ -425,7 +425,7 @@ static int mtk_vcodec_enc_probe(struct platform_device *pdev)
 	}
 	dev->venc_ports[0].total_port_num = j;
 	dev->venc_ports[1].total_port_num = k;
-	pr_info("after get port-def  port num %d %d\n", j, k);
+	mtk_v4l2_debug(0, "after get port-def  port num %d %d\n", j, k);
 
 	for (i = 0; i < MTK_VENC_HW_NUM; i++) {
 		sema_init(&dev->enc_sem[i], 1);
