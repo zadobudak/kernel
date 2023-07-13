@@ -15,27 +15,14 @@
 ##
 ##
 ##
-obj-y += mtk-apusys-driver/
+obj-y += mt8365/
 ##
 ##
 ##
-obj-y += mtk-mdp-driver/
+obj-y += mt8395/
 ##
 ##
 ##
-obj-y += mtk-vcodec-driver/
-##
-##
-##
-obj-y += mtk-mali-gpu-driver/
-##
-##
-##
-obj-y += mtk-vcu-driver/
-##
-##
-##
-obj-$(CONFIG_UBUNTU_HOST)      += ubuntu-host/
 ##
 ##
 ##

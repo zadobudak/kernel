@@ -20,7 +20,15 @@ source "ubuntu/mtk-apusys-driver/Kconfig"
 ##
 ##
 ##
+source "ubuntu/mtk-mdp-driver/Kconfig"
+##
+##
+##
 source "ubuntu/mtk-vcodec-driver/Kconfig"
+##
+##
+##
+source "ubuntu/mtk-vcu-driver/Kconfig"
 ##
 ##
 ##
