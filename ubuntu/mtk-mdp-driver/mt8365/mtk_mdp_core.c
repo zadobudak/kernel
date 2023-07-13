@@ -1,0 +1,405 @@
+// SPDX-License-Identifier: GPL-2.0-only
+/*
+ * Copyright (c) 2015-2016 MediaTek Inc.
+ * Author: Houlong Wei <houlong.wei@mediatek.com>
+ *         Ming Hsiu Tsai <minghsiu.tsai@mediatek.com>
+ */
+
+#include <linux/clk.h>
+#include <linux/device.h>
+#include <linux/errno.h>
+#include <linux/interrupt.h>
+#include <linux/kernel.h>
+#include <linux/module.h>
+#include <linux/of.h>
+#include <linux/of_address.h>
+#include <linux/of_platform.h>
+#include <linux/platform_device.h>
+#include <linux/suspend.h>
+#include <linux/pm_runtime.h>
+#include <linux/workqueue.h>
+
+#include "mtk_mdp_core.h"
+#include "mtk_mdp_m2m.h"
+#include "mtk_vpu.h"
+
+/* MDP debug log level (0-3). 3 shows all the logs. */
+int mtk_mdp_dbg_level;
+EXPORT_SYMBOL(mtk_mdp_dbg_level);
+
+module_param(mtk_mdp_dbg_level, int, 0644);
+
+static const struct of_device_id mtk_mdp_comp_dt_ids[] = {
+	{
+		.compatible = "mediatek,mt8167-mdp-rdma",
+		.data = (void *)MTK_MDP_RDMA
+	}, {
+		.compatible = "mediatek,mt8167-mdp-rsz",
+		.data = (void *)MTK_MDP_RSZ
+	}, {
+		.compatible = "mediatek,mt8167-mdp-wdma",
+		.data = (void *)MTK_MDP_WDMA
+	}, {
+		.compatible = "mediatek,mt8167-mdp-wrot",
+		.data = (void *)MTK_MDP_WROT
+	}, {
+		.compatible = "mediatek,mt8167-mdp-tdshp",
+		.data = (void *)MTK_MDP_TDSHP
+	}, {
+		.compatible = "mediatek,mt8173-mdp-rdma",
+		.data = (void *)MTK_MDP_RDMA
+	}, {
+		.compatible = "mediatek,mt8173-mdp-rsz",
+		.data = (void *)MTK_MDP_RSZ
+	}, {
+		.compatible = "mediatek,mt8173-mdp-wdma",
+		.data = (void *)MTK_MDP_WDMA
+	}, {
+		.compatible = "mediatek,mt8173-mdp-wrot",
+		.data = (void *)MTK_MDP_WROT
+	},
+	{ },
+};
+
+static const struct of_device_id mtk_mdp_of_ids[] = {
+	{ .compatible = "mediatek,mt8173-mdp", },
+	{ .compatible = "mediatek,mt8167-mdp", },
+	{ },
+};
+MODULE_DEVICE_TABLE(of, mtk_mdp_of_ids);
+
+static void mtk_mdp_clock_on(struct mtk_mdp_dev *mdp)
+{
+	struct device *dev = &mdp->pdev->dev;
+	struct mtk_mdp_comp *comp_node;
+
+	list_for_each_entry(comp_node, &mdp->comp_list, node)
+		mtk_mdp_comp_clock_on(dev, comp_node);
+}
+
+static void mtk_mdp_clock_off(struct mtk_mdp_dev *mdp)
+{
+	struct device *dev = &mdp->pdev->dev;
+	struct mtk_mdp_comp *comp_node;
+
+	list_for_each_entry(comp_node, &mdp->comp_list, node)
+		mtk_mdp_comp_clock_off(dev, comp_node);
+}
+
+static void mtk_mdp_wdt_worker(struct work_struct *work)
+{
+	struct mtk_mdp_dev *mdp =
+			container_of(work, struct mtk_mdp_dev, wdt_work);
+	struct mtk_mdp_ctx *ctx;
+
+	mtk_mdp_err("Watchdog timeout");
+
+	list_for_each_entry(ctx, &mdp->ctx_list, list) {
+		mtk_mdp_dbg(0, "[%d] Change as state error", ctx->id);
+		mtk_mdp_ctx_state_lock_set(ctx, MTK_MDP_CTX_ERROR);
+	}
+}
+
+static void mtk_mdp_reset_handler(void *priv)
+{
+	struct mtk_mdp_dev *mdp = priv;
+
+	queue_work(mdp->wdt_wq, &mdp->wdt_work);
+}
+
+void mtk_mdp_register_component(struct mtk_mdp_dev *mdp,
+				struct mtk_mdp_comp *comp)
+{
+	list_add(&comp->node, &mdp->comp_list);
+}
+
+void mtk_mdp_unregister_component(struct mtk_mdp_dev *mdp,
+				  struct mtk_mdp_comp *comp)
+{
+	list_del(&comp->node);
+}
+
+static int mtk_mdp_suspend_notifier(struct notifier_block *nb,
+				    unsigned long action, void *data)
+{
+	struct mtk_mdp_dev *mdp =
+		container_of(nb, struct mtk_mdp_dev, pm_notifier);
+	struct device *dev = &mdp->pdev->dev;
+
+	dev_dbg(dev, "[MDP] %s ok action = %ld\n", __func__, action);
+	switch (action) {
+	case PM_SUSPEND_PREPARE:
+		dev_dbg(dev, "[MDP] suspend_notifier: suspend prepare... \n");
+		v4l2_m2m_suspend(mdp->m2m_dev);
+		dev_dbg(dev, "[MDP] suspend_notifier: suspend prepare... done\n");
+		return NOTIFY_OK;
+	case PM_POST_SUSPEND:
+		dev_dbg(dev, "[MDP] suspend_notifier: post suspend... done\n");
+		return NOTIFY_OK;
+	default:
+		return NOTIFY_DONE;
+	}
+	return NOTIFY_DONE;
+}
+
+static const struct of_device_id mtk_mdp_comp_of_match[] = {
+	{ .compatible = "mediatek,mt8167-mdp-wdma" },
+	{ .compatible = "mediatek,mt8167-mdp-wrot" },
+	{},
+};
+MODULE_DEVICE_TABLE(of, mtk_mdp_comp_of_match);
+
+struct platform_driver mtk_mdp_comp = {
+	.driver		= {
+		.name	= "mediatek-mdp-comp",
+		.owner	= THIS_MODULE,
+		.of_match_table = mtk_mdp_comp_of_match,
+	},
+};
+
+static int mtk_mdp_probe(struct platform_device *pdev)
+{
+	struct mtk_mdp_dev *mdp;
+	struct device *dev = &pdev->dev;
+	struct device_node *node, *parent;
+	struct platform_device *cmdq_dev;
+	struct mtk_mdp_comp *comp, *comp_temp;
+	int ret = 0;
+
+	//mtk_mdp_dbg_level = 3;
+
+	/* Check whether cmdq driver is ready */
+	node = of_parse_phandle(dev->of_node, "mediatek,gce", 0);
+	if (!node) {
+		dev_err(dev, "cannot get gce node handle\n");
+		return -EINVAL;
+	}
+
+	cmdq_dev = of_find_device_by_node(node);
+	if (!cmdq_dev || !cmdq_dev->dev.driver) {
+		dev_err(dev, "Waiting cmdq driver ready...\n");
+		of_node_put(node);
+		return -EPROBE_DEFER;
+	}
+
+	mdp = devm_kzalloc(dev, sizeof(*mdp), GFP_KERNEL);
+	if (!mdp)
+		return -ENOMEM;
+
+	mdp->id = pdev->id;
+	mdp->pdev = pdev;
+	INIT_LIST_HEAD(&mdp->comp_list);
+	INIT_LIST_HEAD(&mdp->ctx_list);
+
+	mutex_init(&mdp->lock);
+	mutex_init(&mdp->vpulock);
+
+	/* Old dts had the components as child nodes */
+	node = of_get_next_child(dev->of_node, NULL);
+	if (node) {
+		of_node_put(node);
+		parent = dev->of_node;
+		dev_warn(dev, "device tree is out of date\n");
+	} else {
+		parent = dev->of_node->parent;
+	}
+
+	/* Iterate over sibling MDP function blocks */
+	for_each_child_of_node(parent, node) {
+		const struct of_device_id *of_id;
+		enum mtk_mdp_comp_type comp_type;
+
+		of_id = of_match_node(mtk_mdp_comp_dt_ids, node);
+		if (!of_id)
+			continue;
+
+		if (!of_device_is_available(node)) {
+			dev_err(dev, "Skipping disabled component %pOF\n",
+				node);
+			continue;
+		}
+
+		comp_type = (enum mtk_mdp_comp_type)of_id->data;
+
+		comp = devm_kzalloc(dev, sizeof(*comp), GFP_KERNEL);
+		if (!comp) {
+			ret = -ENOMEM;
+			of_node_put(node);
+			goto err_comp;
+		}
+
+		ret = mtk_mdp_comp_init(dev, node, comp, comp_type);
+		if (ret) {
+			of_node_put(node);
+			goto err_comp;
+		}
+
+		mtk_mdp_register_component(mdp, comp);
+	}
+
+	platform_driver_register(&mtk_mdp_comp);
+
+	mdp->job_wq = create_singlethread_workqueue(MTK_MDP_MODULE_NAME);
+	if (!mdp->job_wq) {
+		dev_err(&pdev->dev, "unable to alloc job workqueue\n");
+		ret = -ENOMEM;
+		goto err_alloc_job_wq;
+	}
+
+	mdp->wdt_wq = create_singlethread_workqueue("mdp_wdt_wq");
+	if (!mdp->wdt_wq) {
+		dev_err(&pdev->dev, "unable to alloc wdt workqueue\n");
+		ret = -ENOMEM;
+		goto err_alloc_wdt_wq;
+	}
+	INIT_WORK(&mdp->wdt_work, mtk_mdp_wdt_worker);
+
+	ret = v4l2_device_register(dev, &mdp->v4l2_dev);
+	if (ret) {
+		dev_err(&pdev->dev, "Failed to register v4l2 device\n");
+		ret = -EINVAL;
+		goto err_dev_register;
+	}
+
+	ret = mtk_mdp_register_m2m_device(mdp);
+	if (ret) {
+		v4l2_err(&mdp->v4l2_dev, "Failed to init mem2mem device\n");
+		goto err_m2m_register;
+	}
+
+	mdp->vpu_dev = vpu_get_plat_device(pdev);
+	ret = vpu_wdt_reg_handler(mdp->vpu_dev, mtk_mdp_reset_handler, mdp,
+				  VPU_RST_MDP);
+	if (ret) {
+		dev_err(&pdev->dev, "Failed to register reset handler\n");
+		goto err_m2m_register;
+	}
+
+	platform_set_drvdata(pdev, mdp);
+
+	ret = vb2_dma_contig_set_max_seg_size(&pdev->dev, DMA_BIT_MASK(32));
+	if (ret) {
+		dev_err(&pdev->dev, "Failed to set vb2 dma mag seg size\n");
+		goto err_m2m_register;
+	}
+
+	pm_runtime_enable(dev);
+
+	mdp->pm_notifier.notifier_call = mtk_mdp_suspend_notifier;
+	register_pm_notifier(&mdp->pm_notifier);
+
+	mdp->cmdq_client = cmdq_mbox_create(dev, 0);
+
+	dev_dbg(dev, "mdp-%d registered successfully\n", mdp->id);
+
+	return 0;
+
+err_m2m_register:
+	v4l2_device_unregister(&mdp->v4l2_dev);
+
+err_dev_register:
+	destroy_workqueue(mdp->wdt_wq);
+
+err_alloc_wdt_wq:
+	destroy_workqueue(mdp->job_wq);
+
+err_alloc_job_wq:
+
+err_comp:
+	list_for_each_entry_safe(comp, comp_temp, &mdp->comp_list, node) {
+		mtk_mdp_unregister_component(mdp, comp);
+		mtk_mdp_comp_deinit(dev, comp);
+	}
+
+	dev_dbg(dev, "err %d\n", ret);
+	return ret;
+}
+
+static int mtk_mdp_remove(struct platform_device *pdev)
+{
+	struct mtk_mdp_dev *mdp = platform_get_drvdata(pdev);
+	struct mtk_mdp_comp *comp, *comp_temp;
+
+	pm_runtime_disable(&pdev->dev);
+	vb2_dma_contig_clear_max_seg_size(&pdev->dev);
+	mtk_mdp_unregister_m2m_device(mdp);
+	v4l2_device_unregister(&mdp->v4l2_dev);
+
+	flush_workqueue(mdp->wdt_wq);
+	destroy_workqueue(mdp->wdt_wq);
+
+	flush_workqueue(mdp->job_wq);
+	destroy_workqueue(mdp->job_wq);
+
+	list_for_each_entry_safe(comp, comp_temp, &mdp->comp_list, node) {
+		mtk_mdp_unregister_component(mdp, comp);
+		mtk_mdp_comp_deinit(&pdev->dev, comp);
+	}
+
+	unregister_pm_notifier(&mdp->pm_notifier);
+	cmdq_mbox_destroy(mdp->cmdq_client);
+
+	dev_dbg(&pdev->dev, "%s driver unloaded\n", pdev->name);
+	return 0;
+}
+
+static int __maybe_unused mtk_mdp_pm_suspend(struct device *dev)
+{
+	struct mtk_mdp_dev *mdp = dev_get_drvdata(dev);
+
+	dev_dbg(&mdp->pdev->dev, "[MDP] pm_suspend()...\n");
+	v4l2_m2m_suspend(mdp->m2m_dev);
+	mtk_mdp_clock_off(mdp);
+	dev_dbg(&mdp->pdev->dev, "[MDP] pm_suspend()... done\n");
+
+	return 0;
+}
+
+static int __maybe_unused mtk_mdp_pm_resume(struct device *dev)
+{
+	struct mtk_mdp_dev *mdp = dev_get_drvdata(dev);
+
+	dev_dbg(&mdp->pdev->dev, "[MDP] pm_resume()...\n");
+	mtk_mdp_clock_on(mdp);
+	v4l2_m2m_resume(mdp->m2m_dev);
+	dev_dbg(&mdp->pdev->dev, "[MDP] pm_resume()... done\n");
+
+	return 0;
+}
+
+static int __maybe_unused mtk_mdp_suspend(struct device *dev)
+{
+	if (pm_runtime_suspended(dev))
+		return 0;
+
+	return mtk_mdp_pm_suspend(dev);
+}
+
+static int __maybe_unused mtk_mdp_resume(struct device *dev)
+{
+	if (pm_runtime_suspended(dev))
+		return 0;
+
+	return mtk_mdp_pm_resume(dev);
+}
+
+static const struct dev_pm_ops mtk_mdp_pm_ops = {
+	SET_SYSTEM_SLEEP_PM_OPS(mtk_mdp_suspend, mtk_mdp_resume)
+	SET_RUNTIME_PM_OPS(mtk_mdp_pm_suspend, mtk_mdp_pm_resume, NULL)
+};
+
+static struct platform_driver mtk_mdp_driver = {
+	.probe		= mtk_mdp_probe,
+	.remove		= mtk_mdp_remove,
+	.driver = {
+		.name	= MTK_MDP_MODULE_NAME,
+		.pm	= &mtk_mdp_pm_ops,
+		.of_match_table = mtk_mdp_of_ids,
+	}
+};
+
+module_platform_driver(mtk_mdp_driver);
+
+MODULE_AUTHOR("Houlong Wei <houlong.wei@mediatek.com>");
+MODULE_DESCRIPTION("Mediatek image processor driver");
+MODULE_LICENSE("GPL v2");
