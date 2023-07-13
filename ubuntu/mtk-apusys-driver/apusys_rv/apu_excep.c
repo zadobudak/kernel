@@ -216,7 +216,8 @@ static void apu_do_tcmdump(struct mtk_apu *apu)
 	struct apu_coredump *coredump =
 		(struct apu_coredump *) apu->coredump_buf;
 
-	memcpy(coredump->tcmdump, (char *) apu->md32_tcm, TCM_SIZE);
+	if (apu->md32_tcm)
+		memcpy(coredump->tcmdump, (char *) apu->md32_tcm, TCM_SIZE);
 }
 
 static void apu_do_ramdump(struct mtk_apu *apu)

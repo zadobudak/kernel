@@ -61,6 +61,11 @@ int vpu_set_init_info(struct mtk_apu *apu)
 	info = (struct vpu_init_info *)
 		get_apu_config_user_ptr(apu->conf_buf, eVPU_INIT_INFO);
 
+	if (!vpu_drv) {
+		vpu_cmd_debug("vpu probe failed\n");
+		return -EINVAL;
+	}
+
 	for (i = 0; i < vpu_drv->vp->core_num; i++) {
 		p = &probe_info[i];
 		if (!p->np) {
@@ -892,6 +897,16 @@ static int vpu_probe(struct platform_device *pdev)
 		vpu_init_drv_hw();
 		vpu_init_drv_met();
 		vpu_init_drv_tags();
+	} else {
+		if (vpu_drv) {
+			// going to probe coreX because core0 was already success to probe
+			pr_info("%s: vpu core %d set property\n", __func__, vd->id);
+			set_property(vd, &vpu_drv->prop);
+		} else {
+			// do not probe coreX if core0 did not success to probe
+			pr_info("%s: not probe vpu core %d due to core0 was not probe\n", __func__, vd->id);
+			goto out;
+		}
 	}
 
 	ret = snprintf(vd->name, sizeof(vd->name), "vpu%d", vd->id);
@@ -972,6 +987,8 @@ free:
 out:
 	vpu_free(pdev);
 	dev_info(&pdev->dev, "%s: failed\n", __func__);
+	kfree(vpu_drv);
+	vpu_drv = NULL;
 	return ret;
 }
 
@@ -1178,6 +1195,7 @@ void vpu_exit(void)
 	if (!vpu_drv) {
 		vpu_drv_debug("%s: platform_driver_unregister\n", __func__);
 		platform_driver_unregister(&vpu_plat_drv);
+		platform_driver_unregister(&vpu_plat_drv1);
 		return;
 	}
 
@@ -1194,6 +1212,7 @@ void vpu_exit(void)
 	mutex_unlock(&vpu_drv->lock);
 	vpu_drv_debug("%s: platform_driver_unregister\n", __func__);
 	platform_driver_unregister(&vpu_plat_drv);
+	platform_driver_unregister(&vpu_plat_drv1);
 	vpu_exit_drv_tags();
 	vpu_exit_drv_met();
 	vpu_exit_drv_hw();

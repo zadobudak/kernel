@@ -1318,8 +1318,7 @@ static int mt8188_apu_top_off(struct device *dev)
 		del_timer_sync(&apu_thermal_timer);
 #endif
 
-	/* john TODO: temp mark, need to modify common part */
-	// mt8188_apu_devfreq_cooling_stop();
+	mt8188_apu_devfreq_cooling_stop();
 
 	__apu_xpu2apusys_d4_slv_en(1);
 
@@ -1644,6 +1643,22 @@ static int mt8188_apu_top_rm(struct platform_device *pdev)
 	return 0;
 }
 
+static int mt8188_apu_top_prepare(struct device *dev)
+{
+	// Before entering suspend mode, we check whether the apu is still working?
+	// If apu is working now, retrun EBUSY to stop suspend flow
+	uint32_t status = apu_readl(apupw.regs[apu_rpc]
+			+ APU_RPC_INTF_PWR_RDY);
+
+	if (status & 1) {
+		pr_info("%s apu is still working, not allow to enter suspend mode\n",
+			__func__);
+		return -EBUSY;
+	} else {
+		return 0;
+	}
+}
+
 static int mt8188_apu_top_suspend(struct device *dev)
 {
 	g_opp_cfg_acx0 = apu_readl(
@@ -1779,6 +1794,7 @@ const struct apupwr_plat_data mt8188_plat_data = {
 	.plat_aputop_off       = mt8188_apu_top_off,
 	.plat_aputop_pb        = mt8188_apu_top_pb,
 	.plat_aputop_rm        = mt8188_apu_top_rm,
+	.plat_aputop_prepare   = mt8188_apu_top_prepare,
 	.plat_aputop_suspend   = mt8188_apu_top_suspend,
 	.plat_aputop_resume    = mt8188_apu_top_resume,
 	.plat_aputop_func      = mt8188_apu_top_func,

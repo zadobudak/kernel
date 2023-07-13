@@ -48,7 +48,8 @@ static void *apu_da_to_va(struct rproc *rproc, u64 da, size_t len, bool *is_iome
 		dev_info(apu->dev, "%s: (DRAM): da = 0x%llx, len = 0x%lx\n",
 			__func__, da, len);
 	} else if (da >= TCM_OFFSET && da < TCM_OFFSET + TCM_SIZE) {
-		ptr = apu->md32_tcm + (da - TCM_OFFSET);
+		if (apu->md32_tcm)
+			ptr = apu->md32_tcm + (da - TCM_OFFSET);
 		dev_info(apu->dev, "%s: (TCM): da = 0x%llx, len = 0x%lx\n",
 			__func__, da, len);
 	}

@@ -681,16 +681,7 @@ static int mt8188_apu_memmap_init(struct mtk_apu *apu)
 		return -ENOMEM;
 	}
 
-	res = platform_get_resource_byname(pdev, IORESOURCE_MEM, "md32_tcm");
-	if (res == NULL) {
-		dev_info(dev, "%s: md32_tcm get resource fail\n", __func__);
-		return -ENODEV;
-	}
-	apu->md32_tcm = devm_ioremap_wc(dev, res->start, res->end - res->start + 1);
-	if (IS_ERR((void const *)apu->md32_tcm)) {
-		dev_info(dev, "%s: md32_tcm remap base fail\n", __func__);
-		return -ENOMEM;
-	}
+	apu->md32_tcm = NULL;
 
 	res = platform_get_resource_byname(pdev, IORESOURCE_MEM, "md32_cache_dump");
 	if (res == NULL) {

@@ -27,7 +27,7 @@
 #include "../apu_hw.h"
 #include "../apu_excep.h"
 
-#define MT8195_APUSYS_SECURE (0)
+#define MT8195_APUSYS_SECURE (1)
 #define MT8195_USERFW_CTXT (0x100)
 #define MT8195_SECUREFW_CTXT (0x104)
 #define MT8195_MD32_SECFW_DOMAIN (0x010)
@@ -678,7 +678,9 @@ static void mt8195_rv_cachedump(struct mtk_apu *apu)
 }
 
 const struct mtk_apu_platdata mt8195_platdata = {
-	.flags		= F_PRELOAD_FIRMWARE | F_AUTO_BOOT | F_MT8195_PLAT | F_KERNALLOAD_IMAGE |F_MAP_IOVA,
+	.flags		= F_PRELOAD_FIRMWARE | F_AUTO_BOOT | F_MT8195_PLAT
+				| F_SECURE_BOOT |F_SECURE_COREDUMP
+				| F_KERNALLOAD_IMAGE,
 	.ops		= {
 		.init	= mt8195_rproc_init,
 		.exit	= mt8195_rproc_exit,

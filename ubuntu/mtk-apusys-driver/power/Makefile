@@ -15,7 +15,7 @@ SRC += 2.5/governor/gov-apusys.o 2.5/governor/gov-user.o 2.5/governor/common.o 2
 SRC += 2.5/devices/dev-freq-core.o 2.5/devices/dev-freq-conn.o 2.5/devices/dev-freq-vpu.o 2.5/devices/dev-freq-mdla.o 2.5/devices/dev-cb.o 2.5/devices/dev-freq-iommu.o
 
 # apusys power driver v3.0
-EXTRA_CFLAGS  += -I$(srctree)/$(src)/power/
+#EXTRA_CFLAGS  += -I$(srctree)/$(src)/
 EXTRA_CFLAGS  += -I$(srctree)/$(src)/3.0/inc/
 EXTRA_CFLAGS  += -I$(srctree)/$(src)/3.0/inc/platform/
 

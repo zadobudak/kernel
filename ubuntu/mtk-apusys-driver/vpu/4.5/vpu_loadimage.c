@@ -305,7 +305,7 @@ struct img_header {
 /*****************************************************************************
  *                             Global variables                              *
  *****************************************************************************/
-static char *g_vpu_image_name[VPU_NUMS_IMAGE_HEADER] = {
+static const char *g_vpu_image_name[VPU_NUMS_IMAGE_HEADER] = {
 	"cam_vpu1.img", "cam_vpu2.img", "cam_vpu3.img"};
 static char *part_name[] = {"cam_vpu1", "cam_vpu2", "cam_vpu3"};
 static int   part_size[] = {0x000C00000, 0x000F00000, 0x000F00000};
@@ -366,7 +366,7 @@ int check_overlap(int *addr, int len)
 	return false;
 }
 
-static int set_property(struct vpu_device *vpu_device, struct prop_params *prop)
+int set_property(struct vpu_device *vpu_device, struct prop_params *prop)
 {
 	unsigned int i = 0, dsp_num = 0;
 	fdt32_t iram_prop[3][NODE_CONT_LEN] = {{0}, {0}, {0}};
@@ -713,17 +713,27 @@ void *read_img(struct vpu_device *vpu_device)
 		return NULL;
 	}
 
+	// confirm that all firmwares exist before processing
+	for (i = 0; i < total_num; i++) {
+		// parse vpu firmware name from 'firmware-name' in dts
+		int ret = of_property_read_string_index(vpu_device->dev->of_node, "firmware-name", i, &g_vpu_image_name[i]);
+
+		len = request_firmware(&(vpu_drv->fw[i]),
+				       g_vpu_image_name[i], vpu_device->dev);
+		if (len < 0) {
+			pr_info("%s: vpu_fw request_firmware cam_vpu%d not exist\n",
+				__func__, i + 1);
+			kfree(info);
+			return NULL;
+		}
+	}
+
+	// process all firmwares
 	for (i = 0; i < total_num; i++) {
 		info[i].total_num = total_num;
 		name = part_name[i];
 		max = part_size[i];
 
-		len = request_firmware(&(vpu_drv->fw[i]),
-				       g_vpu_image_name[i], vpu_device->dev);
-		if (len < 0) {
-			pr_info("%s: vpu_fw fail: %d\n", __func__, len);
-			return NULL;
-		}
 		pr_info("%s: vpu_fw request_firmware cam_vpu%d success\n",
 			__func__, i + 1);
 
@@ -771,7 +781,7 @@ void *read_img(struct vpu_device *vpu_device)
 
 int vpu_loadimage(struct platform_device *pdev, struct vpu_device *vpu_device)
 {
-	int i, ret = 0, num;
+	int i, ret = 0, num = 0;
 	int *overlap = NULL;
 	u32 *pIramNum;
 	u64 mblock, head_dst, iram_off = 0, offset = 0, pre_dst = 0;
@@ -793,11 +803,9 @@ int vpu_loadimage(struct platform_device *pdev, struct vpu_device *vpu_device)
 
 	img = read_img(vpu_device);
 	if (!img) {
-		ret = -EPROBE_DEFER;
+		ret = -EINVAL;
 		pr_info("%s: read_img error: %d\n", __func__, ret);
 		goto exit;
-		//ret = -EINVAL;
-		//goto exit;
 	}
 
 	if (vpu_device->id == 0) {

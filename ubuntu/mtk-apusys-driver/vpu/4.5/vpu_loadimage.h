@@ -9,5 +9,6 @@
 #include "vpu_cmn.h"
 
 int vpu_loadimage(struct platform_device *pdev, struct vpu_device *vpu_device);
+int set_property(struct vpu_device *vpu_device, struct prop_params *prop);
 
 #endif /* #ifndef _VPU_LOAD_IMAGE_H_ */

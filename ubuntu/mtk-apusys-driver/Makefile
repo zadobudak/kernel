@@ -168,7 +168,6 @@ apusys-objs += power/2.5/common/apu-tag.o
 EXTRA_CFLAGS  += -I$(srctree)/$(src)/power/2.5/inc/
 EXTRA_CFLAGS  += -I$(srctree)/$(src)/power/3.0/inc/
 EXTRA_CFLAGS  += -I$(srctree)/$(src)/3.0/inc/platform/
-obj-m += apu_top/
 obj-m += power/
 
 # mdla

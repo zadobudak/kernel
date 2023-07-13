@@ -69,6 +69,10 @@
 				dma-ranges = <0x0 0x20000000 0x0 0x40000000 0x0 0xe0000000>;
 				#cooling-cells = <2>;
 				memory-region = <&vpu_reserve_memory>;
+
+				firmware-name = "mediatek/mt8395/cam_vpu1.img",
+					"mediatek/mt8395/cam_vpu2.img",
+					"mediatek/mt8395/cam_vpu3.img";
 			};
 
 			apu1: syscon@19031000 {
@@ -265,6 +269,7 @@
 						"md32_debug_apb";
 
 				mediatek,apusys_power = <&apu_top_3>;
+				firmware-name = "mediatek/mt8395/apusys.sig.img";
 
 				apu_iommu0 = <&iommu_apu0>;
 				apu_iommu1 = <&iommu_apu1>;
@@ -346,16 +351,24 @@
 
 			iommu_apu0: iommu@19010000 {
 				compatible = "mediatek,mt8195-iommu-apu";
-				reg = <0 0x19010000 0 0x1000>;
-				interrupts = <GIC_SPI 426 IRQ_TYPE_LEVEL_HIGH 0>;
+				reg = <0 0x19010000 0 0x5000>;
+				interrupts = <GIC_SPI 426 IRQ_TYPE_LEVEL_HIGH 0>,
+						<GIC_SPI 427 IRQ_TYPE_LEVEL_HIGH 0>,
+						<GIC_SPI 428 IRQ_TYPE_LEVEL_HIGH 0>,
+						<GIC_SPI 429 IRQ_TYPE_LEVEL_HIGH 0>,
+						<GIC_SPI 430 IRQ_TYPE_LEVEL_HIGH 0>;
 				#iommu-cells = <1>;
 				mediatek,apu_power = <&apusys_rv>;
 			};
 
 			iommu_apu1: iommu@19015000 {
 				compatible = "mediatek,mt8195-iommu-apu";
-				reg = <0 0x19015000 0 0x1000>;
-				interrupts = <GIC_SPI 431 IRQ_TYPE_LEVEL_HIGH 0>;
+				reg = <0 0x19015000 0 0x5000>;
+				interrupts = <GIC_SPI 431 IRQ_TYPE_LEVEL_HIGH 0>,
+						<GIC_SPI 432 IRQ_TYPE_LEVEL_HIGH 0>,
+						<GIC_SPI 433 IRQ_TYPE_LEVEL_HIGH 0>,
+						<GIC_SPI 434 IRQ_TYPE_LEVEL_HIGH 0>,
+						<GIC_SPI 435 IRQ_TYPE_LEVEL_HIGH 0>;
 				#iommu-cells = <1>;
 				mediatek,apu_power = <&apusys_rv>;
 			};

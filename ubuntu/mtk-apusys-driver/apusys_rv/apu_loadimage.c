@@ -361,9 +361,9 @@ int platform_load_apusys_rv(struct mtk_apu *apu,
 	void *resv_mem_va, *sec_mem_addr_va;
 	void *aee_coredump_mem_addr_va, *apu_img_base_va, *sec_info_va;
 #if IMAGE_VERIFICATION_READY
-	static const char part_name[16] = "apusys.sig.img";
+	static const char* part_name = "apusys.sig.img";
 #else
-	static const char part_name[16] = "apusys.img";
+	static const char* part_name = "apusys.img";
 #endif
 	struct apusys_secure_info_t *sec_info = NULL;
 	struct apusys_aee_coredump_info_t *aee_coredump_info = NULL;
@@ -408,6 +408,9 @@ int platform_load_apusys_rv(struct mtk_apu *apu,
 	pr_info("Allocated reserved memory, vaddr: 0x%llx, paddr: 0x%llx, size:0x%llx\n",
 		(u64)resv_mem_va, resv_mem_pa, resource_size(&r));
 	memset(resv_mem_va, 0, resource_size(&r));
+
+	// parse apusys firmware name from 'firmware-name' in dts
+	ret = of_property_read_string_index(dev->of_node, "firmware-name", 0, &part_name);
 
 	/* load image */
 	ret = apusys_load_image(part_name, apu);

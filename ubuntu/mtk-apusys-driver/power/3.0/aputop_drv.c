@@ -172,6 +172,18 @@ static int apu_top_resume(struct device *dev)
 
 	return pwr_data->plat_aputop_resume(dev);
 }
+
+static int apu_top_suspend_prepare(struct device *dev)
+{
+	if (check_pwr_data())
+		return -ENODEV;
+
+	if (IS_ERR_OR_NULL(pwr_data->plat_aputop_prepare))
+		return 0;
+
+	// check if apu is ready to enter suspend mode
+	return pwr_data->plat_aputop_prepare(dev);
+}
 #endif // CONFIG_PM_SLEEP
 
 static const struct of_device_id of_match_apu_top[] = {
@@ -181,6 +193,7 @@ static const struct of_device_id of_match_apu_top[] = {
 };
 
 static const struct dev_pm_ops mtk_aputop_pm_ops = {
+	.prepare = apu_top_suspend_prepare,
 	SET_RUNTIME_PM_OPS(aputop_pwr_off_rpm_cb, aputop_pwr_on_rpm_cb, NULL)
 	SET_SYSTEM_SLEEP_PM_OPS(apu_top_suspend, apu_top_resume)
 };
