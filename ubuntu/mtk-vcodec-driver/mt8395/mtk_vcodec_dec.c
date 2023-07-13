@@ -2782,11 +2782,8 @@ static void vb2ops_vdec_buf_queue(struct vb2_buffer *vb)
 				   vb->index, vb);
 
 	if (ctx->state == MTK_STATE_FREE) {
-		struct mtk_q_data *q_data;
+		ret = vdec_if_init(ctx, ctx->q_data[MTK_Q_DATA_SRC].fmt->fourcc);
 
-		q_data = mtk_vdec_get_q_data(ctx, vb->vb2_queue->type);
-
-		ret = vdec_if_init(ctx, q_data->fmt->fourcc);
 		v4l2_m2m_set_dst_buffered(ctx->m2m_ctx,
 			ctx->input_driven != NON_INPUT_DRIVEN);
 		if (ctx->input_driven == INPUT_DRIVEN_CB_FRM)
