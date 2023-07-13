@@ -141,6 +141,9 @@ extern int mtk_vdec_sw_mem_sec;
 	pr_info("[MTK_V4L2][ERROR] %s:%d: " fmt "\n", __func__, __LINE__, \
 		   ##args)
 
+#define mtk_v4l2_warn(fmt, args...)                \
+	pr_warn("[MTK_V4L2][WARN] %s:%d: " fmt "\n", __func__, __LINE__, \
+		   ##args)
 
 #define mtk_v4l2_debug_enter()  mtk_v4l2_debug(8, "+")
 #define mtk_v4l2_debug_leave()  mtk_v4l2_debug(8, "-")
@@ -171,6 +174,7 @@ extern int mtk_vdec_sw_mem_sec;
 
 #define mtk_v4l2_debug(level, fmt, args...)
 #define mtk_v4l2_err(fmt, args...)
+#define mtk_v4l2_warn(fmt, args...)
 #define mtk_v4l2_debug_enter()
 #define mtk_v4l2_debug_leave()
 

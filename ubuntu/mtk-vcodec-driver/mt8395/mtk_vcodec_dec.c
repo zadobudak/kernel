@@ -2181,7 +2181,7 @@ static int vidioc_try_fmt_vid_out_mplane(struct file *file, void *priv,
 	}
 
 	if (pix_fmt_mp->plane_fmt[0].sizeimage == 0) {
-		mtk_v4l2_err("sizeimage of output format must be given");
+		mtk_v4l2_warn("sizeimage of output format must be given");
 		return -EINVAL;
 	}
 	if (!fmt)
@@ -3979,4 +3979,3 @@ int mtk_vcodec_dec_queue_init(void *priv, struct vb2_queue *src_vq,
 }
 
 MODULE_LICENSE("GPL v2");
-
