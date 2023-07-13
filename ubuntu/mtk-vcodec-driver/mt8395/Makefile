@@ -12,11 +12,11 @@ CONFIG_64BIT=y
 CONFIG_ARM64=y
 CONFIG_COMPAT=y
 
-ifeq ($(MTK_PLATFORM), mt8188)
-MTK_PLATFORM_VER=v2
-else
+
+# The driver support multiple platform with v1 architecture while DVFS & EMI_BW are disabled.
+# *NEED-TO-CHECK* if trying to enable DVFS & EMI_BW features (architecture dependent)
 MTK_PLATFORM_VER=v1
-endif
+MTK_IOT_PLATFORM=mt8395
 
 top := $(src)
 export top
@@ -34,9 +34,9 @@ EXTRA_CFLAGS += -DCONFIG_COMPAT
 
 
 # target object
-obj-m := mtk-vcodec-common.o
-obj-m += mtk-vcodec-dec-$(MTK_PLATFORM_VER).o
-obj-m += mtk-vcodec-enc-$(MTK_PLATFORM_VER).o
+obj-m := mtk-vcodec-common-$(MTK_IOT_PLATFORM).o
+obj-m += mtk-vcodec-dec-$(MTK_PLATFORM_VER)-$(MTK_IOT_PLATFORM).o
+obj-m += mtk-vcodec-enc-$(MTK_PLATFORM_VER)-$(MTK_IOT_PLATFORM).o
 
 # include
 EXTRA_CFLAGS += -I$(srctree)/$(src)/
@@ -46,33 +46,33 @@ EXTRA_CFLAGS += -I$(srctree)/$(src)/external_include/iommu/
 EXTRA_CFLAGS += -I$(srctree)/$(src)/external_include/uapi/
 
 # mtk-vcodec-common.ko
-mtk-vcodec-common-objs += mtk_vcodec_intr.o
-mtk-vcodec-common-objs += mtk_vcodec_util.o
+mtk-vcodec-common-$(MTK_IOT_PLATFORM)-objs += mtk_vcodec_intr.o
+mtk-vcodec-common-$(MTK_IOT_PLATFORM)-objs += mtk_vcodec_util.o
 
-# mtk-vcodec-dec-$(MTK_PLATFORM_VER).ko
-mtk-vcodec-dec-$(MTK_PLATFORM_VER)-objs += $(MTK_PLATFORM_VER)/mtk_vcodec_dec_pm_plat.o
-mtk-vcodec-dec-$(MTK_PLATFORM_VER)-objs += $(MTK_PLATFORM_VER)/vcodec_dvfs.o
-mtk-vcodec-dec-$(MTK_PLATFORM_VER)-objs += mtk_vcodec_dec_drv.o
-mtk-vcodec-dec-$(MTK_PLATFORM_VER)-objs += vdec_drv_if.o
-mtk-vcodec-dec-$(MTK_PLATFORM_VER)-objs += mtk_vcodec_dec.o
-mtk-vcodec-dec-$(MTK_PLATFORM_VER)-objs += mtk_vcodec_dec_pm.o
+# mtk-vcodec-dec-$(MTK_PLATFORM_VER)-$(MTK_PLATFORM).ko
+mtk-vcodec-dec-$(MTK_PLATFORM_VER)-$(MTK_IOT_PLATFORM)-objs += $(MTK_PLATFORM_VER)/mtk_vcodec_dec_pm_plat.o
+mtk-vcodec-dec-$(MTK_PLATFORM_VER)-$(MTK_IOT_PLATFORM)-objs += $(MTK_PLATFORM_VER)/vcodec_dvfs.o
+mtk-vcodec-dec-$(MTK_PLATFORM_VER)-$(MTK_IOT_PLATFORM)-objs += mtk_vcodec_dec_drv.o
+mtk-vcodec-dec-$(MTK_PLATFORM_VER)-$(MTK_IOT_PLATFORM)-objs += vdec_drv_if.o
+mtk-vcodec-dec-$(MTK_PLATFORM_VER)-$(MTK_IOT_PLATFORM)-objs += mtk_vcodec_dec.o
+mtk-vcodec-dec-$(MTK_PLATFORM_VER)-$(MTK_IOT_PLATFORM)-objs += mtk_vcodec_dec_pm.o
 
 ifeq ($(CONFIG_VIDEO_MEDIATEK_VCU_MT8395),y)
-mtk-vcodec-dec-$(MTK_PLATFORM_VER)-objs += vdec/vdec_common_if.o
-mtk-vcodec-dec-$(MTK_PLATFORM_VER)-objs += vdec/vdec_vcu_if.o
+mtk-vcodec-dec-$(MTK_PLATFORM_VER)-$(MTK_IOT_PLATFORM)-objs += vdec/vdec_common_if.o
+mtk-vcodec-dec-$(MTK_PLATFORM_VER)-$(MTK_IOT_PLATFORM)-objs += vdec/vdec_vcu_if.o
 endif
 
-# mtk-vcodec-enc-$(MTK_PLATFORM_VER).ko
-mtk-vcodec-enc-$(MTK_PLATFORM_VER)-objs += $(MTK_PLATFORM_VER)/mtk_vcodec_enc_pm_plat.o
-mtk-vcodec-enc-$(MTK_PLATFORM_VER)-objs += $(MTK_PLATFORM_VER)/vcodec_dvfs.o
-mtk-vcodec-enc-$(MTK_PLATFORM_VER)-objs += mtk_vcodec_enc_drv.o
-mtk-vcodec-enc-$(MTK_PLATFORM_VER)-objs += venc_drv_if.o
-mtk-vcodec-enc-$(MTK_PLATFORM_VER)-objs += mtk_vcodec_enc.o
-mtk-vcodec-enc-$(MTK_PLATFORM_VER)-objs += mtk_vcodec_enc_pm.o
+# mtk-vcodec-enc-$(MTK_PLATFORM_VER)-$(MTK_PLATFORM).ko
+mtk-vcodec-enc-$(MTK_PLATFORM_VER)-$(MTK_IOT_PLATFORM)-objs += $(MTK_PLATFORM_VER)/mtk_vcodec_enc_pm_plat.o
+mtk-vcodec-enc-$(MTK_PLATFORM_VER)-$(MTK_IOT_PLATFORM)-objs += $(MTK_PLATFORM_VER)/vcodec_dvfs.o
+mtk-vcodec-enc-$(MTK_PLATFORM_VER)-$(MTK_IOT_PLATFORM)-objs += mtk_vcodec_enc_drv.o
+mtk-vcodec-enc-$(MTK_PLATFORM_VER)-$(MTK_IOT_PLATFORM)-objs += venc_drv_if.o
+mtk-vcodec-enc-$(MTK_PLATFORM_VER)-$(MTK_IOT_PLATFORM)-objs += mtk_vcodec_enc.o
+mtk-vcodec-enc-$(MTK_PLATFORM_VER)-$(MTK_IOT_PLATFORM)-objs += mtk_vcodec_enc_pm.o
 
 ifeq ($(CONFIG_VIDEO_MEDIATEK_VCU_MT8395),y)
-mtk-vcodec-enc-$(MTK_PLATFORM_VER)-objs += venc/venc_common_if.o
-mtk-vcodec-enc-$(MTK_PLATFORM_VER)-objs += venc/venc_vcu_if.o
+mtk-vcodec-enc-$(MTK_PLATFORM_VER)-$(MTK_IOT_PLATFORM)-objs += venc/venc_common_if.o
+mtk-vcodec-enc-$(MTK_PLATFORM_VER)-$(MTK_IOT_PLATFORM)-objs += venc/venc_vcu_if.o
 endif
 
 

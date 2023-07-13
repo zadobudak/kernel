@@ -620,20 +620,10 @@ err_res:
 }
 
 static const struct of_device_id mtk_vcodec_match[] = {
-	{.compatible = "mediatek,mt8173-vcodec-dec",},
-	{.compatible = "mediatek,mt2712-vcodec-dec",},
-	{.compatible = "mediatek,mt8167-vcodec-dec",},
-	{.compatible = "mediatek,mt6771-vcodec-dec",},
-	{.compatible = "mediatek,mt6885-vcodec-dec",},
-	{.compatible = "mediatek,mt6873-vcodec-dec",},
-	{.compatible = "mediatek,mt6853-vcodec-dec",},
-	{.compatible = "mediatek,mt6983-vcodec-dec",},
-	{.compatible = "mediatek,mt6879-vcodec-dec",},
-	{.compatible = "mediatek,mt6895-vcodec-dec",},
-	{.compatible = "mediatek,mt6855-vcodec-dec",},
-	{.compatible = "mediatek,mt8195-vcodec-dec",},
-	{.compatible = "mediatek,mt8188-vcodec-dec",},
-	{.compatible = "mediatek,vdec_gcon",},
+	{ .compatible = "mediatek,mt8195-vcodec-dec",
+	},
+	{ .compatible = "mediatek,mt8188-vcodec-dec",
+	},
 	{},
 };
 

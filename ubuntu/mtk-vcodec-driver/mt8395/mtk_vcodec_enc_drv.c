@@ -335,7 +335,6 @@ static int mtk_vcodec_enc_probe(struct platform_device *pdev)
 		return ret;
 	}
 
-
 	while (!of_property_read_string_index(pdev->dev.of_node, "reg-names", i, &name)) {
 		if (!strcmp(MTK_VDEC_REG_NAME_VENC_SYS, name)) {
 			reg_index = VENC_SYS;
@@ -548,20 +547,10 @@ err_res:
 }
 
 static const struct of_device_id mtk_vcodec_enc_match[] = {
-	{.compatible = "mediatek,mt8173-vcodec-enc",},
-	{.compatible = "mediatek,mt2712-vcodec-enc",},
-	{.compatible = "mediatek,mt8167-vcodec-enc",},
-	{.compatible = "mediatek,mt6771-vcodec-enc",},
-	{.compatible = "mediatek,mt6885-vcodec-enc",},
-	{.compatible = "mediatek,mt6873-vcodec-enc",},
-	{.compatible = "mediatek,mt6853-vcodec-enc",},
-	{.compatible = "mediatek,mt6983-vcodec-enc",},
-	{.compatible = "mediatek,mt6879-vcodec-enc",},
-	{.compatible = "mediatek,mt6895-vcodec-enc",},
-	{.compatible = "mediatek,mt6855-vcodec-enc",},
-	{.compatible = "mediatek,mt8195-vcodec-enc",},
-	{.compatible = "mediatek,mt8188-vcodec-enc",},
-	{.compatible = "mediatek,venc_gcon",},
+	{ .compatible = "mediatek,mt8195-vcodec-enc",
+	},
+	{ .compatible = "mediatek,mt8188-vcodec-enc",
+	},
 	{},
 };
 MODULE_DEVICE_TABLE(of, mtk_vcodec_enc_match);
