@@ -224,6 +224,7 @@ static int fops_vcodec_release(struct file *file)
 	// Need to sync worker status in case ctx is free.
 	mutex_lock(&ctx->worker_lock);
 	v4l2_m2m_ctx_release(ctx->m2m_ctx);
+	ctx->m2m_ctx = NULL;
 	mutex_unlock(&ctx->worker_lock);
 	mtk_vcodec_dec_release(ctx);
 

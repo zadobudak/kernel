@@ -516,9 +516,11 @@ int vcu_dec_init(struct vdec_vcu_inst *vcu)
 
 	mtk_vcodec_debug(vcu, "vdec_inst=%p svp_mode=%d", vcu, vcu->ctx->dec_params.svp_mode);
 	pr_info("vdec_inst=%p svp_mode=%d\n", vcu, vcu->ctx->dec_params.svp_mode);
+	mutex_lock(vcu->ctx_ipi_lock);
 	vcu_dec_set_pid(vcu);
 
 	err = vcodec_vcu_send_msg(vcu, (void *)&msg, sizeof(msg));
+	mutex_unlock(vcu->ctx_ipi_lock);
 
 	mtk_vcodec_debug(vcu, "- ret=%d", err);
 	return err;
@@ -553,7 +555,13 @@ int vcu_dec_start(struct vdec_vcu_inst *vcu,
 
 int vcu_dec_end(struct vdec_vcu_inst *vcu)
 {
-	return vcodec_send_ap_ipi(vcu, AP_IPIMSG_DEC_END);
+	int err = 0;
+
+	mutex_lock(vcu->ctx_ipi_lock);
+	err = vcodec_send_ap_ipi(vcu, AP_IPIMSG_DEC_END);
+	mutex_unlock(vcu->ctx_ipi_lock);
+
+	return err;
 }
 
 int vcu_dec_deinit(struct vdec_vcu_inst *vcu)
@@ -581,7 +589,9 @@ int vcu_dec_reset(struct vdec_vcu_inst *vcu, enum vdec_reset_type drain_type)
 	msg.vcu_inst_addr = vcu->inst_addr;
 	msg.drain_type = drain_type;
 
+	mutex_lock(vcu->ctx_ipi_lock);
 	err = vcodec_vcu_send_msg(vcu, (void *)&msg, sizeof(msg));
+	mutex_unlock(vcu->ctx_ipi_lock);
 	mtk_vcodec_debug(vcu, "- ret=%d", err);
 
 	return err;
@@ -602,6 +612,8 @@ int vcu_dec_query_cap(struct vdec_vcu_inst *vcu, unsigned int id, void *out)
 	vcu->id = (vcu->id == IPI_VCU_INIT) ? IPI_VDEC_COMMON : vcu->id;
 	vcu->handler = vcu_dec_ipi_handler;
 
+	VCU_FPTR(vcu_get_ctx_ipi_binding_lock)(vcu->dev, &vcu->ctx_ipi_lock, VCU_VDEC);
+
 	err = VCU_FPTR(vcu_ipi_register)(vcu->dev, vcu->id, vcu->handler, NULL, vcu->ctx->dev);
 	if (err != 0) {
 		mtk_vcodec_err(vcu, "vcu_ipi_register fail status=%d", err);
@@ -615,8 +627,10 @@ int vcu_dec_query_cap(struct vdec_vcu_inst *vcu, unsigned int id, void *out)
 	msg.ap_inst_addr = (uintptr_t)vcu;
 	msg.ap_data_addr = (uintptr_t)out;
 
+	mutex_lock(vcu->ctx_ipi_lock);
 	vcu_dec_set_pid(vcu);
 	err = vcodec_vcu_send_msg(vcu, &msg, sizeof(msg));
+	mutex_unlock(vcu->ctx_ipi_lock);
 	mtk_vcodec_debug(vcu, "- id=%X ret=%d", msg.msg_id, err);
 	return err;
 }
@@ -628,6 +642,11 @@ int vcu_dec_set_param(struct vdec_vcu_inst *vcu, unsigned int id, void *param,
 	unsigned long *param_ptr = (unsigned long *)param;
 	int err = 0;
 	int i = 0;
+
+	if (vcu == NULL || vcu->ctx == NULL || param == NULL) {
+		mtk_v4l2_err("invalid parameter\n");
+		return err;
+	}
 
 	mtk_vcodec_debug(vcu, "+ id=%X", AP_IPIMSG_DEC_SET_PARAM);
 
@@ -642,7 +661,9 @@ int vcu_dec_set_param(struct vdec_vcu_inst *vcu, unsigned int id, void *param,
 			msg.id, i, msg.data[i]);
 	}
 
+	mutex_lock(vcu->ctx_ipi_lock);
 	err = vcodec_vcu_send_msg(vcu, &msg, sizeof(msg));
+	mutex_unlock(vcu->ctx_ipi_lock);
 	mtk_vcodec_debug(vcu, "- id=%X ret=%d", AP_IPIMSG_DEC_SET_PARAM, err);
 
 	return err;
@@ -698,8 +719,10 @@ int vcu_dec_set_frame_buffer(struct vdec_vcu_inst *vcu, void *fb)
 		}
 
 		if (pfb != NULL || fb == NULL) {
+			mutex_lock(vcu->ctx_ipi_lock);
 			memcpy(msg.data, &ipi_fb, sizeof(struct vdec_ipi_fb));
 			err = vcodec_vcu_send_msg(vcu, &msg, sizeof(msg));
+			mutex_unlock(vcu->ctx_ipi_lock);
 		}
 	} while (pfb != NULL);
 

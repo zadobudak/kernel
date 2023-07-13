@@ -1059,6 +1059,12 @@ int mtk_vdec_put_fb(struct mtk_vcodec_ctx *ctx, enum mtk_put_buffer_type type)
 	if (type != PUT_BUFFER_WORKER &&
 		!(ctx->use_fence || ctx->input_driven))
 		return mtk_vdec_defer_put_fb_job(ctx, type);
+
+	if (ctx->m2m_ctx == NULL) {
+		mtk_v4l2_debug(0, "m2m_ctx is NULL\n");
+		return 0;
+	}
+
 	src_vb2_v4l2 = v4l2_m2m_next_src_buf(ctx->m2m_ctx);
 	src_buf = &src_vb2_v4l2->vb2_buf;
 	src_buf_info = container_of(src_vb2_v4l2, struct mtk_video_dec_buf, vb);
