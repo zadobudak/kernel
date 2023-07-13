@@ -3163,8 +3163,10 @@ int mtk_vcodec_enc_ctrls_setup(struct mtk_vcodec_ctx *ctx)
 			  0, 65535, 1, 0);
 	v4l2_ctrl_new_std(handler, ops, V4L2_CID_MPEG_VIDEO_GOP_SIZE,
 			  0, 65535, 1, 0);
+#ifdef __ANDROID__
 	v4l2_ctrl_new_std(handler, ops, V4L2_CID_MPEG_VIDEO_MB_RC_ENABLE,
 			  0, 1, 1, 0);
+#endif
 	v4l2_ctrl_new_std(handler, ops, V4L2_CID_MPEG_VIDEO_FORCE_KEY_FRAME,
 			  0, 1, 1, 0);
 	v4l2_ctrl_new_std(handler, ops, V4L2_CID_MPEG_VIDEO_MULTI_SLICE_MAX_MB,
@@ -3299,6 +3301,7 @@ int mtk_vcodec_enc_ctrls_setup(struct mtk_vcodec_ctx *ctx)
 	cfg.ops = ops;
 	mtk_vcodec_enc_custom_ctrls_check(handler, &cfg, NULL);
 
+#ifdef __ANDROID__
 	memset(&cfg, 0, sizeof(cfg));
 	cfg.id = V4L2_CID_MPEG_MTK_ENCODE_ROI_ON;
 	cfg.type = V4L2_CTRL_TYPE_INTEGER;
@@ -3310,7 +3313,7 @@ int mtk_vcodec_enc_ctrls_setup(struct mtk_vcodec_ctx *ctx)
 	cfg.def = 0;
 	cfg.ops = ops;
 	mtk_vcodec_enc_custom_ctrls_check(handler, &cfg, NULL);
-
+#endif
 	memset(&cfg, 0, sizeof(cfg));
 	cfg.id = V4L2_CID_MPEG_MTK_ENCODE_GRID_SIZE;
 	cfg.type = V4L2_CTRL_TYPE_INTEGER;
@@ -3438,6 +3441,7 @@ int mtk_vcodec_enc_ctrls_setup(struct mtk_vcodec_ctx *ctx)
 	cfg.ops = ops;
 	mtk_vcodec_enc_custom_ctrls_check(handler, &cfg, NULL);
 
+#ifdef __ANDROID__
 	memset(&cfg, 0, sizeof(cfg));
 	cfg.id = V4L2_CID_MPEG_MTK_ENCODE_WPP_MODE;
 	cfg.type = V4L2_CTRL_TYPE_INTEGER;
@@ -3449,6 +3453,7 @@ int mtk_vcodec_enc_ctrls_setup(struct mtk_vcodec_ctx *ctx)
 	cfg.def = 0;
 	cfg.ops = ops;
 	mtk_vcodec_enc_custom_ctrls_check(handler, &cfg, NULL);
+#endif
 
 	memset(&cfg, 0, sizeof(cfg));
 	cfg.id = V4L2_CID_MPEG_MTK_ENCODE_LOW_LATENCY_MODE;
@@ -3462,6 +3467,7 @@ int mtk_vcodec_enc_ctrls_setup(struct mtk_vcodec_ctx *ctx)
 	cfg.ops = ops;
 	mtk_vcodec_enc_custom_ctrls_check(handler, &cfg, NULL);
 
+#ifdef __ANDROID__
 	memset(&cfg, 0, sizeof(cfg));
 	cfg.id = V4L2_CID_MPEG_MTK_ENCODE_ENABLE_HIGHQUALITY;
 	cfg.type = V4L2_CTRL_TYPE_INTEGER;
@@ -3473,6 +3479,7 @@ int mtk_vcodec_enc_ctrls_setup(struct mtk_vcodec_ctx *ctx)
 	cfg.def = 0;
 	cfg.ops = ops;
 	mtk_vcodec_enc_custom_ctrls_check(handler, &cfg, NULL);
+#endif
 
 	ctx->enc_params.max_qp = 51;
 	cfg.id = V4L2_CID_MPEG_MTK_ENCODE_RC_MAX_QP;
@@ -3537,6 +3544,7 @@ int mtk_vcodec_enc_ctrls_setup(struct mtk_vcodec_ctx *ctx)
 	cfg.ops = ops;
 	mtk_vcodec_enc_custom_ctrls_check(handler, &cfg, NULL);
 
+#ifdef __ANDROID__
 	memset(&cfg, 0, sizeof(cfg));
 	cfg.id = V4L2_CID_MPEG_MTK_ENCODE_ENABLE_DUMMY_NAL;
 	cfg.type = V4L2_CTRL_TYPE_INTEGER;
@@ -3548,6 +3556,7 @@ int mtk_vcodec_enc_ctrls_setup(struct mtk_vcodec_ctx *ctx)
 	cfg.def = 0;
 	cfg.ops = ops;
 	mtk_vcodec_enc_custom_ctrls_check(handler, &cfg, NULL);
+#endif
 
 	memset(&cfg, 0, sizeof(cfg));
 	cfg.id = V4L2_CID_MPEG_MTK_LOG;
@@ -3601,6 +3610,7 @@ int mtk_vcodec_enc_ctrls_setup(struct mtk_vcodec_ctx *ctx)
 	v4l2_ctrl_handler_setup(&ctx->ctrl_hdl);
 	ctx->param_change = MTK_ENCODE_PARAM_NONE;
 
+#ifdef __ANDROID__
 	/* g_volatile_ctrl */
 	memset(&cfg, 0, sizeof(cfg));
 	cfg.id = V4L2_CID_MPEG_MTK_ENCODE_ROI_RC_QP;
@@ -3614,7 +3624,7 @@ int mtk_vcodec_enc_ctrls_setup(struct mtk_vcodec_ctx *ctx)
 	cfg.def = 0;
 	cfg.ops = ops;
 	mtk_vcodec_enc_custom_ctrls_check(handler, &cfg, NULL);
-
+#endif
 	memset(&cfg, 0, sizeof(cfg));
 	cfg.id = V4L2_CID_MPEG_MTK_RESOLUTION_CHANGE;
 	cfg.type = V4L2_CTRL_TYPE_U32;
