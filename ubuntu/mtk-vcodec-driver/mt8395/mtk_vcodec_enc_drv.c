@@ -253,8 +253,8 @@ static int mtk_vcodec_enc_suspend_notifier(struct notifier_block *nb,
 	mtk_v4l2_debug(1, "action = %ld", action);
 	switch (action) {
 	case PM_SUSPEND_PREPARE:
-		dev->is_codec_suspending = 1;
 		v4l2_m2m_suspend(dev->m2m_dev_enc);
+		dev->is_codec_suspending = 1;
 		mtk_v4l2_debug(1, "suspend_notifier: v4l2_m2m_suspend done");
 		for (i = 0; i < MTK_VENC_HW_NUM; i++) {
 			val = down_trylock(&dev->enc_sem[i]);

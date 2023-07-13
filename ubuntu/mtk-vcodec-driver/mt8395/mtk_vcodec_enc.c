@@ -3815,15 +3815,6 @@ void mtk_venc_lock(struct mtk_vcodec_ctx *ctx, u32 hw_id, bool sec)
 	if (hw_id >= MTK_VENC_HW_NUM)
 		return;
 
-	while (ctx->dev->is_codec_suspending == 1) {
-		suspend_block_cnt++;
-		if (suspend_block_cnt > SUSPEND_TIMEOUT_CNT) {
-			mtk_v4l2_debug(4, "VENC blocked by suspend\n");
-			suspend_block_cnt = 0;
-		}
-		usleep_range(10000, 20000);
-	}
-
 	if (sec != 0)
 		lock = VENC_LOCK_SEC;
 	else
