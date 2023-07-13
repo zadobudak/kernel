@@ -198,7 +198,7 @@ extern int mtk_vdec_sw_mem_sec;
 
 #endif
 
-static __attribute__((used)) unsigned int time_ms_s[2][2], time_ms_e[2][2];
+static __attribute__((used)) unsigned int time_ms_s[MTK_FMT_FRAME][MTK_VDEC_HW_NUM], time_ms_e[MTK_FMT_FRAME][MTK_VDEC_HW_NUM];
 #define time_check_start(is_enc, id) {\
 		if (is_enc >= 0 && id >= 0) \
 			time_ms_s[is_enc][id] = jiffies_to_msecs(jiffies); \
