@@ -53,7 +53,6 @@
 					  <0 0x1903c000 0 0x8000>,
 					  <0 0x19050000 0 0x10000>,
 					  <0 0x190f2000 0 0x1000>,
-					  <0 0x1d000000 0 0x20000>,
 					  <0 0x0d298000 0 0x10000>;
 
 				reg-names = "apu_mbox",
@@ -62,10 +61,11 @@
 						"apu_sctrl_reviser",
 						"md32_cache_dump",
 						"apu_ao_ctl",
-						"md32_tcm",
 						"md32_debug_apb";
 
 				mediatek,apusys_power = <&apu_top_3>;
+				firmware-name = "mediatek/mt8390/apusys.sig.img";
+
 				apu_iommu0 = <&apu_iommu0>;
 				apu_iommu1 = <&apu_iommu1>;
 
@@ -227,6 +227,10 @@
 				dma-ranges = <0x0 0x70000000 0x0 0x40000000 0x0 0x12600000>;
 				iommus = <&apu_iommu0 M4U_PORT_L0_APU_VLM>;
 				//#cooling-cells = <2>;
+
+				firmware-name = "mediatek/mt8390/cam_vpu1.img",
+					"mediatek/mt8390/cam_vpu2.img",
+					"mediatek/mt8390/cam_vpu3.img";
 			};
 
 			mdla: mdla {
