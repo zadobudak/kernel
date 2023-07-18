@@ -16,13 +16,12 @@
 
 / {
 	compatible = "mediatek,mt8365";
- 
+
 	fragment@0 {
 		target-path = "/soc";
 		__overlay__ {
 			vcu: vcu@16000000 {
-				compatible = "mediatek-vcu",
-						 "mediatek,mt8183-vcu";
+				compatible = "mediatek,mt8183-vcu";
 				mediatek,vcuid = <0>;
 				mediatek,vcuname = "vcu";
 				reg = <0 0x16000000 0 0x40000>,	    /* VDEC_BASE */
@@ -32,8 +31,7 @@
 			};
 
 			vcodec_dec: codec@16000000 {
-				compatible = "mediatek,mt8365-vcodec-dec",
-							"mediatek,mt8183-vcodec-dec", 
+				compatible = "mediatek,mt8183-vcodec-dec",
 							"syscon";
 				reg = <0 0x16000000 0 0x1000>,		/* VDEC_SYS */
 					  <0 0x16025000 0 0x1000>,		/* VDEC_MISC */
@@ -74,8 +72,7 @@
 			};
 
 			vcodec_enc: codec@17000000 {
-				compatible = "mediatek,mt8365-vcodec-enc",
-							"mediatek,mt8183-vcodec-enc";
+				compatible = "mediatek,mt8183-vcodec-enc";
 				reg = <0 0x17020000 0 0x1000>,
 					<0 0x17000000 0 0x1000>;
 				mediatek,larb = <&larb1>;
@@ -96,10 +93,9 @@
 				clock-names = "img_venc";
 				#clock-cells = <1>;
 			};
-			
+
 			mdp_vcu: vcu@1 {
-				compatible = "mediatek-vcu",
-						 "mediatek,mt8167-vcu";
+				compatible = "mediatek,mt8183-vcu";
 				mediatek,vcuid = <1>;
 				mediatek,vcuname = "vcu1";
 				iommus = <&iommu M4U_PORT_HW_VDEC_MC_EXT>;
