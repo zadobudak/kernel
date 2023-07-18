@@ -53,7 +53,7 @@
 			edp_panel: panel {
 				compatible = "innolux,hk173vb-01b";
 				power-supply = <&edp_panel_fixed_3v3>;
-				backlight = <&backlight_lcd0>;
+				backlight = <&backlight_lcd1>;
 				width-mm = <279>;
 				height-mm = <174>;
 				status = "okay";
@@ -70,8 +70,6 @@
 	fragment@3 {
 		target = <&edp_panel_fixed_3v3>;
 		__overlay__ {
-			regulator-always-on;
-
 			regulator-state-mem {
 				regulator-on-in-suspend;
 			};
@@ -79,7 +77,7 @@
 	};
 
 	fragment@4 {
-		target = <&backlight_lcd0>;
+		target = <&backlight_lcd1>;
 		__overlay__ {
 			default-on;
 			power-supply = <&edp_panel_fixed_12v>;
@@ -117,7 +115,7 @@
 	fragment@7 {
 		target = <&ovl1>;
 		__overlay__ {
-			status = "disabled";
+			mediatek,enable-dualpipe;
 		};
 	};
 
@@ -125,6 +123,61 @@
 		target = <&dsi0>;
 		__overlay__ {
 			status = "disabled";
+		};
+	};
+
+	fragment@9 {
+		target = <&mipi_tx0>;
+		__overlay__ {
+			status = "disabled";
+		};
+	};
+
+	fragment@10 {
+		target = <&backlight_lcd0>;
+		__overlay__ {
+			status = "disabled";
+		};
+	};
+
+	fragment@11 {
+		target = <&disp_pwm0>;
+		__overlay__ {
+			status = "disabled";
+		};
+	};
+
+	fragment@12 {
+		target = <&disp_dpi1>;
+		__overlay__ {
+			status = "disabled";
+		};
+	};
+
+	fragment@13 {
+		target = <&hdmi0>;
+		__overlay__ {
+			status = "disabled";
+		};
+	};
+
+	fragment@14 {
+		target = <&hdmi_phy>;
+		__overlay__ {
+			status = "disabled";
+		};
+	};
+
+	fragment@15 {
+		target = <&sound>;
+		__overlay__ {
+			dai-link-3 { /* HDMI */
+				status = "disabled";
+			};
+
+			dai-link-4 { /* DPTX */
+				status = "disabled";
+			};
 		};
 	};
 };

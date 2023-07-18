@@ -45,18 +45,6 @@
 					output-high;
 				};
 			};
-			camera_pins_cam0_pdn_0: cam0@pdn_0 {
-				pins_cmd_dat {
-					pinmux = <PINMUX_GPIO54__FUNC_GPIO54>;
-					output-low;
-				};
-			};
-			camera_pins_cam0_pdn_1: cam0@pdn_1 {
-				pins_cmd_dat {
-					pinmux = <PINMUX_GPIO54__FUNC_GPIO54>;
-					output-high;
-				};
-			};
 			camera_pins_cam0_vcamd_0: cam0@vcamd_0 {
 				pins_cmd_dat {
 					pinmux = <PINMUX_GPIO60__FUNC_GPIO60>;
@@ -90,18 +78,6 @@
 			camera_pins_cam1_vcamd_1: cam1@vcamd_1 {
 				pins_cmd_dat {
 					pinmux = <PINMUX_GPIO58__FUNC_GPIO58>;
-					output-high;
-				};
-			};
-			camera_pins_cam1_vcama_0: cam1@vcama_0 {
-				pins_cmd_dat {
-					pinmux = <PINMUX_GPIO59__FUNC_GPIO59>;
-					output-low;
-				};
-			};
-			camera_pins_cam1_vcama_1: cam1@vcama_1 {
-				pins_cmd_dat {
-					pinmux = <PINMUX_GPIO59__FUNC_GPIO59>;
 					output-high;
 				};
 			};
@@ -143,10 +119,10 @@
 		__overlay__ {
 			clock-frequency = <400000>;
 
-			sensor0@3c {
+			sensor0@1a {
 				compatible = "mediatek,imgsensor";
-				sensor-names = "ar0430ap1302_mipi_yuv";
-				reg = <0x3c>;
+				sensor-names = "imx214_mipi_raw";
+				reg = <0x1a>;
 				status = "okay";
 
 				pinctrl-names = "mclk_off",
@@ -160,12 +136,8 @@
 						"avdd_on",
 						"dovdd_off",
 						"dovdd_on",
-						"afvdd_off",
-						"afvdd_on",
 						"rst_low",
-						"rst_high",
-						"pdn_low",
-						"pdn_high";
+						"rst_high";
 				pinctrl-0 = <&camera_pins_cam1_mclk_off>;
 				pinctrl-1 = <&camera_pins_cam1_mclk_2ma>;
 				pinctrl-2 = <&camera_pins_cam1_mclk_4ma>;
@@ -177,12 +149,8 @@
 				pinctrl-8 = <&camera_pins_cam0_vcama_1>;
 				pinctrl-9 = <&camera_pins_cam1_vcamd_0>;
 				pinctrl-10 = <&camera_pins_cam1_vcamd_1>;
-				pinctrl-11 = <&camera_pins_cam1_vcama_0>;
-				pinctrl-12 = <&camera_pins_cam1_vcama_1>;
-				pinctrl-13 = <&camera_pins_cam0_rst_0>;
-				pinctrl-14 = <&camera_pins_cam0_rst_1>;
-				pinctrl-15 = <&camera_pins_cam0_pdn_0>;
-				pinctrl-16 = <&camera_pins_cam0_pdn_1>;
+				pinctrl-11 = <&camera_pins_cam0_rst_0>;
+				pinctrl-12 = <&camera_pins_cam0_rst_1>;
 				dvdd-supply = <&cam_vcam_3v3_en>;
 
 				clocks = <&topckgen CLK_TOP_UNIVPLL_192M_D32>,
@@ -226,7 +194,6 @@
 		target = <&mtkcam0>;
 		__overlay__ {
 			status = "okay";
-			mediatek,stream-enable = <MTK_CAMERA_PREVIEW>;
 		};
 	};
 };

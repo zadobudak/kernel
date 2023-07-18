@@ -3,17 +3,16 @@
 
 / {
 	fragment@0 {
-		target = <&dp_tx>;
+		target = <&dsi0>;
 		__overlay__ {
-			status = "okay";
+			status = "disabled";
 		};
 	};
 
 	fragment@1 {
-		target = <&dp_intf1>;
+		target = <&mipi_tx0>;
 		__overlay__ {
-			status = "okay";
-			mediatek,indicated-display-path = <1>;
+			status = "disabled";
 		};
 	};
 
@@ -39,34 +38,6 @@
 	};
 
 	fragment@5 {
-		target = <&dsi0>;
-		__overlay__ {
-			status = "disabled";
-		};
-	};
-
-	fragment@6 {
-		target = <&mipi_tx0>;
-		__overlay__ {
-			status = "disabled";
-		};
-	};
-
-	fragment@7 {
-		target = <&backlight_lcd0>;
-		__overlay__ {
-			status = "disabled";
-		};
-	};
-
-	fragment@8 {
-		target = <&disp_pwm0>;
-		__overlay__ {
-			status = "disabled";
-		};
-	};
-
-	fragment@9 {
 		target = <&sound>;
 		__overlay__ {
 			dai-link-3 { /* HDMI */
@@ -74,7 +45,7 @@
 			};
 
 			dai-link-4 { /* DPTX */
-				status = "okay";
+				status = "disabled";
 			};
 		};
 	};

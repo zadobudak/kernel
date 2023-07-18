@@ -2,6 +2,7 @@
 /plugin/;
 
 #include <dt-bindings/pinctrl/mt8195-pinfunc.h>
+#include <dt-bindings/gpio/gpio.h>
 
 / {
 	fragment@0 {
@@ -50,12 +51,11 @@
 		target-path = "/";
 		__overlay__ {
 			edp_panel: panel {
-				compatible = "koe,tx18d204vm0baa";
+				compatible = "innolux,hk173vb-01b";
 				power-supply = <&edp_panel_fixed_3v3>;
 				backlight = <&backlight_lcd1>;
-				label = "KOE TX18D204VM0BAA";
-				width-mm = <155>;
-				height-mm = <87>;
+				width-mm = <279>;
+				height-mm = <174>;
 				status = "okay";
 
 				port {
@@ -80,6 +80,8 @@
 		target = <&backlight_lcd1>;
 		__overlay__ {
 			default-on;
+			power-supply = <&edp_panel_fixed_12v>;
+			enable-gpios = <&pio 95 GPIO_ACTIVE_HIGH>;
 		};
 	};
 
@@ -111,62 +113,77 @@
 	};
 
 	fragment@7 {
+		target = <&dp_tx>;
+		__overlay__ {
+			status = "okay";
+		};
+	};
+
+	fragment@8 {
+		target = <&dp_intf1>;
+		__overlay__ {
+			status = "okay";
+			mediatek,indicated-display-path = <1>;
+		};
+	};
+
+	fragment@9 {
 		target = <&ovl1>;
 		__overlay__ {
 			mediatek,enable-dualpipe;
 		};
 	};
 
-	fragment@8 {
+	fragment@10 {
 		target = <&dsi0>;
 		__overlay__ {
 			status = "disabled";
 		};
 	};
 
-	fragment@9 {
+	fragment@11 {
 		target = <&mipi_tx0>;
 		__overlay__ {
 			status = "disabled";
 		};
 	};
 
-	fragment@10 {
+	fragment@12 {
 		target = <&backlight_lcd0>;
 		__overlay__ {
 			status = "disabled";
 		};
 	};
 
-	fragment@11 {
+	fragment@13 {
 		target = <&disp_pwm0>;
 		__overlay__ {
 			status = "disabled";
 		};
 	};
 
-	fragment@12 {
+	fragment@14 {
 		target = <&disp_dpi1>;
 		__overlay__ {
 			status = "disabled";
 		};
 	};
 
-	fragment@13 {
+	fragment@15 {
 		target = <&hdmi0>;
 		__overlay__ {
 			status = "disabled";
 		};
 	};
 
-	fragment@14 {
+	fragment@16 {
 		target = <&hdmi_phy>;
 		__overlay__ {
 			status = "disabled";
 		};
 	};
 
-	fragment@15 {
+	fragment@17 {
 		target = <&sound>;
 		__overlay__ {
 			dai-link-3 { /* HDMI */
@@ -174,17 +191,7 @@
 			};
 
 			dai-link-4 { /* DPTX */
-				status = "disabled";
-			};
-		};
-	};
-
-	fragment@16 {
-		target = <&mt6359_vcn33_2_bt_ldo_reg>;
-		__overlay__ {
-			regulator-always-on;
-			regulator-state-mem {
-				regulator-on-in-suspend;
+				status = "okay";
 			};
 		};
 	};

@@ -54,20 +54,6 @@
 	};
 
 	fragment@7 {
-		target = <&backlight_lcd0>;
-		__overlay__ {
-			status = "disabled";
-		};
-	};
-
-	fragment@8 {
-		target = <&disp_pwm0>;
-		__overlay__ {
-			status = "disabled";
-		};
-	};
-
-	fragment@9 {
 		target = <&sound>;
 		__overlay__ {
 			dai-link-3 { /* HDMI */
