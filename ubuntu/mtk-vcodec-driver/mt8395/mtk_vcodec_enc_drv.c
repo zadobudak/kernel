@@ -294,7 +294,7 @@ static int mtk_vcodec_enc_probe(struct platform_device *pdev)
 	struct mtk_vcodec_dev *dev;
 	struct video_device *vfd_enc;
 	struct resource *res;
-	int i = 0, j = 0, k = 0, reg_index = 0, ret;
+	int i = 0, j = 0, k = 0, reg_index = 0, ret, reg_num = 0;
 	const char *name = NULL;
 	int port_args_num = 0, port_data_len = 0, total_port_num = 0;
 	unsigned int offset = 0;
@@ -335,7 +335,7 @@ static int mtk_vcodec_enc_probe(struct platform_device *pdev)
 		return ret;
 	}
 
-	while (!of_property_read_string_index(pdev->dev.of_node, "reg-names", i, &name)) {
+	while (!of_property_read_string_index(pdev->dev.of_node, "reg-names", reg_num, &name)) {
 		if (!strcmp(MTK_VDEC_REG_NAME_VENC_SYS, name)) {
 			reg_index = VENC_SYS;
 		} else if (!strcmp(MTK_VDEC_REG_NAME_VENC_C1_SYS, name)) {
@@ -343,18 +343,18 @@ static int mtk_vcodec_enc_probe(struct platform_device *pdev)
 		} else if (!strcmp(MTK_VDEC_REG_NAME_VENC_GCON, name)) {
 			reg_index = VENC_GCON;
 		} else {
-			dev_info(&pdev->dev, "invalid reg name: %s, index: %d", name, i);
+			dev_info(&pdev->dev, "invalid reg name: %s, index: %d", name, reg_num);
 			return -EINVAL;
 		}
 
-		res = platform_get_resource(pdev, IORESOURCE_MEM, i);
-		if (i == VENC_SYS && res == NULL) {
+		res = platform_get_resource(pdev, IORESOURCE_MEM, reg_num);
+		if (reg_num == VENC_SYS && res == NULL) {
 			dev_info(&pdev->dev,
-				"get memory resource failed. idx:%d", i);
+				"get memory resource failed. idx:%d", reg_num);
 			ret = -ENXIO;
 			goto err_res;
 		} else if (res == NULL) {
-			mtk_v4l2_debug(0, "try next resource. idx:%d", i);
+			mtk_v4l2_debug(0, "try next resource. idx:%d", reg_num);
 			continue;
 		}
 
@@ -368,7 +368,7 @@ static int mtk_vcodec_enc_probe(struct platform_device *pdev)
 		mtk_v4l2_debug(2, "reg[%d] base=0x%px",
 			reg_index, dev->enc_reg_base[reg_index]);
 
-		i++;
+		reg_num++;
 	}
 
 	res = platform_get_resource(pdev, IORESOURCE_IRQ, 0);
@@ -378,7 +378,7 @@ static int mtk_vcodec_enc_probe(struct platform_device *pdev)
 		goto err_res;
 	}
 
-	ret = mtk_vcodec_enc_irq_setup(pdev, dev);
+	ret = mtk_vcodec_enc_irq_setup(pdev, dev, reg_num);
 	if (ret)
 		goto err_res;
 

@@ -424,20 +424,25 @@ EXPORT_SYMBOL_GPL(mtk_vcodec_dec_irq_setup);
 
 
 int mtk_vcodec_enc_irq_setup(struct platform_device *pdev,
-	struct mtk_vcodec_dev *dev)
+	struct mtk_vcodec_dev *dev, int irq_num)
 {
 #ifndef FPGA_INTERRUPT_API_DISABLE
 	int i = 0;
 	int ret = 0;
 
-	for (i = 0; i < MTK_VENC_HW_NUM; i++) {
+	if (!pdev || !dev) {
+		mtk_v4l2_err("pdev %p dev %p invalid", pdev, dev);
+		return -1;
+	}
+
+	for (i = 0; i < irq_num; i++) {
 		dev->enc_irq[i] = platform_get_irq(pdev, i);
 		if (dev->enc_irq[i] < 0) {
 			pr_info("no IRQ resource, hw id: %d", i);
 			break;
 		}
 
-		pr_info("get IRQ resource, hw id: %d irq %d", i, dev->enc_irq[i]);
+		pr_info("get IRQ resource, hw id: %d irq %d, irq_num %d", i, dev->enc_irq[i], irq_num);
 
 		if (i == MTK_VENC_CORE_0)
 			ret = devm_request_irq(&pdev->dev, dev->enc_irq[i],
