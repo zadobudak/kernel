@@ -3350,7 +3350,6 @@ mt8192-mt6359-rt1015-rt5682
 mt8195-mt6359-rt1019-rt5682
 mt8365-evk
 mt8390-evk
-mt8395-evk
 mt9m001
 mt9m032
 mt9m111
@@ -3372,6 +3371,7 @@ mtdswap
 mtip32xx
 mtk-btcvsd
 mtk-camsv30
+mtk-camsv50
 mtk-cir
 mtk-cqdma
 mtk-devapc
@@ -3394,6 +3394,7 @@ mtk-vcu-mt8395
 mtk-vpu-mt8365
 mtk_apu_rproc
 mtk_ecc
+mtk_hdmirx
 mtk_nand
 mtk_rpmsg
 mtk_scp
@@ -5406,7 +5407,6 @@ snd-soc-fsl-spdif
 snd-soc-fsl-ssi
 snd-soc-fsl-xcvr
 snd-soc-gtm601
-snd-soc-hdmi-codec
 snd-soc-ics43432
 snd-soc-imx-audmix
 snd-soc-imx-audmux

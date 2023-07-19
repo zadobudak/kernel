@@ -1682,6 +1682,8 @@ firmware:       rtl_bt/rtl8822b_config.bin
 firmware:       rtl_bt/rtl8822b_fw.bin
 firmware:       rtl_bt/rtl8852au_config.bin
 firmware:       rtl_bt/rtl8852au_fw.bin
+firmware:       rtl_bt/rtl8852cu_config.bin
+firmware:       rtl_bt/rtl8852cu_fw.bin
 firmware:       rtl_nic/rtl8105e-1.fw
 firmware:       rtl_nic/rtl8106e-1.fw
 firmware:       rtl_nic/rtl8106e-2.fw
