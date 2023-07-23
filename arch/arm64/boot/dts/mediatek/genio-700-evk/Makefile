@@ -1,8 +1,13 @@
 DTC_FLAGS += -@
 dtb-$(CONFIG_ARCH_MEDIATEK) += apusys.dtbo
 dtb-$(CONFIG_ARCH_MEDIATEK) += display-dp.dtbo
+dtb-$(CONFIG_ARCH_MEDIATEK) += display-dsi.dtbo
+dtb-$(CONFIG_ARCH_MEDIATEK) += display-dsidp.dtbo
 dtb-$(CONFIG_ARCH_MEDIATEK) += display-dsiedp.dtbo
 dtb-$(CONFIG_ARCH_MEDIATEK) += display-edp.dtbo
+dtb-$(CONFIG_ARCH_MEDIATEK) += display-edpdp.dtbo
+dtb-$(CONFIG_ARCH_MEDIATEK) += display-hdmi.dtbo
 dtb-$(CONFIG_ARCH_MEDIATEK) += display-hdmidp.dtbo
+dtb-$(CONFIG_ARCH_MEDIATEK) += display-headless.dtbo
 dtb-$(CONFIG_ARCH_MEDIATEK) += gpu-mali.dtbo
 dtb-$(CONFIG_ARCH_MEDIATEK) += video.dtbo
