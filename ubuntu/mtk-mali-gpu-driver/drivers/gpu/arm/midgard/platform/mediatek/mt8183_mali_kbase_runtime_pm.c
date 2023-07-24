@@ -422,7 +422,7 @@ static int platform_init(struct kbase_device *kbdev)
 	struct mtk_platform_context *context;
 	struct mfg_base *mfg;
 
-	mfg = kzalloc(sizeof(*mfg), GFP_KERNEL);
+	mfg = devm_kzalloc(kbdev->dev, sizeof(*mfg), GFP_KERNEL);
 	if (!mfg)
 		return -ENOMEM;
 
@@ -432,7 +432,7 @@ static int platform_init(struct kbase_device *kbdev)
 
 	err = mali_mfgsys_init(kbdev, mfg);
 	if (err)
-		goto platform_init_err;
+		return err;
 
 	context->mfg_base = mfg;
 	kbdev->platform_context = context;
@@ -443,27 +443,23 @@ static int platform_init(struct kbase_device *kbdev)
 	err = clk_set_parent(mfg->clk_mux, mfg->clk_sub_parent);
 	if (err) {
 		dev_err(kbdev->dev, "Failed to select sub clock src\n");
-		goto platform_init_err;
+		return err;
 	}
 
 	err = clk_set_rate(mfg->clk_main_parent, GPU_FREQ_KHZ_MAX * 1000);
 	if (err) {
 		dev_err(kbdev->dev, "Failed to set clock %d kHz\n",
 				GPU_FREQ_KHZ_MAX);
-		goto platform_init_err;
+		return err;
 	}
 
 	err = clk_set_parent(mfg->clk_mux, mfg->clk_main_parent);
 	if (err) {
 		dev_err(kbdev->dev, "Failed to select main clock src\n");
-		goto platform_init_err;
+		return err;
 	}
 
 	return 0;
-
-platform_init_err:
-	kfree(mfg);
-	return err;
 }
 
 static void platform_term(struct kbase_device *kbdev)
