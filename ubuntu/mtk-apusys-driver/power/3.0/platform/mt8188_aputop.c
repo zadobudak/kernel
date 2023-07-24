@@ -936,56 +936,12 @@ static void are_dump_entry(int are_hw)
 }
 #endif
 
-#if APMCU_REQ_RPC_SLEEP
 /* backup solution : send request for RPC sleep from APMCU */
 static int __apu_sleep_rpc_rcx(struct device *dev)
 {
-	uint32_t regValue;
-
-	/* REG_WAKEUP_CLR */
-	LOG_DBG("%s step1. set REG_WAKEUP_CLR\n", __func__);
-	apu_writel(0x00001000, apupw.regs[apu_rpc] + APU_RPC_TOP_CON);
-	udelay(10);
-
-	/* mask RPC IRQ and bypass WFI */
-	LOG_DBG("%s step2. mask RPC IRQ and bypass WFI\n", __func__);
-	regValue = 0x0;
-	regValue = apu_readl(apupw.regs[apu_rpc] + APU_RPC_TOP_SEL);
-	regValue |= 0x9E;
-	regValue |= (0x1 << 10);
-	apu_writel(regValue, apupw.regs[apu_rpc] + APU_RPC_TOP_SEL);
-	udelay(10);
-
-	/* clean up wakeup source (uP part), clear rpc irq */
-	LOG_DBG("%s step3. clean wakeup/abort irq bit\n", __func__);
-	regValue = 0x0;
-	regValue = apu_readl(apupw.regs[apu_rpc] + APU_RPC_TOP_CON);
-	regValue |= ((0x1 << 1) | (0x1 << 2));
-	apu_writel(regValue, apupw.regs[apu_rpc] + APU_RPC_TOP_CON);
-	udelay(10);
-/*
- *	// FIXME : remove thie after SB
- *	// may need config this in FPGS environment
- *	pr_info("%s step4. ignore slp prot\n", __func__);
- *	regValue = 0x0;
- *	regValue = apu_readl(apupw.regs[apu_rpc] + 0x140);
- *	regValue |= (0x1 << 13);
- *	apu_writel(regValue, apupw.regs[apu_rpc] + 0x140);
- *	udelay(10);
- */
-
-	/*
-	 * sleep request enable
-	 * CAUTION!! do NOT request sleep twice in succession
-	 * or system may crash (comments from DE)
-	 */
-	LOG_DBG("%s Step5. sleep request\n", __func__);
-	regValue = 0x0;
-	regValue = apu_readl(apupw.regs[apu_rpc] + APU_RPC_TOP_CON);
-	regValue |= 0x1;
-	apu_writel(regValue, apupw.regs[apu_rpc] + APU_RPC_TOP_CON);
-
-	udelay(100);
+	apusys_pwr_smc_call(dev,
+			MTK_APUSYS_KERNEL_OP_APUSYS_PWR_RCX,
+			SMC_RCX_PWR_OFF);
 
 	dev_info(dev, "%s RCX APU_RPC_INTF_PWR_RDY 0x%x = 0x%x\n",
 			__func__,
@@ -994,7 +950,6 @@ static int __apu_sleep_rpc_rcx(struct device *dev)
 
 	return 0;
 }
-#endif
 
 static int __apu_wake_rpc_rcx(struct device *dev)
 {
@@ -1273,6 +1228,14 @@ static int mt8188_apu_top_on(struct device *dev)
 
 	LOG_DBG("%s +\n", __func__);
 	apu_vote_vcore_dvfsrc(1);
+
+	/*
+	 *  To check whether the APU image is successfully loaded,
+	 *  here we write 1 to PWR_FLOW_SYNC_REG, and APU will reset
+	 *  this register value to 0 when it power on.
+	 */
+	mt8188_pwr_flow_remote_sync(1);
+
 #if (ENABLE_SOC_CLK_MUX || ENABLE_SW_BUCK_CTL)
 	plt_pwr_res_ctl(1);
 #endif
@@ -1326,7 +1289,14 @@ static int mt8188_apu_top_off(struct device *dev)
 	/* backup solution : send request for RPC sleep from APMCU */
 	__apu_sleep_rpc_rcx(dev);
 #else
-	mt8188_pwr_flow_remote_sync(1); /* tell remote side I am ready to off */
+	if (mt8188_read_pwr_flow_sync_reg() == 0) {
+		/* APU was loaded successfully, tell remote side I am ready to off */
+		mt8188_pwr_flow_remote_sync(1);
+	}
+	else {
+		/* APU was not loaded successfully, trigger power off from APMCU */
+		__apu_sleep_rpc_rcx(dev);
+	}
 #endif
 
 	/* blocking until sleep success or timeout */

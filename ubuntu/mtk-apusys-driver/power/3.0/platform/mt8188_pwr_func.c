@@ -508,6 +508,11 @@ int mt8188_apu_top_rpmsg_cb(int cmd, void *data, int len, void *priv,
 	return ret;
 }
 
+int mt8188_read_pwr_flow_sync_reg(void)
+{
+	return apu_readl(spare_reg_base + PWR_FLOW_SYNC_REG);
+}
+
 int mt8188_pwr_flow_remote_sync(uint32_t cfg)
 {
 	uint32_t reg_data = 0x0;

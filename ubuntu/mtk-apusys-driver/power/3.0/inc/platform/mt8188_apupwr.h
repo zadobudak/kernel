@@ -61,6 +61,7 @@ enum smc_rcx_pwr_op {
 	SMC_RCX_PWR_AFC_EN = 0,
 	SMC_RCX_PWR_WAKEUP_RPC,
 	SMC_RCX_PWR_CG_EN,
+	SMC_RCX_PWR_OFF,
 };
 
 enum smc_pwr_dump {

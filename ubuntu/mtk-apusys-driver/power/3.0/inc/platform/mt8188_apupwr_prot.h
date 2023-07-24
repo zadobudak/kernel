@@ -122,6 +122,7 @@ int mt8188_drv_cfg_remote_sync(struct aputop_func_param *aputop);
 int mt8188_chip_data_remote_sync(struct plat_cfg_data *plat_cfg);
 int mt8188_apu_top_rpmsg_cb(int cmd, void *data, int len,
 				void *priv, u32 src);
+int mt8188_read_pwr_flow_sync_reg(void);
 int mt8188_pwr_flow_remote_sync(uint32_t cfg);
 void mt8188_apu_temperature_sync(const char *tz_name);
 
