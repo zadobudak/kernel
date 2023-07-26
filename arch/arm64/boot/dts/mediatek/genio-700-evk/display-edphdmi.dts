@@ -82,6 +82,7 @@
 			default-on;
 			power-supply = <&edp_panel_fixed_3v3>;
 			enable-active-high;
+			status = "okay";
 		};
 	};
 
