@@ -766,9 +766,6 @@ out:
 	return ret;
 }
 
-
-
-#if APMCU_REQ_RPC_SLEEP
 static int __apu_sleep_rpc_top(struct device *dev)
 {
 	/* clr vcore/conn/conn1 cgs for eng cg auto gating */
@@ -789,13 +786,13 @@ static int __apu_sleep_rpc_top(struct device *dev)
 
 	return 0;
 }
-#endif
 
 static int mt8195_apu_top_on(struct device *dev)
 {
 	int ret = 0;
 
 	LOG_DBG("%s +\n", __func__);
+	mt8195_pwr_flow_remote_sync(1);
 #if ENABLE_SW_BUCK_CTL
 	plt_pwr_res_ctl(1);
 #endif
@@ -826,7 +823,13 @@ static int mt8195_apu_top_off(struct device *dev)
 	/* backup solution : send request for RPC sleep from APMCU */
 	__apu_sleep_rpc_top(dev);
 #else
-	mt8195_pwr_flow_remote_sync(1); /* tell remote side I am ready to off */
+	if (mt8195_read_pwr_flow_sync_reg() == 0) {
+		/* APU was loaded successfully, tell remote side I am ready to off */
+		mt8195_pwr_flow_remote_sync(1);
+	}	else {
+		/* APU was not loaded successfully, trigger power off from APMCU */
+		__apu_sleep_rpc_top(dev);
+	}
 #endif
 	/* blocking until sleep success or timeout */
 	ret = readl_relaxed_poll_timeout_atomic(

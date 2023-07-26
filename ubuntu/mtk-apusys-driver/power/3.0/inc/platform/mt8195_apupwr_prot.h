@@ -117,6 +117,7 @@ ssize_t mt8195_apu_top_dbg_write(
 #endif
 
 int mt8195_init_remote_data_sync(void __iomem *reg_base);
+int mt8195_read_pwr_flow_sync_reg(void);
 int mt8195_drv_cfg_remote_sync(struct aputop_func_param *aputop);
 int mt8195_chip_data_remote_sync(struct plat_cfg_data *plat_cfg);
 int mt8195_apu_top_rpmsg_cb(int cmd, void *data, int len,
