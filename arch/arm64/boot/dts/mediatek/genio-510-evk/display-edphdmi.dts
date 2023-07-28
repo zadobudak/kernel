@@ -114,36 +114,16 @@
 	};
 
 	fragment@7 {
-		target = <&dpi1>;
+		target = <&dsi0>;
 		__overlay__ {
 			status = "disabled";
 		};
 	};
 
 	fragment@8 {
-		target = <&hdmi0>;
+		target = <&mipi_tx0>;
 		__overlay__ {
 			status = "disabled";
-		};
-	};
-
-	fragment@9 {
-		target = <&hdmi_phy>;
-		__overlay__ {
-			status = "disabled";
-		};
-	};
-
-	fragment@10 {
-		target = <&sound>;
-		__overlay__ {
-			dai-link-1 { /* HDMI */
-				status = "disabled";
-			};
-
-			dai-link-2 { /* DPTX */
-				status = "disabled";
-			};
 		};
 	};
 };

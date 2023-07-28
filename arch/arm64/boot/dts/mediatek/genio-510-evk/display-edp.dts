@@ -82,6 +82,7 @@
 			default-on;
 			power-supply = <&edp_panel_fixed_3v3>;
 			enable-active-high;
+			status = "okay";
 		};
 	};
 
@@ -116,6 +117,47 @@
 		target = <&dsi0>;
 		__overlay__ {
 			status = "disabled";
+		};
+	};
+
+	fragment@8 {
+		target = <&mipi_tx0>;
+		__overlay__ {
+			status = "disabled";
+		};
+	};
+
+	fragment@9 {
+		target = <&dpi1>;
+		__overlay__ {
+			status = "disabled";
+		};
+	};
+
+	fragment@10 {
+		target = <&hdmi0>;
+		__overlay__ {
+			status = "disabled";
+		};
+	};
+
+	fragment@11 {
+		target = <&hdmi_phy>;
+		__overlay__ {
+			status = "disabled";
+		};
+	};
+
+	fragment@12 {
+		target = <&sound>;
+		__overlay__ {
+			dai-link-1 { /* HDMI */
+				status = "disabled";
+			};
+
+			dai-link-2 { /* DPTX */
+				status = "disabled";
+			};
 		};
 	};
 };

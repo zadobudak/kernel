@@ -114,27 +114,55 @@
 	};
 
 	fragment@7 {
-		target = <&dpi1>;
+		target = <&dp_tx>;
 		__overlay__ {
-			status = "disabled";
+			status = "okay";
 		};
 	};
 
 	fragment@8 {
-		target = <&hdmi0>;
+		target = <&dp_intf1>;
 		__overlay__ {
-			status = "disabled";
+			status = "okay";
 		};
 	};
 
 	fragment@9 {
-		target = <&hdmi_phy>;
+		target = <&dsi0>;
 		__overlay__ {
 			status = "disabled";
 		};
 	};
 
 	fragment@10 {
+		target = <&mipi_tx0>;
+		__overlay__ {
+			status = "disabled";
+		};
+	};
+
+	fragment@11 {
+		target = <&dpi1>;
+		__overlay__ {
+			status = "disabled";
+		};
+	};
+
+	fragment@12 {
+		target = <&hdmi0>;
+		__overlay__ {
+			status = "disabled";
+		};
+	};
+
+	fragment@13 {
+		target = <&hdmi_phy>;
+		__overlay__ {
+			status = "disabled";
+		};
+	};
+
+	fragment@14 {
 		target = <&sound>;
 		__overlay__ {
 			dai-link-1 { /* HDMI */
@@ -142,7 +170,7 @@
 			};
 
 			dai-link-2 { /* DPTX */
-				status = "disabled";
+				status = "okay";
 			};
 		};
 	};
