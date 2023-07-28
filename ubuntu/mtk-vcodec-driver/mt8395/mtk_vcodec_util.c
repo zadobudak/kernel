@@ -30,17 +30,17 @@ char mtk_vdec_tmp_prop[LOG_PROPERTY_SIZE];
 char mtk_venc_tmp_prop[LOG_PROPERTY_SIZE];
 
 /* For encoder, this will enable logs in venc/*/
-bool mtk_vcodec_dbg;
+bool mtk_vcodec_dbg = false;
 EXPORT_SYMBOL_GPL(mtk_vcodec_dbg);
 
 /* For vcodec performance measure */
-bool mtk_vcodec_perf;
+bool mtk_vcodec_perf = false;
 EXPORT_SYMBOL_GPL(mtk_vcodec_perf);
 
 /* The log level of v4l2 encoder or decoder driver.
  * That is, files under mtk-vcodec/.
  */
-int mtk_v4l2_dbg_level;
+int mtk_v4l2_dbg_level = 0;
 EXPORT_SYMBOL_GPL(mtk_v4l2_dbg_level);
 
 /* For vcodec vcp debug */
@@ -717,13 +717,16 @@ void mtk_vcodec_set_log(struct mtk_vcodec_dev *dev, const char *val,
 			continue;
 		if (strcmp("-mtk_vcodec_dbg", argv[i]) == 0) {
 			if (kstrtol(argv[i+1], 0, &temp_val) == 0)
-				mtk_vcodec_dbg = temp_val;
+				if (temp_val == 1)
+					mtk_vcodec_dbg = true;
 		} else if (strcmp("-mtk_vcodec_perf", argv[i]) == 0) {
 			if (kstrtol(argv[i+1], 0, &temp_val) == 0)
-				mtk_vcodec_perf = temp_val;
+				if (temp_val == 1)
+					mtk_vcodec_perf = true;
 		} else if (strcmp("-mtk_v4l2_dbg_level", argv[i]) == 0) {
 			if (kstrtol(argv[i+1], 0, &temp_val) == 0)
-				mtk_v4l2_dbg_level = temp_val;
+				if ((temp_val <= 8) && (temp_val >= 0))
+					mtk_v4l2_dbg_level = temp_val;
 		} else {
 			mtk_vcodec_sync_log(dev, argv[i], argv[i+1], log_index);
 		}
