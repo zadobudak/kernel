@@ -61,11 +61,18 @@ module_param_cb(mtk_venc_property, &vcodec_vcp_prop_param_ops, &mtk_venc_propert
 
 static int fops_vcodec_open(struct file *file)
 {
-	struct mtk_vcodec_dev *dev = video_drvdata(file);
+	struct mtk_vcodec_dev *dev = NULL;
 	struct mtk_vcodec_ctx *ctx = NULL;
 	struct mtk_video_enc_buf *mtk_buf = NULL;
 	struct vb2_queue *src_vq;
 	int ret = 0;
+
+	if (!file)
+		return -EINVAL;
+
+	dev = video_drvdata(file);
+	if  (!dev)
+		return -ENODEV;
 
 	ctx = kzalloc(sizeof(*ctx), GFP_KERNEL);
 	if (!ctx)
@@ -172,8 +179,19 @@ err_ctrls_setup:
 
 static int fops_vcodec_release(struct file *file)
 {
-	struct mtk_vcodec_dev *dev = video_drvdata(file);
-	struct mtk_vcodec_ctx *ctx = fh_to_ctx(file->private_data);
+	struct mtk_vcodec_dev *dev = NULL;
+	struct mtk_vcodec_ctx *ctx = NULL;
+
+	if (!file)
+		return -EINVAL;
+
+	dev = video_drvdata(file);
+	if  (!dev)
+		return -ENODEV;
+
+	ctx = fh_to_ctx(file->private_data);
+	if (!ctx)
+		return -EINVAL;
 
 	mtk_v4l2_debug(0, "[%d] encoder", ctx->id);
 	mutex_lock(&dev->dev_mutex);
@@ -218,7 +236,15 @@ static const struct v4l2_file_operations mtk_vcodec_fops = {
 static int mtk_vcodec_enc_suspend(struct device *pDev)
 {
 	int val, i;
-	struct mtk_vcodec_dev *dev = dev_get_drvdata(pDev);
+	struct mtk_vcodec_dev *dev = NULL;
+
+	if (!pDev)
+		return -ENODEV;
+
+	dev = dev_get_drvdata(pDev);;
+	if (!dev)
+		return -ENODEV;
+
 	// use v4l2_m2m_suspend to handle unfinished jobs & stop new jobs
 	v4l2_m2m_suspend(dev->m2m_dev_enc);
 
@@ -237,7 +263,15 @@ static int mtk_vcodec_enc_suspend(struct device *pDev)
 
 static int mtk_vcodec_enc_resume(struct device *pDev)
 {
-	struct mtk_vcodec_dev *dev = dev_get_drvdata(pDev);
+	struct mtk_vcodec_dev *dev = NULL;
+
+	if (!pDev)
+		return -ENODEV;
+
+	dev = dev_get_drvdata(pDev);
+	if (!dev)
+		return -ENODEV;
+
 	v4l2_m2m_resume(dev->m2m_dev_enc); //use v4l2_m2m_resumt to resume jobs
 
 	mtk_v4l2_debug(1, "done");
@@ -250,8 +284,12 @@ static int mtk_vcodec_enc_suspend_notifier(struct notifier_block *nb,
 	int wait_cnt = 0;
 	int val = 0;
 	int i;
-	struct mtk_vcodec_dev *dev =
-		container_of(nb, struct mtk_vcodec_dev, pm_notifier);
+	struct mtk_vcodec_dev *dev = NULL;
+
+	if (!nb)
+		return -EINVAL;
+
+	dev = container_of(nb, struct mtk_vcodec_dev, pm_notifier);
 
 	mtk_v4l2_debug(1, "action = %ld", action);
 	switch (action) {
@@ -291,14 +329,17 @@ extern void venc_vcp_probe(struct mtk_vcodec_dev *dev);
 
 static int mtk_vcodec_enc_probe(struct platform_device *pdev)
 {
-	struct mtk_vcodec_dev *dev;
-	struct video_device *vfd_enc;
-	struct resource *res;
-	int i = 0, j = 0, k = 0, reg_index = 0, ret, reg_num = 0;
+	struct mtk_vcodec_dev *dev = NULL;
+	struct video_device *vfd_enc = NULL;
+	struct resource *res = NULL;
+	int i = 0, j = 0, k = 0, reg_index = 0, ret = 0, reg_num = 0;
 	const char *name = NULL;
 	int port_args_num = 0, port_data_len = 0, total_port_num = 0;
 	unsigned int offset = 0;
 	unsigned int core_id = 0, ram_type = 0, port_id = 0;
+
+	if (!pdev)
+		return -ENODEV;
 
 	dev = devm_kzalloc(&pdev->dev, sizeof(*dev), GFP_KERNEL);
 	if (!dev)
@@ -557,7 +598,14 @@ MODULE_DEVICE_TABLE(of, mtk_vcodec_enc_match);
 
 static int mtk_vcodec_enc_remove(struct platform_device *pdev)
 {
-	struct mtk_vcodec_dev *dev = platform_get_drvdata(pdev);
+	struct mtk_vcodec_dev *dev = NULL;
+
+	if (!pdev)
+		return -ENODEV;
+
+	dev = platform_get_drvdata(pdev);
+	if (!dev)
+		return -ENODEV;
 
 	mtk_unprepare_venc_emi_bw(dev);
 	mtk_unprepare_venc_dvfs(dev);
@@ -593,10 +641,18 @@ static struct platform_driver mtk_vcodec_enc_driver = {
 
 static int mtk_venc_larb_probe(struct platform_device *pdev)
 {
-	struct device		*dev = &pdev->dev;
+	struct device  *dev = NULL;
 	unsigned int   larb_id;
 	unsigned int   hw_id;
 	int ret;
+
+	if (!pdev)
+		return -ENODEV;
+
+	dev = &pdev->dev;
+
+	if (!dev)
+		return -ENODEV;
 
 	ret = of_property_read_u32(dev->of_node, "mediatek,larb-id",
 			&larb_id);
@@ -622,6 +678,9 @@ static int mtk_venc_larb_probe(struct platform_device *pdev)
 
 static int mtk_venc_larb_remove(struct platform_device *pdev)
 {
+	if (!pdev)
+		return -ENODEV;
+
 	mtk_v4l2_err("%s disable larb\n", __func__);
 	return 0;
 }
