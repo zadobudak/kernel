@@ -421,7 +421,7 @@ static int venc_get_param(unsigned long handle,
 	if (inst == NULL)
 		return -EINVAL;
 
-	mtk_vcodec_debug(inst, "%s: %d", __func__, type);
+	mtk_vcodec_debug(inst, "%s: %d", __func__, (int)type);
 	inst->vcu_inst.ctx = inst->ctx;
 
 	switch (type) {

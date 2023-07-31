@@ -309,7 +309,7 @@ static int vcu_enc_send_msg(struct venc_vcu_inst *vcu, void *msg,
 	if (vcu->abort)
 		return -EIO;
 
-	while (vcu->ctx->dev->is_codec_suspending == 1) {
+	while (vcu->ctx->dev->is_codec_suspending == true) {
 		suspend_block_cnt++;
 		if (suspend_block_cnt > SUSPEND_TIMEOUT_CNT) {
 			mtk_v4l2_debug(4, "VENC blocked by suspend\n");
@@ -325,7 +325,7 @@ static int vcu_enc_send_msg(struct venc_vcu_inst *vcu, void *msg,
 			mtk_vcodec_err(vcu, "send fail pid: inst %d curr %d",
 				vcu->daemon_pid, task->tgid);
 		VCU_FPTR(vcu_put_task)();
-		vcu->abort = 1;
+		vcu->abort = true;
 		return -EIO;
 	}
 	VCU_FPTR(vcu_put_task)();
@@ -335,7 +335,7 @@ static int vcu_enc_send_msg(struct venc_vcu_inst *vcu, void *msg,
 		mtk_vcodec_err(vcu, "vcu_ipi_send msg_id %x len %d fail %d",
 					   *(uint32_t *)msg, len, status);
 		if (status == -EIO)
-			vcu->abort = 1;
+			vcu->abort = true;
 		return status;
 	}
 
@@ -446,7 +446,7 @@ int vcu_enc_query_cap(struct venc_vcu_inst *vcu, unsigned int id, void *out)
 		return -EINVAL;
 	}
 
-	mtk_vcodec_debug(vcu, "+ id=%X", AP_IPIMSG_ENC_QUERY_CAP);
+	mtk_vcodec_debug(vcu, "+ id=%X", vcu->id);
 	vcu->dev = VCU_FPTR(vcu_get_plat_device)(vcu->ctx->dev->plat_dev);
 	if (vcu->dev  == NULL) {
 		mtk_vcodec_err(vcu, "vcu device in not ready");

@@ -125,7 +125,7 @@ static int venc_vcp_ipi_send(struct venc_inst *inst, void *msg, int len, bool is
 	}
 
 	if (!is_ack) {
-		while (inst->ctx->dev->is_codec_suspending == 1) {
+		while (inst->ctx->dev->is_codec_suspending == true) {
 			suspend_block_cnt++;
 			if (suspend_block_cnt > SUSPEND_TIMEOUT_CNT) {
 				mtk_v4l2_debug(4, "VENC blocked by suspend\n");
@@ -369,7 +369,7 @@ int vcp_enc_ipi_handler(void *arg)
 	do {
 		ret = wait_event_interruptible(dev->mq.wq, atomic_read(&dev->mq.cnt) > 0);
 		if (ret) {
-			while (dev->is_codec_suspending == 1) {
+			while (dev->is_codec_suspending == true) {
 				suspend_block_cnt++;
 				if (suspend_block_cnt > SUSPEND_TIMEOUT_CNT) {
 					mtk_v4l2_debug(4, "blocked by suspend\n");

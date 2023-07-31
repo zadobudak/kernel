@@ -295,7 +295,7 @@ static int mtk_vcodec_enc_suspend_notifier(struct notifier_block *nb,
 	switch (action) {
 	case PM_SUSPEND_PREPARE:
 		v4l2_m2m_suspend(dev->m2m_dev_enc);
-		dev->is_codec_suspending = 1;
+		dev->is_codec_suspending = true;
 		mtk_v4l2_debug(1, "suspend_notifier: v4l2_m2m_suspend done");
 		for (i = 0; i < MTK_VENC_HW_NUM; i++) {
 			val = down_trylock(&dev->enc_sem[i]);
@@ -315,7 +315,7 @@ static int mtk_vcodec_enc_suspend_notifier(struct notifier_block *nb,
 		}
 		return NOTIFY_OK;
 	case PM_POST_SUSPEND:
-		dev->is_codec_suspending = 0;
+		dev->is_codec_suspending = false;
 		return NOTIFY_OK;
 	default:
 		return NOTIFY_DONE;
@@ -561,7 +561,7 @@ static int mtk_vcodec_enc_probe(struct platform_device *pdev)
 	mtk_prepare_venc_emi_bw(dev);
 	dev->pm_notifier.notifier_call = mtk_vcodec_enc_suspend_notifier;
 	register_pm_notifier(&dev->pm_notifier);
-	dev->is_codec_suspending = 0;
+	dev->is_codec_suspending = false;
 	dev->enc_cnt = 0;
 
 #if IS_ENABLED(CONFIG_MTK_TINYSYS_VCP_SUPPORT)
