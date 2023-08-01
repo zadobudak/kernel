@@ -1220,10 +1220,10 @@ static int vcu_gce_cmd_flush(struct mtk_vcu *vcu,
 {
 	int i, codec_type, gce_idx, ret;
 	unsigned char *user_data_addr = NULL;
-	struct gce_callback_data buff;
-	struct cmdq_pkt *pkt_ptr;
-	struct cmdq_client *cl;
-	struct gce_cmds *cmds;
+	struct gce_callback_data buff = {0};
+	struct cmdq_pkt *pkt_ptr = NULL;
+	struct cmdq_client *cl = NULL;
+	struct gce_cmds *cmds = NULL;
 	unsigned int core_id;
 	unsigned int gce_order;
 
