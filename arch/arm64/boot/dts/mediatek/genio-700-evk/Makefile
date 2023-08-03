@@ -6,6 +6,7 @@ dtb-$(CONFIG_ARCH_MEDIATEK) += display-dsidp.dtbo
 dtb-$(CONFIG_ARCH_MEDIATEK) += display-dsiedp.dtbo
 dtb-$(CONFIG_ARCH_MEDIATEK) += display-edp.dtbo
 dtb-$(CONFIG_ARCH_MEDIATEK) += display-edpdp.dtbo
+dtb-$(CONFIG_ARCH_MEDIATEK) += display-edphdmi.dtbo
 dtb-$(CONFIG_ARCH_MEDIATEK) += display-hdmi.dtbo
 dtb-$(CONFIG_ARCH_MEDIATEK) += display-hdmidp.dtbo
 dtb-$(CONFIG_ARCH_MEDIATEK) += display-headless.dtbo
