@@ -13844,7 +13844,7 @@ EXPORT_SYMBOL_GPL	 drivers/media/platform/marvell-ccic/mcam-core 0x2cc0241e	mcci
 EXPORT_SYMBOL_GPL	 drivers/media/platform/marvell-ccic/mcam-core 0x52716210	mccic_resume
 EXPORT_SYMBOL_GPL	 drivers/media/platform/marvell-ccic/mcam-core 0xc843c02a	mccic_irq
 EXPORT_SYMBOL_GPL	 drivers/media/platform/marvell-ccic/mcam-core 0xe0be6528	mccic_suspend
-EXPORT_SYMBOL_GPL	 drivers/media/platform/mediatek/mdp3/mtk-mdp3 0xd03202a5	mdp_cmdq_send
+EXPORT_SYMBOL_GPL	 drivers/media/platform/mediatek/mdp3/mtk-mdp3 0xc7166fd9	mdp_cmdq_send
 EXPORT_SYMBOL_GPL	 drivers/media/platform/mediatek/mdp3/mtk-mdp3 0xd2a29070	mdp_get_plat_device
 EXPORT_SYMBOL_GPL	 drivers/media/platform/qcom/venus/venus-core 0x0c54dce5	venus_helper_vb2_start_streaming
 EXPORT_SYMBOL_GPL	 drivers/media/platform/qcom/venus/venus-core 0x12bacef8	venus_helper_set_stride
@@ -15043,17 +15043,17 @@ EXPORT_SYMBOL_GPL	 drivers/net/ethernet/mscc/mscc_ocelot_switch_lib 0xf7cb38ce	_
 EXPORT_SYMBOL_GPL	 drivers/net/ethernet/qualcomm/qca_7k_common 0x0b28a9ad	qcafrm_create_footer
 EXPORT_SYMBOL_GPL	 drivers/net/ethernet/qualcomm/qca_7k_common 0x2b6ddf3f	qcafrm_fsm_decode
 EXPORT_SYMBOL_GPL	 drivers/net/ethernet/qualcomm/qca_7k_common 0x41da0375	qcafrm_create_header
-EXPORT_SYMBOL_GPL	 drivers/net/ethernet/stmicro/stmmac/stmmac 0x2315eb90	stmmac_dvr_probe
+EXPORT_SYMBOL_GPL	 drivers/net/ethernet/stmicro/stmmac/stmmac 0x1a99b27b	stmmac_init_tstamp_counter
 EXPORT_SYMBOL_GPL	 drivers/net/ethernet/stmicro/stmmac/stmmac 0x4a79156a	stmmac_resume
 EXPORT_SYMBOL_GPL	 drivers/net/ethernet/stmicro/stmmac/stmmac 0x5412e034	stmmac_dvr_remove
-EXPORT_SYMBOL_GPL	 drivers/net/ethernet/stmicro/stmmac/stmmac 0x5a644754	stmmac_init_tstamp_counter
+EXPORT_SYMBOL_GPL	 drivers/net/ethernet/stmicro/stmmac/stmmac 0x89a026e3	stmmac_bus_clks_config
 EXPORT_SYMBOL_GPL	 drivers/net/ethernet/stmicro/stmmac/stmmac 0x92d778bb	stmmac_get_mac_addr
 EXPORT_SYMBOL_GPL	 drivers/net/ethernet/stmicro/stmmac/stmmac 0xa542923f	stmmac_suspend
+EXPORT_SYMBOL_GPL	 drivers/net/ethernet/stmicro/stmmac/stmmac 0xb3f0ace9	stmmac_dvr_probe
 EXPORT_SYMBOL_GPL	 drivers/net/ethernet/stmicro/stmmac/stmmac 0xd1cc24db	stmmac_set_mac_addr
-EXPORT_SYMBOL_GPL	 drivers/net/ethernet/stmicro/stmmac/stmmac 0xef5e6116	stmmac_bus_clks_config
-EXPORT_SYMBOL_GPL	 drivers/net/ethernet/stmicro/stmmac/stmmac-platform 0x5e6ec4e8	stmmac_remove_config_dt
-EXPORT_SYMBOL_GPL	 drivers/net/ethernet/stmicro/stmmac/stmmac-platform 0x70240731	stmmac_probe_config_dt
 EXPORT_SYMBOL_GPL	 drivers/net/ethernet/stmicro/stmmac/stmmac-platform 0x7f4d81f6	stmmac_pltfr_remove
+EXPORT_SYMBOL_GPL	 drivers/net/ethernet/stmicro/stmmac/stmmac-platform 0x7f6dd95c	stmmac_probe_config_dt
+EXPORT_SYMBOL_GPL	 drivers/net/ethernet/stmicro/stmmac/stmmac-platform 0x92925d20	stmmac_remove_config_dt
 EXPORT_SYMBOL_GPL	 drivers/net/ethernet/stmicro/stmmac/stmmac-platform 0xe6d3ff19	stmmac_pltfr_pm_ops
 EXPORT_SYMBOL_GPL	 drivers/net/ethernet/stmicro/stmmac/stmmac-platform 0xf6ebeb8b	stmmac_get_platform_resources
 EXPORT_SYMBOL_GPL	 drivers/net/ethernet/ti/am65-cpts 0x03545079	am65_cpts_create
@@ -19367,7 +19367,6 @@ EXPORT_SYMBOL_GPL	 ubuntu/mtk-vcodec-driver/mt8395/mtk-vcodec-common-mt8395 0x7e
 EXPORT_SYMBOL_GPL	 ubuntu/mtk-vcodec-driver/mt8395/mtk-vcodec-common-mt8395 0x85ada4b3	mtk_vcodec_dec_irq_handler
 EXPORT_SYMBOL_GPL	 ubuntu/mtk-vcodec-driver/mt8395/mtk-vcodec-common-mt8395 0x8d9e6800	mtk_vcodec_del_ctx_list
 EXPORT_SYMBOL_GPL	 ubuntu/mtk-vcodec-driver/mt8395/mtk-vcodec-common-mt8395 0x8de528fb	mtk_vcodec_dbg
-EXPORT_SYMBOL_GPL	 ubuntu/mtk-vcodec-driver/mt8395/mtk-vcodec-common-mt8395 0x95607c82	mtk_vcodec_enc_irq_setup
 EXPORT_SYMBOL_GPL	 ubuntu/mtk-vcodec-driver/mt8395/mtk-vcodec-common-mt8395 0x995408ab	mtk_vcodec_enc_irq_handler
 EXPORT_SYMBOL_GPL	 ubuntu/mtk-vcodec-driver/mt8395/mtk-vcodec-common-mt8395 0xa79251cb	v4l2_m2m_buf_queue_check
 EXPORT_SYMBOL_GPL	 ubuntu/mtk-vcodec-driver/mt8395/mtk-vcodec-common-mt8395 0xa7ddea7c	mtk_vcodec_get_dec_reg_addr
@@ -19377,6 +19376,7 @@ EXPORT_SYMBOL_GPL	 ubuntu/mtk-vcodec-driver/mt8395/mtk-vcodec-common-mt8395 0xc7
 EXPORT_SYMBOL_GPL	 ubuntu/mtk-vcodec-driver/mt8395/mtk-vcodec-common-mt8395 0xc9ab4b6a	mtk_vcodec_gce_timeout_dump
 EXPORT_SYMBOL_GPL	 ubuntu/mtk-vcodec-driver/mt8395/mtk-vcodec-common-mt8395 0xca309352	mtk_vcodec_get_enc_reg_addr
 EXPORT_SYMBOL_GPL	 ubuntu/mtk-vcodec-driver/mt8395/mtk-vcodec-common-mt8395 0xcd4810da	mtk_vdec_sw_mem_sec
+EXPORT_SYMBOL_GPL	 ubuntu/mtk-vcodec-driver/mt8395/mtk-vcodec-common-mt8395 0xfc47c374	mtk_vcodec_enc_irq_setup
 EXPORT_SYMBOL_GPL	 ubuntu/mtk-vcu-driver/mt8365/mtk-vpu-mt8365 0x927bdf24	vpu_get_plat_device
 EXPORT_SYMBOL_GPL	 ubuntu/mtk-vcu-driver/mt8395/mtk-vcu-mt8395 0x00bf44c2	vcu_get_task
 EXPORT_SYMBOL_GPL	 ubuntu/mtk-vcu-driver/mt8395/mtk-vcu-mt8395 0x10c3aa07	vcu_load_firmware
