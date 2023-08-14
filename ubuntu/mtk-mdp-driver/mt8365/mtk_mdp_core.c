@@ -272,6 +272,39 @@ static int mtk_mdp_probe(struct platform_device *pdev)
 	}
 	INIT_WORK(&mdp->wdt_work, mtk_mdp_wdt_worker);
 
+	mdp->vpu_dev = vpu_get_plat_device(pdev);
+
+	/* add devlink to vcu dev to make sure suspend/resume order is correct */
+	link = device_link_add(&pdev->dev, &mdp->vpu_dev->dev,
+				DL_FLAG_PM_RUNTIME | DL_FLAG_STATELESS);
+	if (!link) {
+		dev_err(&pdev->dev, "Unable to link dev=%s\n", dev_name(&mdp->vpu_dev->dev));
+		ret = -ENODEV;
+		goto err_device_link_add;
+	}
+
+	ret = vpu_wdt_reg_handler(mdp->vpu_dev, mtk_mdp_reset_handler, mdp,
+				  VPU_RST_MDP);
+	if (ret) {
+		dev_err(&pdev->dev, "Failed to register wdt handler\n");
+		goto err_wdt_reg;
+	}
+
+	platform_set_drvdata(pdev, mdp);
+
+	ret = vb2_dma_contig_set_max_seg_size(&pdev->dev, DMA_BIT_MASK(32));
+	if (ret) {
+		dev_err(&pdev->dev, "Failed to set vb2 dma mag seg size\n");
+		goto err_wdt_reg;
+	}
+
+	pm_runtime_enable(dev);
+
+	mdp->pm_notifier.notifier_call = mtk_mdp_suspend_notifier;
+	register_pm_notifier(&mdp->pm_notifier);
+
+	mdp->cmdq_client = cmdq_mbox_create(dev, 0);
+
 	ret = v4l2_device_register(dev, &mdp->v4l2_dev);
 	if (ret) {
 		dev_err(&pdev->dev, "Failed to register v4l2 device\n");
@@ -285,56 +318,32 @@ static int mtk_mdp_probe(struct platform_device *pdev)
 		goto err_m2m_register;
 	}
 
-	mdp->vpu_dev = vpu_get_plat_device(pdev);
-
-	/* add devlink to vcu dev to make sure suspend/resume order is correct */
-	link = device_link_add(&pdev->dev, &mdp->vpu_dev->dev,
-										DL_FLAG_PM_RUNTIME | DL_FLAG_STATELESS);
-	if (!link) {
-		dev_err(&pdev->dev, "Unable to link dev=%s\n", dev_name(&mdp->vpu_dev->dev));
-		ret = -ENODEV;
-		goto err_vcu_probe;
-	}
-
-	ret = vpu_wdt_reg_handler(mdp->vpu_dev, mtk_mdp_reset_handler, mdp,
-				  VPU_RST_MDP);
-	if (ret) {
-		dev_err(&pdev->dev, "Failed to register wdt handler\n");
-		goto err_vcu_probe;
-	}
-
-	platform_set_drvdata(pdev, mdp);
-
-	ret = vb2_dma_contig_set_max_seg_size(&pdev->dev, DMA_BIT_MASK(32));
-	if (ret) {
-		dev_err(&pdev->dev, "Failed to set vb2 dma mag seg size\n");
-		goto err_vcu_probe;
-	}
-
-	pm_runtime_enable(dev);
-
-	mdp->pm_notifier.notifier_call = mtk_mdp_suspend_notifier;
-	register_pm_notifier(&mdp->pm_notifier);
-
-	mdp->cmdq_client = cmdq_mbox_create(dev, 0);
-
 	dev_dbg(dev, "mdp-%d registered successfully\n", mdp->id);
 
 	return 0;
-
-err_vcu_probe:
-	mtk_mdp_unregister_m2m_device(mdp);
 
 err_m2m_register:
 	v4l2_device_unregister(&mdp->v4l2_dev);
 
 err_dev_register:
+	cmdq_mbox_destroy(mdp->cmdq_client);
+	unregister_pm_notifier(&mdp->pm_notifier);
+	pm_runtime_disable(&pdev->dev);
+	vb2_dma_contig_clear_max_seg_size(&pdev->dev);
+
+err_wdt_reg:
+	if (mdp->vpu_dev) {
+		device_link_remove(&pdev->dev, &mdp->vpu_dev->dev);
+	}
+
+err_device_link_add:
 	destroy_workqueue(mdp->wdt_wq);
 
 err_alloc_wdt_wq:
 	destroy_workqueue(mdp->job_wq);
 
 err_alloc_job_wq:
+	platform_driver_unregister(&mtk_mdp_comp);
 
 err_comp:
 	list_for_each_entry_safe(comp, comp_temp, &mdp->comp_list, node) {
