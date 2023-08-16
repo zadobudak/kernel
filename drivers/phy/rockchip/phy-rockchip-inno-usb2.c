@@ -300,7 +300,6 @@ struct rockchip_usb2phy_port {
 	struct wake_lock	wakelock;
 	enum usb_otg_state	state;
 	enum usb_dr_mode	mode;
-	bool 			disable_wakeup;
 };
 
 /**
@@ -2378,7 +2377,6 @@ static int rockchip_usb2phy_probe(struct platform_device *pdev)
 		}
 
 		rport->phy = phy;
-		rport->disable_wakeup = of_property_read_bool(child_np, "disable_wakeup");
 		phy_set_drvdata(rport->phy, rport);
 
 		/* initialize otg/host port separately */
@@ -3027,8 +3025,7 @@ static int rockchip_usb2phy_pm_suspend(struct device *dev)
 
 		/* activate the linestate to detect the next interrupt. */
 		mutex_lock(&rport->mutex);
-		// Only enable interrupt during suspend if no disable_wakeup was defined
-		ret = rockchip_usb2phy_enable_line_irq(rphy, rport, !rport->disable_wakeup);
+		ret = rockchip_usb2phy_enable_line_irq(rphy, rport, true);
 		mutex_unlock(&rport->mutex);
 		if (ret) {
 			dev_err(rphy->dev, "failed to enable linestate irq\n");
