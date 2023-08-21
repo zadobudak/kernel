@@ -1,9 +1,14 @@
 # SPDX-License-Identifier: GPL-2.0
 DTC_FLAGS += -@
 subdir-y += genio-350-evk
+subdir-y += genio-510-evk
 subdir-y += genio-700-evk
 subdir-y += genio-1200-evk
 subdir-y += genio-1200-evk-p1v1
+subdir-y += mt8365
+subdir-y += mt8370
+subdir-y += mt8390
+subdir-y += mt8395
 dtb-$(CONFIG_ARCH_MEDIATEK) += mt2712-evb.dtb
 dtb-$(CONFIG_ARCH_MEDIATEK) += mt6755-evb.dtb
 dtb-$(CONFIG_ARCH_MEDIATEK) += mt6779-evb.dtb
