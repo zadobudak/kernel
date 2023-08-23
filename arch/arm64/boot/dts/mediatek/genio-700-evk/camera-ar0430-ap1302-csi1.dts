@@ -11,8 +11,8 @@
 /dts-v1/;
 /plugin/;
 
-#include "isp71.dtsi"
-#include "mtk-camera.dtsi"
+#include <arm64/mediatek/mt8390/isp71.dtsi>
+#include <arm64/mediatek/mt8390/mtk-camera.dtsi>
 
 / {
 	fragment@4 {

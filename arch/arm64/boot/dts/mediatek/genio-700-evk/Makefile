@@ -1,5 +1,9 @@
 DTC_FLAGS += -@
-dtb-$(CONFIG_ARCH_MEDIATEK) += apusys.dtbo
+dtb-$(CONFIG_ARCH_MEDIATEK) += camera-ar0430-ap1302-csi0.dtbo
+dtb-$(CONFIG_ARCH_MEDIATEK) += camera-ar0430-ap1302-csi1.dtbo
+dtb-$(CONFIG_ARCH_MEDIATEK) += camera-ar0830-ap1302-2lanes-csi0.dtbo
+dtb-$(CONFIG_ARCH_MEDIATEK) += camera-ar0830-ap1302-csi0.dtbo
+dtb-$(CONFIG_ARCH_MEDIATEK) += camera-ar0830-ap1302-csi1.dtbo
 dtb-$(CONFIG_ARCH_MEDIATEK) += display-dp.dtbo
 dtb-$(CONFIG_ARCH_MEDIATEK) += display-dsi.dtbo
 dtb-$(CONFIG_ARCH_MEDIATEK) += display-dsi2lvds.dtbo
@@ -14,5 +18,3 @@ dtb-$(CONFIG_ARCH_MEDIATEK) += display-headless.dtbo
 dtb-$(CONFIG_ARCH_MEDIATEK) += display-lvdsdp.dtbo
 dtb-$(CONFIG_ARCH_MEDIATEK) += display-lvdsedp.dtbo
 dtb-$(CONFIG_ARCH_MEDIATEK) += display-lvdshdmi.dtbo
-dtb-$(CONFIG_ARCH_MEDIATEK) += gpu-mali.dtbo
-dtb-$(CONFIG_ARCH_MEDIATEK) += video.dtbo
