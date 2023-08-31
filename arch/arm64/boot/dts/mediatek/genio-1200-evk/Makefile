@@ -1,7 +1,7 @@
 DTC_FLAGS += -@
-dtb-$(CONFIG_ARCH_MEDIATEK) += camera-ar0430-ap1302-csi0.dtbo
-dtb-$(CONFIG_ARCH_MEDIATEK) += camera-ar0430-ap1302-csi1.dtbo
-dtb-$(CONFIG_ARCH_MEDIATEK) += camera-ar0430-ap1302-csi2.dtbo
+#dtb-$(CONFIG_ARCH_MEDIATEK) += camera-ar0430-ap1302-csi0.dtbo
+#dtb-$(CONFIG_ARCH_MEDIATEK) += camera-ar0430-ap1302-csi1.dtbo
+#dtb-$(CONFIG_ARCH_MEDIATEK) += camera-ar0430-ap1302-csi2.dtbo
 dtb-$(CONFIG_ARCH_MEDIATEK) += camera-imx214-csi0.dtbo
 dtb-$(CONFIG_ARCH_MEDIATEK) += camera-imx214-csi1.dtbo
 dtb-$(CONFIG_ARCH_MEDIATEK) += camera-imx214-csi2.dtbo
