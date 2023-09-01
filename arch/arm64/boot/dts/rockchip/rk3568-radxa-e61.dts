@@ -12,6 +12,13 @@
 	model = "Radxa E61";
 	compatible = "radxa,e61", "radxa,cm3i", "rockchip,rk3568";
 
+	fan0: pwm-fan {
+		compatible = "pwm-fan";
+		#cooling-cells = <2>;
+		cooling-levels = <0 64 128 192 255>;
+		pwms = <&pwm8 0 10000 0>;
+	};
+
 	vcc12v_dcin: vcc12v-dcin {
 		compatible = "regulator-fixed";
 		regulator-name = "vcc12v_dcin";
@@ -166,7 +173,7 @@
 
 &hdmi {
 	status = "okay";
-	pinctrl-0 = <&hdmitx_scl &hdmitx_sda &hdmitxm1_cec>;
+	pinctrl-0 = <&hdmitx_scl &hdmitx_sda &hdmitxm0_cec>;
 };
 
 &hdmi_in_vp0 {
@@ -217,6 +224,28 @@
 	status = "okay";
 };
 
+&soc_thermal {
+	sustainable-power = <5000>; /* milliwatts */
+	cooling-maps {
+		map2 {
+			trip = <&target>;
+			cooling-device =
+				<&fan0 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>;
+			contribution = <8192>;
+		};
+		map3 {
+			trip = <&threshold>;
+			cooling-device =
+				<&fan0 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>;
+			contribution = <8192>;
+		};
+	};
+};
+
+&threshold {
+	temperature = <60000>;
+};
+
 &i2c1 {
 	status = "okay";
 	pinctrl-0 = <&i2c1_xfer>;
@@ -229,6 +258,21 @@
 		clock-frequency = <32768>;
 		clock-output-names = "hym8563";
 	};
+};
+
+&uart5 {
+	status = "okay";
+	pinctrl-names = "default";
+	pinctrl-0 = <&uart5m1_xfer>;
+};
+
+&can1 {
+	status = "okay";
+	compatible = "rockchip,can-1.0";
+	assigned-clocks = <&cru CLK_CAN1>;
+	assigned-clock-rates = <200000000>;
+	pinctrl-names = "default";
+	pinctrl-0 = <&can1m0_pins>;
 };
 
 &pinctrl {
