@@ -9016,6 +9016,7 @@ EXPORT_SYMBOL	 vmlinux 0x91a488ac	__netdev_alloc_frag_align
 EXPORT_SYMBOL	 vmlinux 0x91a7b1da	qdisc_class_hash_remove
 EXPORT_SYMBOL	 vmlinux 0x91b71b56	netdev_class_create_file_ns
 EXPORT_SYMBOL	 vmlinux 0x91c0980e	icst_hz
+EXPORT_SYMBOL	 vmlinux 0x91c76498	it6122_bridge_enabled
 EXPORT_SYMBOL	 vmlinux 0x91d36f35	scsi_device_put
 EXPORT_SYMBOL	 vmlinux 0x91d9b264	vfs_create_mount
 EXPORT_SYMBOL	 vmlinux 0x91e01214	dev_getfirstbyhwtype
@@ -9601,6 +9602,7 @@ EXPORT_SYMBOL	 vmlinux 0xa7184f27	would_dump
 EXPORT_SYMBOL	 vmlinux 0xa71acc92	fman_port_config
 EXPORT_SYMBOL	 vmlinux 0xa72035f9	xa_get_order
 EXPORT_SYMBOL	 vmlinux 0xa725fdbc	drm_gem_unlock_reservations
+EXPORT_SYMBOL	 vmlinux 0xa72806b9	it6122_enabled
 EXPORT_SYMBOL	 vmlinux 0xa72d85ae	fb_set_suspend
 EXPORT_SYMBOL	 vmlinux 0xa73321d3	i2c_transfer
 EXPORT_SYMBOL	 vmlinux 0xa741459a	default_qdisc_ops
@@ -11459,6 +11461,7 @@ EXPORT_SYMBOL	 vmlinux 0xeae3dfd6	__const_udelay
 EXPORT_SYMBOL	 vmlinux 0xeae462c9	gro_cells_init
 EXPORT_SYMBOL	 vmlinux 0xeaed8cef	__dquot_transfer
 EXPORT_SYMBOL	 vmlinux 0xeafc141f	__posix_acl_chmod
+EXPORT_SYMBOL	 vmlinux 0xeafcccc9	it6122_bridge_power_on_off
 EXPORT_SYMBOL	 vmlinux 0xeafd87d5	tcf_exts_dump
 EXPORT_SYMBOL	 vmlinux 0xeb078aee	_raw_write_unlock_irqrestore
 EXPORT_SYMBOL	 vmlinux 0xeb0969b0	pcim_enable_device
@@ -13844,7 +13847,7 @@ EXPORT_SYMBOL_GPL	 drivers/media/platform/marvell-ccic/mcam-core 0x2cc0241e	mcci
 EXPORT_SYMBOL_GPL	 drivers/media/platform/marvell-ccic/mcam-core 0x52716210	mccic_resume
 EXPORT_SYMBOL_GPL	 drivers/media/platform/marvell-ccic/mcam-core 0xc843c02a	mccic_irq
 EXPORT_SYMBOL_GPL	 drivers/media/platform/marvell-ccic/mcam-core 0xe0be6528	mccic_suspend
-EXPORT_SYMBOL_GPL	 drivers/media/platform/mediatek/mdp3/mtk-mdp3 0xc7166fd9	mdp_cmdq_send
+EXPORT_SYMBOL_GPL	 drivers/media/platform/mediatek/mdp3/mtk-mdp3 0xa721fd70	mdp_cmdq_send
 EXPORT_SYMBOL_GPL	 drivers/media/platform/mediatek/mdp3/mtk-mdp3 0xd2a29070	mdp_get_plat_device
 EXPORT_SYMBOL_GPL	 drivers/media/platform/qcom/venus/venus-core 0x0c54dce5	venus_helper_vb2_start_streaming
 EXPORT_SYMBOL_GPL	 drivers/media/platform/qcom/venus/venus-core 0x12bacef8	venus_helper_set_stride

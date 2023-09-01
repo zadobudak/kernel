@@ -3135,7 +3135,6 @@ mdt_loader
 me4000
 me_daq
 mediatek
-mediatek-cpufreq
 mediatek-drm-hdmi
 mediatek-ge
 megachips-stdpxxxx-ge-b850v3-fw
