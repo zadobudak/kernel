@@ -3327,9 +3327,6 @@ mt7601u
 mt7603e
 mt7615-common
 mt7615e
-mt7663-usb-sdio-common
-mt7663s
-mt7663u
 mt76x0-common
 mt76x02-lib
 mt76x02-usb

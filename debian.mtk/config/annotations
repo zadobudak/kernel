@@ -6889,8 +6889,8 @@ CONFIG_MT76x2U                                  policy<{'amd64': 'm', 'arm64': '
 CONFIG_MT7603E                                  policy<{'amd64': 'm', 'arm64': 'm', 'armhf': 'm', 'ppc64el': 'm'}>
 CONFIG_MT7615E                                  policy<{'amd64': 'm', 'arm64': 'm', 'armhf': 'm', 'ppc64el': 'm'}>
 CONFIG_MT7622_WMAC                              policy<{'arm64': 'y', 'armhf': 'y'}>
-CONFIG_MT7663U                                  policy<{'amd64': 'm', 'arm64': 'm', 'armhf': 'm', 'ppc64el': 'm'}>
-CONFIG_MT7663S                                  policy<{'amd64': 'm', 'arm64': 'm', 'armhf': 'm', 'ppc64el': 'm'}>
+CONFIG_MT7663U                                  policy<{'amd64': 'm', 'arm64': 'n', 'armhf': 'm', 'ppc64el': 'm'}>
+CONFIG_MT7663S                                  policy<{'amd64': 'm', 'arm64': 'n', 'armhf': 'm', 'ppc64el': 'm'}>
 CONFIG_MT7915E                                  policy<{'amd64': 'm', 'arm64': 'm', 'armhf': 'm', 'ppc64el': 'm'}>
 CONFIG_MT7921E                                  policy<{'amd64': 'm', 'arm64': 'm', 'armhf': 'm', 'ppc64el': 'm'}>
 
