@@ -3391,6 +3391,7 @@ mtk-vpu-mt8365
 mtk_apu_rproc
 mtk_ecc
 mtk_hdmirx
+mtk_jpeg
 mtk_nand
 mtk_rpmsg
 mtk_scp
