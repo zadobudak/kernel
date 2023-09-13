@@ -1752,6 +1752,26 @@ static int vcu_ipi_init(struct mtk_vcu *vcu)
 	return 0;
 }
 
+static int vcu_ipi_deinit(struct mtk_vcu *vcu)
+{
+	vcu->is_open = false;
+	mutex_destroy(&vcu->vcu_mutex[VCU_VDEC]);
+#if ENABLE_GCE
+	mutex_destroy(&vcu->vcu_gce_mutex[VCU_VDEC]);
+	mutex_destroy(&vcu->vcu_gce_mutex[VCU_VENC]);
+	mutex_destroy(&vcu->vcu_gce_mutex[VCU_RESOURCE]);
+#endif
+	mutex_destroy(&vcu->ctx_ipi_binding[VCU_VDEC]);
+	mutex_destroy(&vcu->vcu_mutex[VCU_VENC]);
+	mutex_destroy(&vcu->ctx_ipi_binding[VCU_VENC]);
+	mutex_destroy(&vcu->vcu_mutex[VCU_RESOURCE]);
+	mutex_destroy(&vcu->ctx_ipi_binding[VCU_RESOURCE]);
+	mutex_destroy(&vcu->vcu_share);
+	mutex_destroy(&vcu->vpud_task_mutex);
+
+	return 0;
+}
+
 static int vcu_init_ipi_handler(void *data, unsigned int len, void *priv)
 {
 	struct mtk_vcu *vcu = (struct mtk_vcu *)priv;
@@ -2706,9 +2726,6 @@ static int mtk_vcu_probe(struct platform_device *pdev)
 	dev_dbg(&pdev->dev, "[VCU] initialization\n");
 
 	dev = &pdev->dev;
-	vcu = devm_kzalloc(dev, sizeof(*vcu), GFP_KERNEL);
-	if (vcu == NULL)
-		return -ENOMEM;
 
 	ret = of_property_read_u32(pdev->dev.of_node, "mediatek,vcu-off", &off);
 	if (off) {
@@ -2721,6 +2738,11 @@ static int mtk_vcu_probe(struct platform_device *pdev)
 		dev_info(dev, "[VCU] failed to find mediatek,vcuid\n");
 		return ret;
 	}
+
+	vcu = devm_kzalloc(dev, sizeof(*vcu), GFP_KERNEL);
+	if (vcu == NULL)
+		return -ENOMEM;
+
 	vcu_mtkdev[vcuid] = vcu;
 
 #if IS_ENABLED(CONFIG_MTK_IOMMU)
@@ -2832,44 +2854,6 @@ static int mtk_vcu_probe(struct platform_device *pdev)
 	atomic_set(&vcu->open_cnt, 0);
 	mutex_init(&vcu->vcu_dev_mutex);
 
-	/* init character device */
-	ret = alloc_chrdev_region(&vcu_mtkdev[vcuid]->vcu_devno, 0, 1,
-				  vcu_mtkdev[vcuid]->vcuname);
-	if (ret < 0) {
-		dev_info(dev,
-			"[VCU] alloc_chrdev_region failed (%d)\n", ret);
-		goto err_alloc;
-	}
-
-	vcu_mtkdev[vcuid]->vcu_cdev = cdev_alloc();
-	vcu_mtkdev[vcuid]->vcu_cdev->owner = THIS_MODULE;
-	vcu_mtkdev[vcuid]->vcu_cdev->ops = &vcu_fops;
-
-	ret = cdev_add(vcu_mtkdev[vcuid]->vcu_cdev,
-		vcu_mtkdev[vcuid]->vcu_devno, 1);
-	if (ret < 0) {
-		dev_info(dev, "[VCU] class create fail (ret=%d)", ret);
-		goto err_add;
-	}
-
-	vcu_mtkdev[vcuid]->vcu_class = class_create(THIS_MODULE,
-						    vcu_mtkdev[vcuid]->vcuname);
-	if (IS_ERR_OR_NULL(vcu_mtkdev[vcuid]->vcu_class) == true) {
-		ret = (int)PTR_ERR(vcu_mtkdev[vcuid]->vcu_class);
-		dev_info(dev, "[VCU] class create fail (ret=%d)", ret);
-		goto err_add;
-	}
-
-	vcu_mtkdev[vcuid]->vcu_device =
-		device_create(vcu_mtkdev[vcuid]->vcu_class,
-			      NULL,
-			      vcu_mtkdev[vcuid]->vcu_devno,
-			      NULL, vcu_mtkdev[vcuid]->vcuname);
-	if (IS_ERR_OR_NULL(vcu_mtkdev[vcuid]->vcu_device) == true) {
-		ret = (int)PTR_ERR(vcu_mtkdev[vcuid]->vcu_device);
-		dev_info(dev, "[VCU] device_create fail (ret=%d)", ret);
-		goto err_device;
-	}
 #if ENABLE_GCE
 	ret = of_property_read_u32(dev->of_node, "mediatek,dec_gce_th_num",
 				      &vcu->gce_th_num[VCU_VDEC]);
@@ -2944,7 +2928,7 @@ static int mtk_vcu_probe(struct platform_device *pdev)
 		vcu->gce_cmds[i] = devm_kzalloc(dev,
 			sizeof(struct gce_cmds), GFP_KERNEL);
 		if (vcu->gce_cmds[i] == NULL)
-			goto err_device;
+			goto vcu_mutex_destroy;
 	}
 
 	for (i = 0; i < (int)VCU_CODEC_MAX; i++)
@@ -2987,33 +2971,64 @@ static int mtk_vcu_probe(struct platform_device *pdev)
 	vcu_func.vcu_ipi_send = vcu_ipi_send;
 	vcu_func.vcu_set_codec_ctx = vcu_set_codec_ctx;
 
+	/* init character device */
+	ret = alloc_chrdev_region(&vcu_mtkdev[vcuid]->vcu_devno, 0, 1,
+				  vcu_mtkdev[vcuid]->vcuname);
+	if (ret < 0) {
+		dev_info(dev,
+			"[VCU] alloc_chrdev_region failed (%d)\n", ret);
+		goto err_alloc_chrdev;
+	}
+
+	vcu_mtkdev[vcuid]->vcu_cdev = cdev_alloc();
+	vcu_mtkdev[vcuid]->vcu_cdev->owner = THIS_MODULE;
+	vcu_mtkdev[vcuid]->vcu_cdev->ops = &vcu_fops;
+
+	ret = cdev_add(vcu_mtkdev[vcuid]->vcu_cdev,
+		vcu_mtkdev[vcuid]->vcu_devno, 1);
+	if (ret < 0) {
+		dev_info(dev, "[VCU] class create fail (ret=%d)", ret);
+		goto err_cdev_add;
+	}
+
+	vcu_mtkdev[vcuid]->vcu_class = class_create(THIS_MODULE,
+						    vcu_mtkdev[vcuid]->vcuname);
+	if (IS_ERR_OR_NULL(vcu_mtkdev[vcuid]->vcu_class) == true) {
+		ret = (int)PTR_ERR(vcu_mtkdev[vcuid]->vcu_class);
+		dev_info(dev, "[VCU] class create fail (ret=%d)", ret);
+		goto err_class_create;
+	}
+
+	vcu_mtkdev[vcuid]->vcu_device =
+		device_create(vcu_mtkdev[vcuid]->vcu_class,
+			      NULL,
+			      vcu_mtkdev[vcuid]->vcu_devno,
+			      NULL, vcu_mtkdev[vcuid]->vcuname);
+	if (IS_ERR_OR_NULL(vcu_mtkdev[vcuid]->vcu_device) == true) {
+		ret = (int)PTR_ERR(vcu_mtkdev[vcuid]->vcu_device);
+		dev_info(dev, "[VCU] device_create fail (ret=%d)", ret);
+		goto err_device_create;
+	}
+
 	dev_info(dev, "[VCU] initialization completed\n");
 	return 0;
 
+err_device_create:
+	class_destroy(vcu_mtkdev[vcuid]->vcu_class);
+err_class_create:
+	cdev_del(vcu_mtkdev[vcuid]->vcu_cdev);
+err_cdev_add:
+	unregister_chrdev_region(vcu_mtkdev[vcuid]->vcu_devno, 1);
+err_alloc_chrdev:
+	vcu_free_d_ext_mem(vcu);
 err_after_gce:
 	for (i = 0; i < (int)VCU_CODEC_MAX; i++)
 		mutex_destroy(&vcu->gce_cmds_mutex[i]);
-err_device:
-	class_destroy(vcu_mtkdev[vcuid]->vcu_class);
-err_add:
-	cdev_del(vcu_mtkdev[vcuid]->vcu_cdev);
-err_alloc:
-	unregister_chrdev_region(vcu_mtkdev[vcuid]->vcu_devno, 1);
 vcu_mutex_destroy:
-	mutex_destroy(&vcu->vcu_mutex[VCU_VDEC]);
-#if ENABLE_GCE
-	mutex_destroy(&vcu->vcu_gce_mutex[VCU_VDEC]);
-	mutex_destroy(&vcu->vcu_gce_mutex[VCU_VENC]);
-	mutex_destroy(&vcu->vcu_gce_mutex[VCU_RESOURCE]);
-#endif
-	mutex_destroy(&vcu->ctx_ipi_binding[VCU_VDEC]);
-	mutex_destroy(&vcu->vcu_mutex[VCU_VENC]);
-	mutex_destroy(&vcu->ctx_ipi_binding[VCU_VENC]);
-	mutex_destroy(&vcu->vcu_mutex[VCU_RESOURCE]);
-	mutex_destroy(&vcu->ctx_ipi_binding[VCU_RESOURCE]);
-	mutex_destroy(&vcu->vcu_share);
-	mutex_destroy(&vcu->vpud_task_mutex);
+	mutex_destroy(&vcu->vcu_dev_mutex);
+	vcu_ipi_deinit(vcu);
 err_ipi_init:
+	vcu_mtkdev[vcuid] = NULL;
 	devm_kfree(dev, vcu);
 
 	return ret;
