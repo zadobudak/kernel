@@ -28,3 +28,4 @@ disable_d_i = true
 do_source_package = false
 do_common_headers_indep = false
 do_libc_dev_package = false
+do_odm_drivers  = true
