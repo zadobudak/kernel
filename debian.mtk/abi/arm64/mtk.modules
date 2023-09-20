@@ -5671,7 +5671,6 @@ snps_udc_core
 snps_udc_plat
 snvs_pwrkey
 soc_button_array
-soc_temp
 socfpga
 socfpga-a10
 socinfo

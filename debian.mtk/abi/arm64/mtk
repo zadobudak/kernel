@@ -15602,11 +15602,6 @@ EXPORT_SYMBOL_GPL	 drivers/net/wireless/mediatek/mt76/mt7615/mt7615-common 0xd0c
 EXPORT_SYMBOL_GPL	 drivers/net/wireless/mediatek/mt76/mt7615/mt7615-common 0xde4a9782	mt7615_mcu_restart
 EXPORT_SYMBOL_GPL	 drivers/net/wireless/mediatek/mt76/mt7615/mt7615-common 0xfd9248ba	mt7615_mcu_init
 EXPORT_SYMBOL_GPL	 drivers/net/wireless/mediatek/mt76/mt7615/mt7615e 0x8fd3c09d	mt7615_dma_reset
-EXPORT_SYMBOL_GPL	 drivers/net/wireless/mediatek/mt76/mt7615/mt7663-usb-sdio-common 0x1506ffca	mt7663_usb_sdio_reg_map
-EXPORT_SYMBOL_GPL	 drivers/net/wireless/mediatek/mt76/mt7615/mt7663-usb-sdio-common 0x8d7cc81e	mt7663_usb_sdio_tx_status_data
-EXPORT_SYMBOL_GPL	 drivers/net/wireless/mediatek/mt76/mt7615/mt7663-usb-sdio-common 0x9697aaf1	mt7663_usb_sdio_tx_complete_skb
-EXPORT_SYMBOL_GPL	 drivers/net/wireless/mediatek/mt76/mt7615/mt7663-usb-sdio-common 0xa35f339e	mt7663_usb_sdio_register_device
-EXPORT_SYMBOL_GPL	 drivers/net/wireless/mediatek/mt76/mt7615/mt7663-usb-sdio-common 0xc120d218	mt7663_usb_sdio_tx_prepare_skb
 EXPORT_SYMBOL_GPL	 drivers/net/wireless/mediatek/mt76/mt76x0/mt76x0-common 0x0dbee620	mt76x0_register_device
 EXPORT_SYMBOL_GPL	 drivers/net/wireless/mediatek/mt76/mt76x0/mt76x0-common 0x38684374	mt76x0_set_sar_specs
 EXPORT_SYMBOL_GPL	 drivers/net/wireless/mediatek/mt76/mt76x0/mt76x0-common 0x637a4c76	mt76x0_chip_onoff

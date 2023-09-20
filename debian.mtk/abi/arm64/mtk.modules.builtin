@@ -505,6 +505,7 @@ snd-soc-mt8195-afe
 snd-soc-mtk-common
 snd-timer
 sni_ave
+soc_temp
 soc_temp_lvts
 soundcore
 spi-fsl-lib
