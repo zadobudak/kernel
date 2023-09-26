@@ -1,8 +1,11 @@
-linux-mtk (5.15.0-1027.29) jammy; urgency=medium
+linux-mtk (5.15.0-1027.30) jammy; urgency=medium
 
-  * jammy/linux-mtk: 5.15.0-1027.29 -proposed tracker (LP: #2037290)
+  * jammy/linux-mtk: 5.15.0-1027.30 -proposed tracker (LP: #2037290)
 
- -- Jian Hui Lee <jianhui.lee@canonical.com>  Tue, 26 Sep 2023 07:14:00 +0800
+  * dependency on crda obsolete according to Debian (LP: #1958918)
+    - [Packaging] mtk: switch dependency from crda to wireless-regdb
+
+ -- Wen-chien Jesse Sung <jesse.sung@canonical.com>  Tue, 26 Sep 2023 19:28:55 +0800
 
 linux-mtk (5.15.0-1026.28) jammy; urgency=medium
 
