@@ -1020,7 +1020,7 @@
 	pinctrl-0 = <&mmc1_pins_default>;
 	pinctrl-1 = <&mmc1_pins_uhs>;
 	bus-width = <4>;
-	max-frequency = <200000000>;
+	max-frequency = <208000000>;
 	cap-sd-highspeed;
 	sd-uhs-sdr50;
 	sd-uhs-sdr104;
@@ -1058,7 +1058,7 @@
 	pinctrl-3 = <&mmc2_pins_dat1>;
 	eint-gpios = <&pio 172 0>;
 	bus-width = <4>;
-	max-frequency = <200000000>;
+	max-frequency = <208000000>;
 	cap-sd-highspeed;
 	sd-uhs-sdr104;
 	keep-power-in-suspend;
