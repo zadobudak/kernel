@@ -317,6 +317,7 @@ mtk-eint
 mtk-pmic-wrap
 mtk-sd
 mtk-smi
+mtk-uart-apdma
 mtk_dp
 mtk_iommu
 mtk_wdt
