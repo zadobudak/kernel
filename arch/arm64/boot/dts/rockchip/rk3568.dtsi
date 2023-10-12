@@ -143,7 +143,7 @@
 		mbist-vmin = <825000 900000 950000>;
 		nvmem-cells = <&cpu_leakage>, <&core_pvtm>, <&mbist_vmin>, <&cpu_opp_info>;
 		nvmem-cell-names = "leakage", "pvtm", "mbist-vmin", "opp-info";
-		rockchip,max-volt = <1150000>;
+		rockchip,max-volt = <1200000>;
 		rockchip,pvtm-voltage-sel = <
 			0        84000   0
 			84001    87000   1
