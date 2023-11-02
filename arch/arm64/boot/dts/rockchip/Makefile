@@ -143,6 +143,7 @@ dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3588-nvr-demo3-v10.dtb
 dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3588-nvr-demo3-v10-android.dtb
 dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3588-rock-5-itx.dtb
 dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3588-rock-5b.dtb
+dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3588-rock-5b-gen2.dtb
 dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3588-rock-5b-v11.dtb
 dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3588-toybrick-x0-android.dtb
 dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3588-toybrick-x0-linux.dtb
