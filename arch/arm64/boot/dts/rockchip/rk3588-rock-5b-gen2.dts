@@ -193,6 +193,16 @@
 		vin-supply = <&vcc5v0_sys>;
 	};
 
+	em05_modem: em05-modem {
+		compatible = "lte-em05-modem-platdata";
+		pinctrl-names = "default";
+		pinctrl-0 = <&em05_power_en &em05_airplane_mode &em05_reset>;
+		em05,power-gpio = <&gpio2 RK_PB1 GPIO_ACTIVE_HIGH>;
+		em05,reset-gpio = <&gpio2 RK_PB3 GPIO_ACTIVE_HIGH>;
+		em05,airplane-gpio = <&gpio3 RK_PA6 GPIO_ACTIVE_HIGH>;
+		status = "okay";
+	};
+
 	gpio-leds {
 		compatible = "gpio-leds";
 		pinctrl-names = "default";
@@ -1132,6 +1142,20 @@
 	headphone {
 		hp_det: hp-det {
 			rockchip,pins = <1 RK_PD5 RK_FUNC_GPIO &pcfg_pull_up>;
+		};
+	};
+
+	lte-em05-modem {
+		em05_airplane_mode: em05-airplane-mode {
+			rockchip,pins = <3 RK_PA6 RK_FUNC_GPIO &pcfg_pull_none>;
+		};
+
+		em05_power_en: em05-power-en {
+			rockchip,pins = <2 RK_PB1 RK_FUNC_GPIO &pcfg_pull_none>;
+		};
+
+		em05_reset: em05-reset {
+			rockchip,pins = <2 RK_PB3 RK_FUNC_GPIO &pcfg_pull_none>;
 		};
 	};
 };
