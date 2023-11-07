@@ -21,8 +21,8 @@
 #include "rk3588-linux.dtsi"
 
 / {
-	model = "Radxa ROCK 5B GEN2";
-	compatible = "radxa,rock-5b-gen2", "rockchip,rk3588";
+	model = "Radxa ROCK 5B+";
+	compatible = "radxa,rock-5b-plus", "rockchip,rk3588";
 
 	/delete-node/ chosen;
 
