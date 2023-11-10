@@ -272,6 +272,12 @@
 	};
 };
 
+&rk809 {
+	rtc {
+		status = "disabled";
+	};
+};
+
 &uart5 {
 	status = "okay";
 	pinctrl-names = "default";
