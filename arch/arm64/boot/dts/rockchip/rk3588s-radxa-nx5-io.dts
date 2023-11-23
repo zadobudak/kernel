@@ -189,6 +189,8 @@
 	maximum-speed = "high-speed";
 	extcon = <&u2phy0>;
 	dr_mode = "host";
+	/* Fix usb suspend failure */
+	snps,dis_u3_susphy_quirk;
 };
 
 &usbdp_phy0 {
