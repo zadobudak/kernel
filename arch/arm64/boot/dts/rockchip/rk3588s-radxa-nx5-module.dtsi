@@ -58,6 +58,16 @@
 		regulator-max-microvolt = <1100000>;
 		vin-supply = <&vcc5v0_sys>;
 	};
+
+	leds {
+		compatible = "gpio-leds";
+		pinctrl-0 = <&led0_en>;
+		pinctrl-names = "default";
+		user_led {
+			gpios = <&gpio3 RK_PC5 GPIO_ACTIVE_LOW>;
+			linux,default-trigger = "heartbeat";
+		};
+	};
 };
 
 &i2c0 {
@@ -404,6 +414,12 @@
 	hym8563 {
 		rtc_int: rtc-int {
 			rockchip,pins = <0 RK_PB0 RK_FUNC_GPIO &pcfg_pull_none>;
+		};
+	};
+
+	led {
+		led0_en: led0-en {
+			rockchip,pins = <3 RK_PC5 RK_FUNC_GPIO &pcfg_pull_none>;
 		};
 	};
 };
