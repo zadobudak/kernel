@@ -84,6 +84,10 @@ static void rockchip_pwm_get_state(struct pwm_chip *chip,
 	if (ret)
 		return;
 
+	ret = clk_enable(pc->clk);
+	if (ret)
+		return;
+
 	tmp = readl_relaxed(pc->base + pc->data->regs.period);
 	tmp *= pc->data->prescaler * NSEC_PER_SEC;
 	state->period = DIV_ROUND_CLOSEST_ULL(tmp, pc->clk_rate);
@@ -100,6 +104,7 @@ static void rockchip_pwm_get_state(struct pwm_chip *chip,
 	else
 		state->polarity = PWM_POLARITY_NORMAL;
 
+	clk_disable(pc->clk);
 	clk_disable(pc->pclk);
 }
 
@@ -231,6 +236,10 @@ static int rockchip_pwm_apply(struct pwm_chip *chip, struct pwm_device *pwm,
 	if (ret)
 		return ret;
 
+	ret = clk_enable(pc->clk);
+	if (ret)
+		return ret;
+
 	pwm_get_state(pwm, &curstate);
 	enabled = curstate.enabled;
 
@@ -252,6 +261,7 @@ static int rockchip_pwm_apply(struct pwm_chip *chip, struct pwm_device *pwm,
 	if (state->enabled)
 		ret = pinctrl_select_state(pc->pinctrl, pc->active_state);
 out:
+	clk_disable(pc->clk);
 	clk_disable(pc->pclk);
 
 	return ret;
