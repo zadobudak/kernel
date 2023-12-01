@@ -186,6 +186,7 @@
 #define GENERATE_ENUM(e)	e
 #define GENERATE_STRING(s)	#s
 bool fixed_typec_miss_data;
+bool disable_clean_disconnection;
 
 enum tcpm_state {
 	FOREACH_STATE(GENERATE_ENUM)
@@ -6015,7 +6016,9 @@ static void tcpm_init(struct tcpm_port *port)
 	 * Some adapters need a clean slate at startup, and won't recover
 	 * otherwise. So do not try to be fancy and force a clean disconnect.
 	 */
-	//tcpm_set_state(port, PORT_RESET, 0);
+	if (!disable_clean_disconnection){
+		tcpm_set_state(port, PORT_RESET, 0);
+	}
 }
 
 static int tcpm_port_type_set(struct typec_port *p, enum typec_port_type type)
@@ -6082,6 +6085,7 @@ static int tcpm_fw_get_caps(struct tcpm_port *port,
 	}
 
 	fixed_typec_miss_data = fwnode_property_read_bool(fwnode, "fixed-typec-miss-data");
+	disable_clean_disconnection = fwnode_property_read_bool(fwnode, "disable-clean-disconnection");
 
 	ret = fwnode_property_read_string(fwnode, "power-role", &cap_str);
 	if (ret < 0)
