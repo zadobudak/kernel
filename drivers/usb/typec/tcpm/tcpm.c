@@ -324,6 +324,8 @@ struct tcpm_port {
 
 	bool attached;
 	bool connected;
+	bool fixed_typec_miss_data;
+	bool disable_clean_disconnection;
 	enum typec_port_type port_type;
 
 	/*
@@ -2944,18 +2946,27 @@ static void tcpm_pd_rx_handler(struct kthread_work *work)
 		    (port->data_role == TYPEC_HOST)) {
 			tcpm_log(port,
 				 "Data role mismatch, initiating error recovery");
+
+			if (!port->fixed_typec_miss_data) {
+				tcpm_set_state(port, ERROR_RECOVERY, 0);
+			} else {
 				port->data_role = (port->data_role == TYPEC_DEVICE) ? TYPEC_HOST : TYPEC_DEVICE;
 				tcpm_set_attached_state(port, true);
-		}
-//			tcpm_set_state(port, ERROR_RECOVERY, 0);
-//		} else {
+				if (le16_to_cpu(msg->header) & PD_HEADER_EXT_HDR)
+					tcpm_pd_ext_msg_request(port, msg);
+				else if (cnt)
+					tcpm_pd_data_request(port, msg);
+				else
+					tcpm_pd_ctrl_request(port, msg);
+			}
+		} else {
 			if (le16_to_cpu(msg->header) & PD_HEADER_EXT_HDR)
 				tcpm_pd_ext_msg_request(port, msg);
 			else if (cnt)
 				tcpm_pd_data_request(port, msg);
 			else
 				tcpm_pd_ctrl_request(port, msg);
-//		}
+		}
 	}
 
 done:
@@ -4440,7 +4451,7 @@ static void run_state_machine(struct tcpm_port *port)
 		 * For now, this driver only supports SOP for DISCOVER_IDENTITY, thus using
 		 * port->explicit_contract.
 		 */
-		if (port->explicit_contract && port->data_role == TYPEC_HOST)
+		if ((port->explicit_contract) && (!port->fixed_typec_miss_data || port->data_role == TYPEC_HOST))
 			mod_send_discover_delayed_work(port, 0);
 		else
 			port->send_discover = false;
@@ -5967,7 +5978,13 @@ static void tcpm_init(struct tcpm_port *port)
 	 * Should possibly wait for VBUS to settle if it was enabled locally
 	 * since tcpm_reset_port() will disable VBUS.
 	 */
-	port->vbus_present = true;
+
+	if (!port->fixed_typec_miss_data){
+		port->vbus_present = port->tcpc->get_vbus(port->tcpc);
+	} else {
+		port->vbus_present = true;
+	}
+
 	if (port->vbus_present)
 		port->vbus_never_low = true;
 
@@ -5998,7 +6015,9 @@ static void tcpm_init(struct tcpm_port *port)
 	 * Some adapters need a clean slate at startup, and won't recover
 	 * otherwise. So do not try to be fancy and force a clean disconnect.
 	 */
-	//tcpm_set_state(port, PORT_RESET, 0);
+	if (!port->disable_clean_disconnection){
+		tcpm_set_state(port, PORT_RESET, 0);
+	}
 }
 
 static int tcpm_port_type_set(struct typec_port *p, enum typec_port_type type)
@@ -6063,6 +6082,9 @@ static int tcpm_fw_get_caps(struct tcpm_port *port,
 			return ret;
 		port->typec_caps.data = ret;
 	}
+
+	port->fixed_typec_miss_data = fwnode_property_read_bool(fwnode, "fixed-typec-miss-data");
+	port->disable_clean_disconnection = fwnode_property_read_bool(fwnode, "disable-clean-disconnection");
 
 	ret = fwnode_property_read_string(fwnode, "power-role", &cap_str);
 	if (ret < 0)
