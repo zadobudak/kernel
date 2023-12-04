@@ -185,8 +185,6 @@
 
 #define GENERATE_ENUM(e)	e
 #define GENERATE_STRING(s)	#s
-bool fixed_typec_miss_data;
-bool disable_clean_disconnection;
 
 enum tcpm_state {
 	FOREACH_STATE(GENERATE_ENUM)
@@ -326,6 +324,8 @@ struct tcpm_port {
 
 	bool attached;
 	bool connected;
+	bool fixed_typec_miss_data;
+	bool disable_clean_disconnection;
 	enum typec_port_type port_type;
 
 	/*
@@ -2947,7 +2947,7 @@ static void tcpm_pd_rx_handler(struct kthread_work *work)
 			tcpm_log(port,
 				 "Data role mismatch, initiating error recovery");
 
-			if (!fixed_typec_miss_data) {
+			if (!port->fixed_typec_miss_data) {
 				tcpm_set_state(port, ERROR_RECOVERY, 0);
 			} else {
 				port->data_role = (port->data_role == TYPEC_DEVICE) ? TYPEC_HOST : TYPEC_DEVICE;
@@ -4451,7 +4451,7 @@ static void run_state_machine(struct tcpm_port *port)
 		 * For now, this driver only supports SOP for DISCOVER_IDENTITY, thus using
 		 * port->explicit_contract.
 		 */
-		if ((port->explicit_contract && !fixed_typec_miss_data) || (port->explicit_contract && port->data_role == TYPEC_HOST))
+		if ((port->explicit_contract && !port->fixed_typec_miss_data) || (port->explicit_contract && port->data_role == TYPEC_HOST))
 			mod_send_discover_delayed_work(port, 0);
 		else
 			port->send_discover = false;
@@ -5979,7 +5979,7 @@ static void tcpm_init(struct tcpm_port *port)
 	 * since tcpm_reset_port() will disable VBUS.
 	 */
 
-	if (!fixed_typec_miss_data){
+	if (!port->fixed_typec_miss_data){
 		port->vbus_present = port->tcpc->get_vbus(port->tcpc);
 
 	} else {
@@ -6016,7 +6016,7 @@ static void tcpm_init(struct tcpm_port *port)
 	 * Some adapters need a clean slate at startup, and won't recover
 	 * otherwise. So do not try to be fancy and force a clean disconnect.
 	 */
-	if (!disable_clean_disconnection){
+	if (!port->disable_clean_disconnection){
 		tcpm_set_state(port, PORT_RESET, 0);
 	}
 }
@@ -6084,8 +6084,8 @@ static int tcpm_fw_get_caps(struct tcpm_port *port,
 		port->typec_caps.data = ret;
 	}
 
-	fixed_typec_miss_data = fwnode_property_read_bool(fwnode, "fixed-typec-miss-data");
-	disable_clean_disconnection = fwnode_property_read_bool(fwnode, "disable-clean-disconnection");
+	port->fixed_typec_miss_data = fwnode_property_read_bool(fwnode, "fixed-typec-miss-data");
+	port->disable_clean_disconnection = fwnode_property_read_bool(fwnode, "disable-clean-disconnection");
 
 	ret = fwnode_property_read_string(fwnode, "power-role", &cap_str);
 	if (ret < 0)
