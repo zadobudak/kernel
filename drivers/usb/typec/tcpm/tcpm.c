@@ -4451,7 +4451,7 @@ static void run_state_machine(struct tcpm_port *port)
 		 * For now, this driver only supports SOP for DISCOVER_IDENTITY, thus using
 		 * port->explicit_contract.
 		 */
-		if ((port->explicit_contract && !port->fixed_typec_miss_data) || (port->explicit_contract && port->data_role == TYPEC_HOST))
+		if ((port->explicit_contract) && (!port->fixed_typec_miss_data || port->data_role == TYPEC_HOST))
 			mod_send_discover_delayed_work(port, 0);
 		else
 			port->send_discover = false;
@@ -5981,7 +5981,6 @@ static void tcpm_init(struct tcpm_port *port)
 
 	if (!port->fixed_typec_miss_data){
 		port->vbus_present = port->tcpc->get_vbus(port->tcpc);
-
 	} else {
 		port->vbus_present = true;
 	}
