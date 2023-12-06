@@ -855,8 +855,7 @@
 
 &usbdrd_dwc3_0 {
 	status = "okay";
-	dr_mode = "otg";
-	usb-role-switch;
+	dr_mode = "peripheral";
 	port {
 		#address-cells = <1>;
 		#size-cells = <0>;
