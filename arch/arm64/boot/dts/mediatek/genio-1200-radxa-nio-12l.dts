@@ -994,7 +994,7 @@
 			pinmux = <PINMUX_GPIO0__FUNC_PERSTN_1>,
 				 <PINMUX_GPIO1__FUNC_CLKREQN_1>,
 				 <PINMUX_GPIO2__FUNC_WAKEN_1>;
-			bias-pull-up;
+			bias-disable;
 		};
 	};
 
