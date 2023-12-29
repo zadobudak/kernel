@@ -167,10 +167,10 @@
 	status = "okay";
 };
 
-&i2c5 {
+&i2c7 {
 	status = "okay";
 	pinctrl-names = "default";
-	pinctrl-0 = <&i2c5m3_xfer>;
+	pinctrl-0 = <&i2c7m2_xfer>;
 
 	emc2301: emc2301@2f {
 		status = "okay";
@@ -222,16 +222,6 @@
 	usb {
 		usb20_reset_pin: usb20-reset {
 			rockchip,pins = <4 RK_PA0 RK_FUNC_GPIO &pcfg_pull_up>;
-		};
-	};
-
-	i2c5 {
-		i2c5m3_xfer: i2c5m3-xfer {
-			rockchip,pins =
-				/* i2c5_scl_m3 */
-				<1 RK_PB6 9 &pcfg_pull_up>,
-				/* i2c5_sda_m3 */
-				<1 RK_PB7 9 &pcfg_pull_up>;
 		};
 	};
 };
