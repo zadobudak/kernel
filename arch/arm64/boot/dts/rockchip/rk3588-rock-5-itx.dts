@@ -26,6 +26,13 @@
 
 	/delete-node/ chosen;
 
+	fan0: pwm-fan {
+		compatible = "pwm-fan";
+		#cooling-cells = <2>;
+		cooling-levels = <0 64 128 192 255>;
+		pwms = <&pwm14 0 10000 0>;
+	};
+
 	vcc12v_dcin: vcc12v-dcin {
 		compatible = "regulator-fixed";
 		regulator-name = "vcc12v_dcin";
@@ -114,7 +121,7 @@
 	dp0_sound: dp0-sound {
 		status = "okay";
 		compatible = "rockchip,hdmi";
-		rockchip,card-name= "rockchip-dp0";
+		rockchip,card-name= "rockchip-hdmi0";
 		rockchip,mclk-fs = <512>;
 		rockchip,cpu = <&spdif_tx2>;
 		rockchip,codec = <&dp0 1>;
@@ -124,7 +131,7 @@
 	dp1_sound: dp1-sound {
 		status = "okay";
 		compatible = "rockchip,hdmi";
-		rockchip,card-name= "rockchip,dp1";
+		rockchip,card-name= "rockchip-hdmi2";
 		rockchip,mclk-fs = <512>;
 		rockchip,cpu = <&spdif_tx5>;
 		rockchip,codec = <&dp1 1>;
@@ -575,7 +582,7 @@
 		compatible = "brcm,bcm4345c5";
 		clocks = <&hym8563>;
 		clock-names = "ext_clock";
-		host-wakeup-gpios = <&gpio0 RK_PC5 GPIO_ACTIVE_HIGH>;
+		host-wakeup-gpios = <&gpio4 RK_PC5 GPIO_ACTIVE_HIGH>;
 		shutdown-gpios = <&gpio2 RK_PC5 GPIO_ACTIVE_HIGH>;
 		max-speed = <1500000>;
 		pinctrl-names = "default";
@@ -725,14 +732,6 @@
 };
 
 &usb_host1_ohci {
-	status = "okay";
-};
-
-&usbhost3_0 {
-	status = "okay";
-};
-
-&usbhost_dwc3_0 {
 	status = "okay";
 };
 
@@ -1008,6 +1007,20 @@
 
 &soc_thermal {
 	sustainable-power = <5000>; /* milliwatts */
+	cooling-maps {
+		map3 {
+			trip = <&target>;
+			cooling-device =
+				<&fan0 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>;
+			contribution = <8192>;
+		};
+		map4 {
+			trip = <&threshold>;
+			cooling-device =
+				<&fan0 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>;
+			contribution = <8192>;
+		};
+	};
 };
 
 &i2c6 {
@@ -1195,7 +1208,7 @@
 
 	bt {
 		bt_enable_h: bt-enable-h {
-			rockchip,pins = <3 RK_PA6 RK_FUNC_GPIO &pcfg_pull_none>;
+			rockchip,pins = <2 RK_PC5 RK_FUNC_GPIO &pcfg_pull_none>;
 		};
 
 		bt_host_wake_l: bt-host-wake-l {
@@ -1203,7 +1216,7 @@
 		};
 
 		bt_wake_l: bt-wake-l {
-			rockchip,pins = <3 RK_PD5 RK_FUNC_GPIO &pcfg_pull_none>;
+			rockchip,pins = <4 RK_PC5 RK_FUNC_GPIO &pcfg_pull_none>;
 		};
 	};
 
