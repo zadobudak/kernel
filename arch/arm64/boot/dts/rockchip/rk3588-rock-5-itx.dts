@@ -596,9 +596,8 @@
 };
 
 &display_subsystem {
-	clocks =  <&hdptxphy_hdmi_clk1>;
-	clock-names = "hdmi1_phy_pll";
-
+	clocks = <&hdptxphy_hdmi_clk0>, <&hdptxphy_hdmi_clk1>;
+	clock-names = "hdmi0_phy_pll", "hdmi1_phy_pll";
 	route {
 		route_hdmi1: route-hdmi1 {
 			status = "okay";
@@ -606,9 +605,13 @@
 			logo,kernel = "logo_kernel.bmp";
 			logo,mode = "center";
 			charge_logo,mode = "center";
-			connect = <&vp1_out_hdmi1>;
+			connect = <&vp0_out_hdmi1>;
 		};
 	};
+};
+
+&hdptxphy_hdmi_clk0 {
+	status = "okay";
 };
 
 &hdptxphy_hdmi_clk1 {
@@ -648,6 +651,10 @@
 
 	pinctrl-0 = <&hdmim1_rx_cec &hdmim1_rx_hpdin &hdmim1_rx_scl &hdmim1_rx_sda &hdmirx_det>;
 	pinctrl-names = "default";
+};
+
+&hdptxphy_hdmi0 {
+	status = "okay";
 };
 
 &hdptxphy_hdmi1 {
