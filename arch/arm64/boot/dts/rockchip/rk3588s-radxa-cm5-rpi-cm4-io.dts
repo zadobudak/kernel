@@ -277,6 +277,59 @@
 	status = "okay";
 };
 
+/* Fix the issue of board howling */
+&vdd_cpu_big0_s0 {
+	regulator-initial-mode = <1>;
+};
+
+&vdd_cpu_big1_s0 {
+	regulator-initial-mode = <1>;
+};
+
+&vdd_npu_s0 {
+	regulator-initial-mode = <1>;
+};
+
+&vdd_gpu_s0 {
+	regulator-initial-mode = <1>;
+};
+
+&vdd_cpu_lit_s0 {
+	regulator-initial-mode = <1>;
+};
+
+&vdd_log_s0 {
+	regulator-initial-mode = <1>;
+};
+
+&vdd_vdenc_s0 {
+	regulator-initial-mode = <1>;
+};
+
+&vdd_ddr_s0 {
+	regulator-initial-mode = <1>;
+};
+
+&vdd2_ddr_s3 {
+	regulator-initial-mode = <1>;
+};
+
+&vcc_2v0_pldo_s3 {
+	regulator-initial-mode = <1>;
+};
+
+&vcc_3v3_s3 {
+	regulator-initial-mode = <1>;
+};
+
+&vddq_ddr_s0 {
+	regulator-initial-mode = <1>;
+};
+
+&vcc_1v8_s3 {
+	regulator-initial-mode = <1>;
+};
+
 &gpio0 {
 	gpio-line-names =
 		/* GPIO0_A0-A3 */
