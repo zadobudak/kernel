@@ -237,18 +237,6 @@
 	status = "okay";
 };
 
-&sdio_pwrseq {
-	status = "disabled";
-};
-
-&sdmmc2 {
-	status = "disabled";
-};
-
-&uart8 {
-	status = "disabled";
-};
-
 &sata1 {
 	status = "okay";
 };
