@@ -266,11 +266,21 @@
 	status = "okay";
 };
 
+&hdmi0 {
+	status = "okay";
+        cec-enable = "true";
+};
+
 &sdhci {
 	bus-width = <8>;
+	no-sdio;
+	no-sd;
 	non-removable;
-	max-frequency = <150000000>;
+	max-frequency = <200000000>;
+	mmc-hs400-1_8v;
+	mmc-hs400-enhanced-strobe;
 	mmc-hs200-1_8v;
+	status = "okay";
 };
 
 &mdio1 {
@@ -360,4 +370,9 @@
 		regulator-on-in-suspend;
 		regulator-suspend-microvolt = <850000>;
 	};
+};
+
+&vdd_0v75_s0 {
+	regulator-min-microvolt = <837500>;
+	regulator-max-microvolt = <837500>;
 };
