@@ -74,6 +74,17 @@
 		vin-supply = <&vcc5v0_sys>;
 	};
 
+	/* Select USB3.0 by default */
+	pcie_usb_selection: pcie-usb-selection-regulator {
+		compatible = "regulator-fixed";
+		regulator-name = "pcie_usb_selection";
+		regulator-boot-on;
+		regulator-always-on;
+		gpio = <&gpio4 RK_PA5 GPIO_ACTIVE_LOW>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&pcie_usb_selection_pin>;
+	};
+
 	vcc5v0_host: vcc5v0-host-regulator {
 		compatible = "regulator-fixed";
 		regulator-name = "vcc5v0_host";
@@ -466,6 +477,10 @@
 
 		vcc5v0_otg_en: vcc5v0-otg-en {
 			rockchip,pins = <1 RK_PC3 RK_FUNC_GPIO &pcfg_pull_none>;
+		};
+
+		pcie_usb_selection_pin: pcie-usb-selection-pin {
+			rockchip,pins = <4 RK_PA5 RK_FUNC_GPIO &pcfg_pull_none>;
 		};
 	};
 };
