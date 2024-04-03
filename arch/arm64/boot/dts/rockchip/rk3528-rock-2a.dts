@@ -82,7 +82,7 @@
 		regulator-min-microvolt = <5000000>;
 		regulator-max-microvolt = <5000000>;
 		enable-active-high;
-		gpio = <&gpio1 RK_PC1 GPIO_ACTIVE_HIGH>;
+		gpio = <&gpio0 RK_PA1 GPIO_ACTIVE_HIGH>;
 		vin-supply = <&vcc5v0_sys>;
 		pinctrl-names = "default";
 		pinctrl-0 = <&vcc5v0_host_en>;
@@ -133,7 +133,7 @@
 		regulator-name = "vccio_sd";
 		regulator-min-microvolt = <1800000>;
 		regulator-max-microvolt = <3300000>;
-		gpios = <&gpio4 RK_PB6 GPIO_ACTIVE_HIGH>;
+		gpios = <&gpio1 RK_PC1 GPIO_ACTIVE_HIGH>;
 		vin-supply = <&vcc5v0_sys>;
 		states = <1800000 0x0
 			  3300000 0x1>;
@@ -461,7 +461,7 @@
 &pinctrl {
 	usb {
 		vcc5v0_host_en: vcc5v0-host-en {
-			rockchip,pins = <1 RK_PC1 RK_FUNC_GPIO &pcfg_pull_none>;
+			rockchip,pins = <0 RK_PA1 RK_FUNC_GPIO &pcfg_pull_none>;
 		};
 
 		vcc5v0_otg_en: vcc5v0-otg-en {
