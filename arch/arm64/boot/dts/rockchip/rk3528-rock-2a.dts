@@ -85,6 +85,20 @@
 		pinctrl-0 = <&pcie_usb_selection_pin>;
 	};
 
+	vcc_wifibt: vcc-wifibt-regulator {
+		compatible = "regulator-fixed";
+		regulator-name = "vcc_wifibt";
+		regulator-boot-on;
+		regulator-always-on;
+		regulator-min-microvolt = <3300000>;
+		regulator-max-microvolt = <3300000>;
+		enable-active-high;
+		gpio = <&gpio4 RK_PA4 GPIO_ACTIVE_HIGH>;
+		vin-supply = <&vcc_3v3_s3>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&vcc_wifibt_en>;
+	};
+
 	vcc5v0_host: vcc5v0-host-regulator {
 		compatible = "regulator-fixed";
 		regulator-name = "vcc5v0_host";
@@ -481,6 +495,12 @@
 
 		pcie_usb_selection_pin: pcie-usb-selection-pin {
 			rockchip,pins = <4 RK_PA5 RK_FUNC_GPIO &pcfg_pull_none>;
+		};
+	};
+
+	wifi-bt {
+		vcc_wifibt_en: vcc-wifibt-en {
+			rockchip,pins = <4 RK_PA4 RK_FUNC_GPIO &pcfg_pull_none>;
 		};
 	};
 };
