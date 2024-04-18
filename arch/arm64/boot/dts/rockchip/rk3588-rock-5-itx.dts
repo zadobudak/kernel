@@ -537,7 +537,7 @@
 	mmc-hs400-1_8v;
 	mmc-hs400-enhanced-strobe;
 	mmc-hs200-1_8v;
-	status = "okay";
+	status = "disabled";
 };
 
 &sdmmc {
