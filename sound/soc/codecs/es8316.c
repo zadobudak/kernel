@@ -747,8 +747,8 @@ static void es8316_pcm_shutdown(struct snd_pcm_substream *substream,
 	}
 
 	if (--es8316->pwr_count == 0) {
-		if (!es8316->hp_inserted)
-			snd_soc_component_write(component, ES8316_SYS_PDN_REG0D, 0x3F);
+		// if (!es8316->hp_inserted)
+		// 	snd_soc_component_write(component, ES8316_SYS_PDN_REG0D, 0x3F);
 		snd_soc_component_write(component, ES8316_CLKMGR_CLKSW_REG01, 0xF3);
 	}
 }
