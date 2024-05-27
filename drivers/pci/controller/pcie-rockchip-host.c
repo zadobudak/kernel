@@ -366,6 +366,7 @@ static int rockchip_pcie_host_init_port(struct rockchip_pcie *rockchip)
 	rockchip_pcie_write(rockchip, PCIE_CLIENT_LINK_TRAIN_ENABLE,
 			    PCIE_CLIENT_CONFIG);
 
+	msleep(500);
 	gpiod_set_value_cansleep(rockchip->ep_gpio, 1);
 
 	if (rockchip->wait_ep)
@@ -446,6 +447,8 @@ static int rockchip_pcie_host_init_port(struct rockchip_pcie *rockchip)
 	status &= ~PCIE_RC_CONFIG_DCSR_MPS_MASK;
 	status |= PCIE_RC_CONFIG_DCSR_MPS_256;
 	rockchip_pcie_write(rockchip, status, PCIE_RC_CONFIG_DCSR);
+
+	mdelay(500);
 
 	return 0;
 err_power_off_phy:
