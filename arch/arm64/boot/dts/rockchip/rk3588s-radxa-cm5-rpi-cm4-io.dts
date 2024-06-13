@@ -198,13 +198,13 @@
 &soc_thermal {
 	cooling-maps {
 		sustainable-power = <5000>; /* milliwatts */
-		map3 {
+		map4 {
 			trip = <&target>;
 			cooling-device =
 				<&emc2301 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>;
 			contribution = <8192>;
 		};
-		map4 {
+		map5 {
 			trip = <&threshold>;
 			cooling-device =
 				<&emc2301 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>;
