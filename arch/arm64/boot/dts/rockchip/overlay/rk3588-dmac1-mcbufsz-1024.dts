@@ -1,0 +1,13 @@
+/dts-v1/;
+/plugin/;
+
+/ {
+	fragment@0 {
+		target = <&dmac1>;
+
+		__overlay__ {
+			status = "okay";
+			arm,pl330-mcbufsz-bytes = <1024>;
+		};
+	};
+};

@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: GPL-2.0
 dtbo-$(CONFIG_ARCH_ROCKCHIP) += \
+	rk3588-dmac1-mcbufsz-1024.dtbo \
 	rk3588-i2c0-m1.dtbo \
 	rk3588-i2c1-m0.dtbo \
 	rk3588-i2c2-m4.dtbo \
@@ -64,7 +65,7 @@ dtbo-$(CONFIG_ARCH_ROCKCHIP) += \
 	rock-5b-radxa-display-10hd.dtbo \
 	rock-5b-rpi-camera-v2.dtbo \
 	rock-5b-radxa-camera-4k.dtbo \
-	rock-5b-sata.dtbo \
+	rock-5b-sata.dtbo
 
 dtbotxt-$(CONFIG_ARCH_ROCKCHIP) += \
 	README.rockchip-overlays
