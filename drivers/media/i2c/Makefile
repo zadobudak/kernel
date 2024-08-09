@@ -11,6 +11,8 @@ obj-$(CONFIG_VIDEO_NVP6158)	+= nvp6158_drv/
 obj-$(CONFIG_VIDEO_NVP6188)	+= nvp6188.o
 obj-$(CONFIG_VIDEO_NVP6324)	+= jaguar1_drv/
 
+obj-$(CONFIG_VIDEO_VEYECAM2M) += veyecam2m.o
+
 obj-$(CONFIG_VIDEO_APTINA_PLL) += aptina-pll.o
 obj-$(CONFIG_VIDEO_TVAUDIO) += tvaudio.o
 obj-$(CONFIG_VIDEO_TDA7432) += tda7432.o

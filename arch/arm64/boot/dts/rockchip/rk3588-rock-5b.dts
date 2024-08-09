@@ -19,6 +19,7 @@
 #include "rk3588.dtsi"
 #include "rk3588-rk806-single.dtsi"
 #include "rk3588-linux.dtsi"
+#include "rk3588-veyecam2m.dtsi"
 
 / {
 	model = "Radxa ROCK 5B";
@@ -129,7 +130,7 @@
 	};
 
 	es8316_sound: es8316-sound {
-		status = "okay";
+		status = "disabled";
 		compatible = "rockchip,multicodecs-card";
 		rockchip,card-name = "rockchip-es8316";
 		rockchip,format = "i2s";
@@ -174,6 +175,7 @@
 	};
 
 	vcc3v3_pcie2x1l0: vcc3v3-pcie2x1l0 {
+		status = "disabled";
 		compatible = "regulator-fixed";
 		regulator-name = "vcc3v3_pcie2x1l0";
 		regulator-min-microvolt = <3300000>;
@@ -187,6 +189,7 @@
 	};
 
 	vcc3v3_pcie30: vcc3v3-pcie30 {
+		status = "disabled";
 		compatible = "regulator-fixed";
 		regulator-name = "vcc3v3_pcie30";
 		regulator-min-microvolt = <3300000>;
@@ -481,7 +484,7 @@
 };
 
 &saradc {
-	status = "okay";
+	status = "disabled";
 	vref-supply = <&avcc_1v8_s0>;
 };
 
@@ -923,7 +926,7 @@
 &pcie2x1l0 {
 	reset-gpios = <&gpio4 RK_PA5 GPIO_ACTIVE_HIGH>;
 	vpcie3v3-supply = <&vcc3v3_pcie2x1l0>;
-	status = "okay";
+	status = "disabled";
 };
 
 &combphy1_ps {
@@ -931,19 +934,24 @@
 };
 
 &pcie30phy {
-	status = "okay";
+	status = "disabled";
 };
 
 &pcie3x4 {
 	reset-gpios = <&gpio4 RK_PB6 GPIO_ACTIVE_HIGH>;
 	vpcie3v3-supply = <&vcc3v3_pcie30>;
-	status = "okay";
+	status = "disabled";
 };
 
 &pwm1 {
 	pinctrl-names = "active";
 	pinctrl-0 = <&pwm1m0_pins>;
 	status = "okay";
+	
+	bme280: bme280@76 {
+		compatible = "bosch,bme280";
+		reg = <0x76>;
+	};
 };
 
 &threshold {
@@ -997,12 +1005,12 @@
 		pinctrl-names = "default";
 		pinctrl-0 = <&i2s0_mclk>;
 		#sound-dai-cells = <0>;
-		status = "okay";
+		status = "disabled";
 	};
 };
 
 &i2s0_8ch {
-	status = "okay";
+	status = "disabled";
 	rockchip,playback-channels = <2>;
 	rockchip,capture-channels = <2>;
 	#sound-dai-cells = <0>;
